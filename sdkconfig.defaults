@@ -1,0 +1,11 @@
+# Settings that differ from the ESP-IDF defaults. The first build generates
+# sdkconfig from this file; change settings here, not in sdkconfig.
+
+# The chip-package tool (main/src/tools/esp_esp32.cpp) knows the ESP32 only.
+CONFIG_IDF_TARGET="esp32"
+
+# Coloured log output in the monitor (off by default since ESP-IDF 6.0).
+CONFIG_LOG_COLORS=y
+
+# Flash size stays at the ESP-IDF default of 2 MB, which fits every ESP32
+# module; for a board with 4 MB add CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y.
