@@ -1,6 +1,6 @@
 #!/bin/bash
 
-### Console colors.
+### Цвета консоли.
 
 ECHO_ESCAPE=" -e "
 
@@ -30,7 +30,7 @@ TEXT_BG_MAGENTA="[45m"
 TEXT_BG_CYAN="[46m"
 TEXT_BG_GRAY="[47m"
 
-TEXT_NORM="[0m" # Back to normal text
+TEXT_NORM="[0m" # Возврат к обычному тексту
 
 TT_MSG_PREFIX="$TEXT_BG_GREEN$TEXT_FG_YELLOW esp> $TEXT_NORM"
 
@@ -57,6 +57,7 @@ _completed()
     echo
 }
 
+# Выполняет команду; при ошибке сообщает о неудаче и завершает сценарий.
 _ex()
 {
     echo $@
@@ -71,6 +72,9 @@ _banner
 
 export TT_OS=`uname -s | tr '[:upper:]' '[:lower:]'`
 
+# Режимы из аргументов: release, verbose, single. Они выводятся в строке
+# BUILD MODE, но idf.py их не получает: это остаток сборки через cmake и
+# make, закомментированной ниже.
 echo $@ | grep -- 'release' > /dev/null 2>&1
 if [ "$?" -eq "0" ]; then
     CMAKE_BUILD_TYPE=Release
@@ -110,6 +114,7 @@ echo
 
 # _ex idf.py set-target esp32
 # _ex idf.py menuconfig
+# Окружение ESP-IDF должно быть загружено заранее: . <путь к ESP-IDF>/export.sh
 _ex idf.py build
 # _ex idf.py -p /dev/ttyUSB0 flash
 

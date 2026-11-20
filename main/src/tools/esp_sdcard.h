@@ -24,18 +24,26 @@ public:
 
 private:
 
+    /** @brief Точка монтирования файловой системы в VFS. */
     const char *_mount_point;
+
+    /** @brief Описание карты от драйвера SD/MMC; @c nullptr, если карта не смонтирована. */
     sdmmc_card_t *_card;
+
+    /** @brief Контроллер SPI, на котором смонтирована карта; -1, если карта не смонтирована. */
     int _slot;
 };
 
 }
 
 
-// Implementation
+// Реализация
 
-// Public
+// Открытые
 
+/**
+ * @brief Создаёт объект; карта при этом не монтируется.
+ */
 esp::sd_card::sd_card()
     : _mount_point("/sdcard")
     , _card(nullptr)
@@ -43,16 +51,27 @@ esp::sd_card::sd_card()
 {
 }
 
+/**
+ * @brief Отмонтирует карту, если она смонтирована.
+ */
 esp::sd_card::~sd_card()
 {
     umount();
 }
 
+/**
+ * @brief Проверяет, смонтирована ли карта.
+ * @return @c true, если карта смонтирована.
+ */
 bool esp::sd_card::mounted() const
 {
     return _card;
 }
 
+/**
+ * @brief Возвращает точку монтирования.
+ * @return Путь, по которому файловая система карты видна в VFS: «/sdcard».
+ */
 const char *esp::sd_card::mount_point() const
 {
     return _mount_point;

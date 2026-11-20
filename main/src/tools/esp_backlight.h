@@ -6,7 +6,6 @@
 namespace esp
 {
 
-/// Display backlight switched by a GPIO (on = high). Off after construction.
 class backlight
 {
 
@@ -22,15 +21,22 @@ private:
 
     void set(bool on);
 
+    /** @brief Вывод управления подсветкой. */
     gpio_num_t _gpio;
+
+    /** @brief Текущее состояние подсветки: @c true — включена. */
     bool _on;
 };
 
 }
 
 
-// Implementation
+// Реализация
 
+/**
+ * @brief Проверяет, включена ли подсветка.
+ * @return @c true, если подсветка включена.
+ */
 bool esp::backlight::is_on() const
 {
     return _on;

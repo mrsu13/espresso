@@ -1,3 +1,9 @@
+# Макросы, которые составляют списки каталогов компонента ESP-IDF по
+# дереву файлов. Списки строятся, когда CMake настраивает проект, поэтому
+# после добавления файлов нужно выполнить idf.py reconfigure.
+
+# esp_inc_dirs(root return_list): каталог root и все его непустые
+# подкаталоги — для параметра INCLUDE_DIRS.
 macro(esp_inc_dirs root return_list)
     unset(file_list)
     unset(dir_list)
@@ -14,6 +20,8 @@ macro(esp_inc_dirs root return_list)
     set(${return_list} ${dir_list})
 endmacro()
 
+# esp_src_dirs(root return_list): каталоги внутри root, в которых есть
+# файлы .c, .cpp или .cxx, — для параметра SRC_DIRS.
 macro(esp_src_dirs root return_list)
     unset(file_list)
     unset(dir_list)

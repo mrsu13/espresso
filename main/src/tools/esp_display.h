@@ -10,26 +10,26 @@
 namespace esp
 {
 
-/// ST7789V display of the TTGO T-Display: 135 x 240 pixels in portrait
-/// orientation, on SPI through esp_lcd. The backlight is separate
-/// (esp::backlight on GPIO4).
 class display
 {
 
 public:
 
+    /** @brief Ширина экрана в точках. */
     static constexpr int WIDTH = 135;
+
+    /** @brief Высота экрана в точках. */
     static constexpr int HEIGHT = 240;
 
-    /// RGB565 colours.
+    /** @brief Чёрный цвет в формате RGB565. */
     static constexpr std::uint16_t BLACK = 0x0000;
+
+    /** @brief Белый цвет в формате RGB565. */
     static constexpr std::uint16_t WHITE = 0xFFFF;
 
     display();
     ~display();
 
-    /// Fills the whole screen with an RGB565 colour; returns when the
-    /// data has been sent.
     bool fill(std::uint16_t color);
 
     inline bool ready() const;
@@ -39,18 +39,31 @@ private:
     bool init();
     void release();
 
+    /** @brief Интерфейс панели: передача команд и данных по SPI. */
     esp_lcd_panel_io_handle_t _io;
+
+    /** @brief Панель ST7789; @c nullptr, если инициализация не удалась. */
     esp_lcd_panel_handle_t _panel;
-    SemaphoreHandle_t _sent; ///< Given once per finished band transfer.
-    std::uint16_t *_band; ///< DMA buffer for one band of lines.
+
+    /** @brief Счётный семафор: отдаётся по окончании передачи каждой полосы. */
+    SemaphoreHandle_t _sent;
+
+    /** @brief Буфер DMA для одной полосы строк. */
+    std::uint16_t *_band;
+
+    /** @brief @c true, если шину SPI инициализировал этот объект. */
     bool _bus;
 };
 
 }
 
 
-// Implementation
+// Реализация
 
+/**
+ * @brief Проверяет, инициализирован ли дисплей.
+ * @return @c true, если дисплей готов к работе.
+ */
 bool esp::display::ready() const
 {
     return _panel;

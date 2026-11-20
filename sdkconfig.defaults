@@ -1,11 +1,15 @@
-# Settings that differ from the ESP-IDF defaults. The first build generates
-# sdkconfig from this file; change settings here, not in sdkconfig.
+# Настройки, которые отличаются от значений ESP-IDF по умолчанию. Первая
+# сборка создаёт по этому файлу sdkconfig; настройки меняют здесь, а не
+# в sdkconfig.
 
-# The chip-package tool (main/src/tools/esp_esp32.cpp) knows the ESP32 only.
+# Определение корпуса чипа (main/src/tools/esp_esp32.cpp) знает только ESP32.
 CONFIG_IDF_TARGET="esp32"
 
-# Coloured log output in the monitor (off by default since ESP-IDF 6.0).
+# Цветной журнал в мониторе (с ESP-IDF 6.0 по умолчанию выключен).
 CONFIG_LOG_COLORS=y
 
-# Flash size stays at the ESP-IDF default of 2 MB, which fits every ESP32
-# module; for a board with 4 MB add CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y.
+# Объём флеш-памяти остаётся по умолчанию ESP-IDF, 2 МБ: так прошивка
+# подходит любому модулю ESP32. Настоящий объём выводится в сведениях о
+# плате при запуске. Для платы с 16 МБ нужна строка
+# с CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y, для платы с 4 МБ — строка
+# с CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y.

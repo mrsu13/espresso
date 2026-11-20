@@ -1,3 +1,13 @@
+/**
+ * @file esp_app.h
+ * @brief Объявление класса приложения esp::app.
+ */
+
+/**
+ * @file esp_app.cpp
+ * @brief Приложение: сведения о плате при запуске и управление экраном кнопками.
+ */
+
 #include "esp_app.h"
 
 #include "esp_esp32.h"
@@ -20,59 +30,101 @@
 #include <type_traits>
 
 
+/**
+ * @class esp::app
+ * @brief Приложение прошивки для платы LilyGO TTGO T-Display.
+ *
+ * При создании настраивает подсветку, дисплей и кнопки, гасит экран и
+ * выводит в консоль сведения о плате. Затем exec() в бесконечном цикле
+ * вызывает dispatch(), которая опрашивает кнопки: каждое нажатие любой
+ * из них включает или выключает экран (см. toggle_screen()).
+ */
+
+
 namespace
 {
 
+/** @brief Тег журнала модуля. */
 const char *const TAG = "app";
 
-// Modules whose debug output is shown in builds with assertions enabled.
+/**
+ * @brief Модули, отладочные сообщения которых выводятся в сборках
+ *        с включёнными проверками (без NDEBUG).
+ */
 const char *const DEBUG_TAGS[] = {"app", "backlight", "button", "display", "sdcard"};
 
-// TTGO T-Display: display backlight (on = high) and the two buttons;
-// with the USB socket down, GPIO0 (BOOT) is on the left, GPIO35 on the right.
+/** @brief Вывод подсветки дисплея T-Display: высокий уровень включает подсветку. */
 constexpr gpio_num_t BACKLIGHT_GPIO = GPIO_NUM_4;
+
+/** @brief Левая кнопка T-Display (BOOT), если разъём USB смотрит вниз. */
 constexpr gpio_num_t BUTTON_LEFT_GPIO = GPIO_NUM_0;
+
+/** @brief Правая кнопка T-Display, если разъём USB смотрит вниз. */
 constexpr gpio_num_t BUTTON_RIGHT_GPIO = GPIO_NUM_35;
 
-// Button polling period; a press must hold for a few periods (debouncing).
+/**
+ * @brief Период опроса кнопок, мс.
+ *
+ * Нажатие засчитывается, когда уровень держится несколько периодов подряд
+ * (подавление дребезга, см. esp::button::pressed()).
+ */
 constexpr int POLL_PERIOD_MS = 10;
 
-// Pin probe, temporary: finds out which pin drives the backlight on this
-// board. The left button toggles GPIO4, the right one GPIO14 (both start
-// low), and every raw level change of the button pins is printed. Set
-// PIN_PROBE to false for the normal behaviour: either button toggles the
-// screen.
+/**
+ * @brief Включает временный режим поиска вывода подсветки.
+ *
+ * В этом режиме левая кнопка переключает GPIO4, правая — GPIO14 (вначале
+ * на обоих низкий уровень), а каждое изменение уровня на выводах кнопок
+ * выводится в журнал. При @c false кнопки включают и выключают экран.
+ */
 constexpr bool PIN_PROBE = false;
-constexpr gpio_num_t PROBE_GPIOS[] = {GPIO_NUM_4, GPIO_NUM_14}; // Per button: left, right.
 
+/** @brief Проверяемые выводы, по одному на кнопку: для левой и для правой. */
+constexpr gpio_num_t PROBE_GPIOS[] = {GPIO_NUM_4, GPIO_NUM_14};
+
+/** @brief Состояние режима поиска вывода. */
 struct probe_state
 {
-    int raw[std::size(PROBE_GPIOS)]; // Last raw level of each button pin.
-    int out[std::size(PROBE_GPIOS)]; // Current level of each probed pin.
+    /** @brief Последний прочитанный уровень на выводе каждой кнопки. */
+    int raw[std::size(PROBE_GPIOS)];
+
+    /** @brief Текущий уровень на каждом проверяемом выводе. */
+    int out[std::size(PROBE_GPIOS)];
 };
 
+/** @brief Состояние режима поиска вывода; приложение существует в одном экземпляре. */
 probe_state probe = {};
 
 }
 
 
-// Public
+// Открытые
 
+/**
+ * @brief Создаёт приложение.
+ *
+ * Конструкторы членов настраивают выводы подсветки и кнопок и
+ * инициализируют дисплей. Затем экран заливается чёрным при выключенной
+ * подсветке, и в консоль выводятся сведения о плате (см. hello()).
+ */
 esp::app::app()
     : _backlight(BACKLIGHT_GPIO)
     , _buttons{button(BUTTON_LEFT_GPIO, "Left"), button(BUTTON_RIGHT_GPIO, "Right")}
 {
 #ifndef NDEBUG
+    // Вызовы ESP_LOGD модуля main компилируются всегда (LOG_LOCAL_LEVEL в
+    // main/CMakeLists.txt), а выводятся только здесь, в сборках с
+    // проверками; уровень журнала компонентов ESP-IDF не меняется.
     for (const char *tag : DEBUG_TAGS)
         esp_log_level_set(tag, ESP_LOG_DEBUG);
 #endif
 
-    // The T-Display has no SD card slot, and the mount attempt drives
-    // GPIO14 and GPIO16 (the display's data/command line).
+    // На T-Display нет слота для карты памяти, а попытка монтирования
+    // задействует GPIO14 и GPIO16 (линию данных и команд дисплея).
     // if (!_sd_card.mount())
     //     ESP_LOGW(TAG, "No SD card.");
 
-    // The screen starts off: black, with the backlight off.
+    // При запуске экран выключен: залит чёрным, подсветка погашена.
     if (!_display.fill(display::BLACK))
         ESP_LOGW(TAG, "No display.");
 
@@ -85,11 +137,12 @@ esp::app::app()
         static_assert(std::extent_v<decltype(_buttons)> == std::size(PROBE_GPIOS),
                       "one probed pin per button");
 
+        // Оба проверяемых вывода — выходы с низким уровнем.
         for (const gpio_num_t gpio : PROBE_GPIOS)
         {
             gpio_set_level(gpio, 0);
             if (gpio == BACKLIGHT_GPIO)
-                continue; // Already an output, set up by _backlight.
+                continue; // Уже настроен как выход объектом _backlight.
 
             gpio_config_t config = {};
             config.pin_bit_mask = 1ULL << gpio;
@@ -112,13 +165,27 @@ esp::app::app()
     ESP_LOGD(TAG, "Application initialized.");
 }
 
+/**
+ * @brief Завершает работу приложения.
+ *
+ * На практике не вызывается: exec() не возвращает управление.
+ */
 esp::app::~app()
 {
     ESP_LOGD(TAG, "Application finished.");
 }
 
+/**
+ * @brief Выполняет один шаг основного цикла.
+ *
+ * Ждёт период POLL_PERIOD_MS и опрашивает кнопки. Нажатие любой кнопки
+ * включает или выключает экран, а в режиме поиска вывода (PIN_PROBE)
+ * переключает уровень на проверяемом выводе этой кнопки.
+ */
 void esp::app::dispatch()
 {
+    // Задержка задаёт период опроса и отдаёт процессор другим задачам,
+    // в том числе задаче простоя, за которой следит сторожевой таймер.
     vTaskDelay(pdMS_TO_TICKS(POLL_PERIOD_MS));
 
     for (size_t i = 0; i < std::size(_buttons); ++i)
@@ -127,6 +194,8 @@ void esp::app::dispatch()
 
         if (PIN_PROBE)
         {
+            // Уровень читается до подавления дребезга: в журнале виден
+            // и сам дребезг.
             const int raw = gpio_get_level(b.gpio());
             if (raw != probe.raw[i])
             {
@@ -152,6 +221,11 @@ void esp::app::dispatch()
     }
 }
 
+/**
+ * @brief Запускает основной цикл приложения.
+ *
+ * Не возвращает управление.
+ */
 void esp::app::exec()
 {
     while (true)
@@ -159,12 +233,19 @@ void esp::app::exec()
 }
 
 
-// Private
+// Закрытые
 
-// A press of either button switches the screen on (white, backlight on)
-// or off (black, backlight off).
+/**
+ * @brief Включает или выключает экран.
+ *
+ * Включение: экран заливается белым, затем зажигается подсветка.
+ * Выключение: подсветка гаснет, затем экран заливается чёрным.
+ */
 void esp::app::toggle_screen()
 {
+    // Заливка всегда идёт при погашенной подсветке, поэтому смена
+    // изображения не видна. Без подсветки ЖК-матрица всё равно слабо
+    // показывает содержимое памяти, поэтому выключенный экран — чёрный.
     if (_backlight.is_on())
     {
         _backlight.off();
@@ -177,8 +258,18 @@ void esp::app::toggle_screen()
     }
 }
 
+/**
+ * @brief Выводит в консоль заставку со сведениями о плате.
+ *
+ * Слева — чашка кофе с надписью «Espresso», справа — версия прошивки,
+ * корпус и ревизия чипа, число ядер, радиоинтерфейсы, объём флеш-памяти
+ * и PSRAM, общий и свободный объём памяти, карта памяти, MAC-адрес и
+ * версия ESP-IDF.
+ */
 void esp::app::hello()
 {
+    // Строка формата для printf: каждая строка — кусок рисунка и одно
+    // поле сведений.
     static const char *const BANNER_FMT =
 R"(                         Version ........... %s
         (  (             Chip .............. %s
@@ -197,11 +288,14 @@ R"(                         Version ........... %s
     esp_chip_info_t info;
     esp_chip_info(&info);
 
+    // Корпус известен только для ESP32; для других чипов выводится имя
+    // цели сборки.
     const esp::ChipPackage package = esp::chip_package();
     const char *const chip = package == esp::ChipPackage::Unknown
         ? CONFIG_IDF_TARGET
         : esp::chip_package_name(package);
 
+    // Радиоинтерфейсы — по флагам возможностей чипа.
     std::string wireless;
     {
         const struct
@@ -230,6 +324,7 @@ R"(                         Version ........... %s
             wireless = "none";
     }
 
+    // Объём самой микросхемы флеш-памяти, а не размер из настроек проекта.
     char flash[48];
     {
         std::uint32_t size = 0;
@@ -241,6 +336,8 @@ R"(                         Version ........... %s
             std::snprintf(flash, sizeof(flash), "%s", "unknown");
     }
 
+    // PSRAM, подключённая к куче; ноль, если её поддержка выключена в
+    // настройках, даже когда микросхема есть.
     char psram[48];
     {
         const size_t size = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
@@ -260,11 +357,14 @@ R"(                         Version ........... %s
             std::snprintf(sdcard, sizeof(sdcard), "%s", "No SD card");
     }
 
+    // Заводской MAC-адрес из eFuse; в QEMU он нулевой.
     std::uint8_t mac[6] = {};
     esp_efuse_mac_get_default(mac);
 
     const esp_app_desc_t *const desc = esp_app_get_description();
 
+    // Ревизия в esp_chip_info_t записана как MXX: 301 означает v3.1.
+    // Память — куча с 32-битным доступом, включая IRAM.
     std::printf(BANNER_FMT,
                 desc->version,
                 chip,
