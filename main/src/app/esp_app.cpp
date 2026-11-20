@@ -42,7 +42,7 @@ constexpr int POLL_PERIOD_MS = 10;
 
 esp::app::app()
     : _backlight(BACKLIGHT_GPIO)
-    , _buttons{button(BUTTON_LEFT_GPIO), button(BUTTON_RIGHT_GPIO)}
+    , _buttons{button(BUTTON_LEFT_GPIO, "Left"), button(BUTTON_RIGHT_GPIO, "Right")}
 {
 #ifndef NDEBUG
     for (const char *tag : DEBUG_TAGS)

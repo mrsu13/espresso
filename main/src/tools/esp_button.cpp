@@ -14,8 +14,9 @@ const char *const TAG = "button";
 
 // Public
 
-esp::button::button(gpio_num_t gpio)
+esp::button::button(gpio_num_t gpio, const char *name)
     : _gpio(gpio)
+    , _name(name)
     , _down(false)
     , _count(0)
 {
@@ -53,7 +54,7 @@ bool esp::button::pressed()
     _down = down;
     _count = 0;
 
-    ESP_LOGD(TAG, "GPIO%d %s.", (int)_gpio, down ? "pressed" : "released");
+    ESP_LOGI(TAG, "%s button (GPIO%d) %s.", _name, (int)_gpio, down ? "pressed" : "released");
 
     return down;
 }
