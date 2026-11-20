@@ -26,7 +26,7 @@ namespace
 const char *const TAG = "app";
 
 // Modules whose debug output is shown in builds with assertions enabled.
-const char *const DEBUG_TAGS[] = {"app", "backlight", "button", "sdcard"};
+const char *const DEBUG_TAGS[] = {"app", "backlight", "button", "display", "sdcard"};
 
 // TTGO T-Display: display backlight (on = high) and the two buttons;
 // with the USB socket down, GPIO0 (BOOT) is on the left, GPIO35 on the right.
@@ -42,7 +42,7 @@ constexpr int POLL_PERIOD_MS = 10;
 // low), and every raw level change of the button pins is printed. Set
 // PIN_PROBE to false for the normal behaviour: either button turns the
 // backlight on.
-constexpr bool PIN_PROBE = true;
+constexpr bool PIN_PROBE = false;
 constexpr gpio_num_t PROBE_GPIOS[] = {GPIO_NUM_4, GPIO_NUM_14}; // Per button: left, right.
 
 struct probe_state
@@ -71,6 +71,10 @@ esp::app::app()
     // GPIO14 and GPIO16 (the display's data/command line).
     // if (!_sd_card.mount())
     //     ESP_LOGW(TAG, "No SD card.");
+
+    // White screen, so that the backlight switching on is easy to see.
+    if (!_display.fill(display::WHITE))
+        ESP_LOGW(TAG, "No display.");
 
     hello();
 
