@@ -40,8 +40,8 @@ constexpr int POLL_PERIOD_MS = 10;
 // Pin probe, temporary: finds out which pin drives the backlight on this
 // board. The left button toggles GPIO4, the right one GPIO14 (both start
 // low), and every raw level change of the button pins is printed. Set
-// PIN_PROBE to false for the normal behaviour: either button turns the
-// backlight on.
+// PIN_PROBE to false for the normal behaviour: either button toggles the
+// screen.
 constexpr bool PIN_PROBE = false;
 constexpr gpio_num_t PROBE_GPIOS[] = {GPIO_NUM_4, GPIO_NUM_14}; // Per button: left, right.
 
@@ -72,8 +72,8 @@ esp::app::app()
     // if (!_sd_card.mount())
     //     ESP_LOGW(TAG, "No SD card.");
 
-    // White screen, so that the backlight switching on is easy to see.
-    if (!_display.fill(display::WHITE))
+    // The screen starts off: black, with the backlight off.
+    if (!_display.fill(display::BLACK))
         ESP_LOGW(TAG, "No display.");
 
     hello();
@@ -147,8 +147,7 @@ void esp::app::dispatch()
         }
         else
         {
-            // A press of either button turns the screen light on.
-            _backlight.on();
+            toggle_screen();
         }
     }
 }
@@ -161,6 +160,22 @@ void esp::app::exec()
 
 
 // Private
+
+// A press of either button switches the screen on (white, backlight on)
+// or off (black, backlight off).
+void esp::app::toggle_screen()
+{
+    if (_backlight.is_on())
+    {
+        _backlight.off();
+        _display.fill(display::BLACK);
+    }
+    else
+    {
+        _display.fill(display::WHITE);
+        _backlight.on();
+    }
+}
 
 void esp::app::hello()
 {

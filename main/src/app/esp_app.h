@@ -23,6 +23,7 @@ public:
 private:
 
     void hello();
+    void toggle_screen();
 
     sd_card _sd_card;
     backlight _backlight;
