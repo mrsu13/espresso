@@ -15,7 +15,9 @@
 
 #include <cinttypes>
 #include <cstdio>
+#include <iterator>
 #include <string>
+#include <type_traits>
 
 
 namespace
@@ -34,6 +36,22 @@ constexpr gpio_num_t BUTTON_RIGHT_GPIO = GPIO_NUM_35;
 
 // Button polling period; a press must hold for a few periods (debouncing).
 constexpr int POLL_PERIOD_MS = 10;
+
+// Pin probe, temporary: finds out which pin drives the backlight on this
+// board. The left button toggles GPIO4, the right one GPIO14 (both start
+// low), and every raw level change of the button pins is printed. Set
+// PIN_PROBE to false for the normal behaviour: either button turns the
+// backlight on.
+constexpr bool PIN_PROBE = true;
+constexpr gpio_num_t PROBE_GPIOS[] = {GPIO_NUM_4, GPIO_NUM_14}; // Per button: left, right.
+
+struct probe_state
+{
+    int raw[std::size(PROBE_GPIOS)]; // Last raw level of each button pin.
+    int out[std::size(PROBE_GPIOS)]; // Current level of each probed pin.
+};
+
+probe_state probe = {};
 
 }
 
@@ -58,6 +76,35 @@ esp::app::app()
 
     ESP_LOGD(TAG, "Pins: backlight GPIO%d, buttons GPIO%d and GPIO%d.",
              (int)BACKLIGHT_GPIO, (int)BUTTON_LEFT_GPIO, (int)BUTTON_RIGHT_GPIO);
+    if (PIN_PROBE)
+    {
+        static_assert(std::extent_v<decltype(_buttons)> == std::size(PROBE_GPIOS),
+                      "one probed pin per button");
+
+        for (const gpio_num_t gpio : PROBE_GPIOS)
+        {
+            gpio_set_level(gpio, 0);
+            if (gpio == BACKLIGHT_GPIO)
+                continue; // Already an output, set up by _backlight.
+
+            gpio_config_t config = {};
+            config.pin_bit_mask = 1ULL << gpio;
+            config.mode = GPIO_MODE_OUTPUT;
+            config.pull_up_en = GPIO_PULLUP_DISABLE;
+            config.pull_down_en = GPIO_PULLDOWN_DISABLE;
+            config.intr_type = GPIO_INTR_DISABLE;
+            ESP_ERROR_CHECK(gpio_config(&config));
+        }
+
+        for (size_t i = 0; i < std::size(_buttons); ++i)
+            probe.raw[i] = gpio_get_level(_buttons[i].gpio());
+
+        ESP_LOGI(TAG, "Pin probe: the left button toggles GPIO%d, the right one GPIO%d; both are low now.",
+                 (int)PROBE_GPIOS[0], (int)PROBE_GPIOS[1]);
+        ESP_LOGI(TAG, "Raw levels: GPIO%d = %d, GPIO%d = %d.",
+                 (int)_buttons[0].gpio(), probe.raw[0], (int)_buttons[1].gpio(), probe.raw[1]);
+    }
+
     ESP_LOGD(TAG, "Application initialized.");
 }
 
@@ -70,11 +117,35 @@ void esp::app::dispatch()
 {
     vTaskDelay(pdMS_TO_TICKS(POLL_PERIOD_MS));
 
-    // A press of either button turns the screen light on.
-    for (button &b : _buttons)
+    for (size_t i = 0; i < std::size(_buttons); ++i)
     {
-        if (b.pressed())
+        button &b = _buttons[i];
+
+        if (PIN_PROBE)
+        {
+            const int raw = gpio_get_level(b.gpio());
+            if (raw != probe.raw[i])
+            {
+                probe.raw[i] = raw;
+                ESP_LOGI(TAG, "Raw: GPIO%d = %d.", (int)b.gpio(), raw);
+            }
+        }
+
+        if (!b.pressed())
+            continue;
+
+        if (PIN_PROBE)
+        {
+            probe.out[i] = !probe.out[i];
+            gpio_set_level(PROBE_GPIOS[i], probe.out[i]);
+            ESP_LOGI(TAG, "%s button: GPIO%d is now %s; watch the screen.",
+                     b.name(), (int)PROBE_GPIOS[i], probe.out[i] ? "high" : "low");
+        }
+        else
+        {
+            // A press of either button turns the screen light on.
             _backlight.on();
+        }
     }
 }
 
