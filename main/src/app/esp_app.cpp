@@ -49,8 +49,10 @@ esp::app::app()
         esp_log_level_set(tag, ESP_LOG_DEBUG);
 #endif
 
-    if (!_sd_card.mount())
-        ESP_LOGW(TAG, "No SD card.");
+    // The T-Display has no SD card slot, and the mount attempt drives
+    // GPIO14 and GPIO16 (the display's data/command line).
+    // if (!_sd_card.mount())
+    //     ESP_LOGW(TAG, "No SD card.");
 
     hello();
 
