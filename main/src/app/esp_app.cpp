@@ -24,7 +24,16 @@ namespace
 const char *const TAG = "app";
 
 // Modules whose debug output is shown in builds with assertions enabled.
-const char *const DEBUG_TAGS[] = {"app", "sdcard"};
+const char *const DEBUG_TAGS[] = {"app", "backlight", "button", "sdcard"};
+
+// TTGO T-Display: display backlight (on = high) and the two buttons;
+// with the USB socket down, GPIO0 (BOOT) is on the left, GPIO35 on the right.
+constexpr gpio_num_t BACKLIGHT_GPIO = GPIO_NUM_4;
+constexpr gpio_num_t BUTTON_LEFT_GPIO = GPIO_NUM_0;
+constexpr gpio_num_t BUTTON_RIGHT_GPIO = GPIO_NUM_35;
+
+// Button polling period; a press must hold for a few periods (debouncing).
+constexpr int POLL_PERIOD_MS = 10;
 
 }
 
@@ -32,6 +41,8 @@ const char *const DEBUG_TAGS[] = {"app", "sdcard"};
 // Public
 
 esp::app::app()
+    : _backlight(BACKLIGHT_GPIO)
+    , _buttons{button(BUTTON_LEFT_GPIO), button(BUTTON_RIGHT_GPIO)}
 {
 #ifndef NDEBUG
     for (const char *tag : DEBUG_TAGS)
@@ -43,6 +54,8 @@ esp::app::app()
 
     hello();
 
+    ESP_LOGD(TAG, "Pins: backlight GPIO%d, buttons GPIO%d and GPIO%d.",
+             (int)BACKLIGHT_GPIO, (int)BUTTON_LEFT_GPIO, (int)BUTTON_RIGHT_GPIO);
     ESP_LOGD(TAG, "Application initialized.");
 }
 
@@ -53,7 +66,14 @@ esp::app::~app()
 
 void esp::app::dispatch()
 {
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(POLL_PERIOD_MS));
+
+    // A press of either button turns the screen light on.
+    for (button &b : _buttons)
+    {
+        if (b.pressed())
+            _backlight.on();
+    }
 }
 
 void esp::app::exec()
