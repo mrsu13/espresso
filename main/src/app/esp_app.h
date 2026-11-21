@@ -1,8 +1,7 @@
 #pragma once
 
-#include "esp_backlight.h"
 #include "esp_button.h"
-#include "esp_display.h"
+#include "esp_fabgl_test.h"
 #include "esp_sdcard.h"
 
 
@@ -23,19 +22,15 @@ public:
 private:
 
     void hello();
-    void toggle_screen();
 
-    /** @brief Карта памяти. На T-Display слота для неё нет, поэтому она не монтируется. */
+    /** @brief Карта памяти. Слот на плате есть, но карта пока не монтируется. */
     sd_card _sd_card;
 
-    /** @brief Подсветка дисплея (GPIO4). */
-    backlight _backlight;
+    /** @brief Кнопка K1 (GPIO36), единственная пользовательская кнопка платы. */
+    button _button;
 
-    /** @brief Дисплей ST7789. */
-    display _display;
-
-    /** @brief Кнопки: левая (GPIO0) и правая (GPIO35). */
-    button _buttons[2];
+    /** @brief Проверка FabGL: VGA, клавиатура и мышь PS/2, звук. */
+    fabgl_test _test;
 };
 
 }

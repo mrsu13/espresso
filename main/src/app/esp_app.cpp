@@ -5,7 +5,7 @@
 
 /**
  * @file esp_app.cpp
- * @brief Приложение: сведения о плате при запуске и управление экраном кнопками.
+ * @brief Приложение: сведения о плате при запуске и проверка FabGL.
  */
 
 #include "esp_app.h"
@@ -25,19 +25,18 @@
 
 #include <cinttypes>
 #include <cstdio>
-#include <iterator>
 #include <string>
-#include <type_traits>
 
 
 /**
  * @class esp::app
- * @brief Приложение прошивки для платы LilyGO TTGO T-Display.
+ * @brief Приложение прошивки для платы LilyGO TTGO VGA32 v1.4.
  *
- * При создании настраивает подсветку, дисплей и кнопки, гасит экран и
- * выводит в консоль сведения о плате. Затем exec() в бесконечном цикле
- * вызывает dispatch(), которая опрашивает кнопки: каждое нажатие любой
- * из них включает или выключает экран (см. toggle_screen()).
+ * При создании настраивает кнопку K1, запускает проверку FabGL
+ * (esp::fabgl_test: VGA, клавиатура и мышь PS/2, звук) и выводит в
+ * консоль сведения о плате. Затем exec() в бесконечном цикле вызывает
+ * dispatch(), которая опрашивает кнопку и передаёт проверке события
+ * клавиатуры и мыши.
  */
 
 
@@ -51,49 +50,23 @@ const char *const TAG = "app";
  * @brief Модули, отладочные сообщения которых выводятся в сборках
  *        с включёнными проверками (без NDEBUG).
  */
-const char *const DEBUG_TAGS[] = {"app", "backlight", "button", "display", "sdcard"};
-
-/** @brief Вывод подсветки дисплея T-Display: высокий уровень включает подсветку. */
-constexpr gpio_num_t BACKLIGHT_GPIO = GPIO_NUM_4;
-
-/** @brief Левая кнопка T-Display (BOOT), если разъём USB смотрит вниз. */
-constexpr gpio_num_t BUTTON_LEFT_GPIO = GPIO_NUM_0;
-
-/** @brief Правая кнопка T-Display, если разъём USB смотрит вниз. */
-constexpr gpio_num_t BUTTON_RIGHT_GPIO = GPIO_NUM_35;
+const char *const DEBUG_TAGS[] = {"app", "button", "sdcard", "test"};
 
 /**
- * @brief Период опроса кнопок, мс.
+ * @brief Кнопка K1 платы TTGO VGA32 v1.4.
  *
- * Нажатие засчитывается, когда уровень держится несколько периодов подряд
- * (подавление дребезга, см. esp::button::pressed()).
+ * Вывод только на вход, с внешней подтяжкой к питанию (10 кОм): нажатая
+ * кнопка замыкает его на землю. Вторая кнопка платы, K2, — сброс.
+ */
+constexpr gpio_num_t BUTTON_GPIO = GPIO_NUM_36;
+
+/**
+ * @brief Период опроса кнопки, клавиатуры и мыши, мс.
+ *
+ * Нажатие кнопки засчитывается, когда уровень держится несколько периодов
+ * подряд (подавление дребезга, см. esp::button::pressed()).
  */
 constexpr int POLL_PERIOD_MS = 10;
-
-/**
- * @brief Включает временный режим поиска вывода подсветки.
- *
- * В этом режиме левая кнопка переключает GPIO4, правая — GPIO14 (вначале
- * на обоих низкий уровень), а каждое изменение уровня на выводах кнопок
- * выводится в журнал. При @c false кнопки включают и выключают экран.
- */
-constexpr bool PIN_PROBE = false;
-
-/** @brief Проверяемые выводы, по одному на кнопку: для левой и для правой. */
-constexpr gpio_num_t PROBE_GPIOS[] = {GPIO_NUM_4, GPIO_NUM_14};
-
-/** @brief Состояние режима поиска вывода. */
-struct probe_state
-{
-    /** @brief Последний прочитанный уровень на выводе каждой кнопки. */
-    int raw[std::size(PROBE_GPIOS)];
-
-    /** @brief Текущий уровень на каждом проверяемом выводе. */
-    int out[std::size(PROBE_GPIOS)];
-};
-
-/** @brief Состояние режима поиска вывода; приложение существует в одном экземпляре. */
-probe_state probe = {};
 
 }
 
@@ -103,13 +76,13 @@ probe_state probe = {};
 /**
  * @brief Создаёт приложение.
  *
- * Конструкторы членов настраивают выводы подсветки и кнопок и
- * инициализируют дисплей. Затем экран заливается чёрным при выключенной
- * подсветке, и в консоль выводятся сведения о плате (см. hello()).
+ * Конструкторы членов настраивают вывод кнопки и запускают проверку FabGL:
+ * включают VGA, PS/2 и звук и рисуют проверочный экран. Затем в консоль
+ * выводятся сведения о плате (см. hello()); объём свободной памяти в них
+ * учитывает память, занятую FabGL.
  */
 esp::app::app()
-    : _backlight(BACKLIGHT_GPIO)
-    , _buttons{button(BUTTON_LEFT_GPIO, "Left"), button(BUTTON_RIGHT_GPIO, "Right")}
+    : _button(BUTTON_GPIO, "K1")
 {
 #ifndef NDEBUG
     // Вызовы ESP_LOGD модуля main компилируются всегда (LOG_LOCAL_LEVEL в
@@ -119,49 +92,14 @@ esp::app::app()
         esp_log_level_set(tag, ESP_LOG_DEBUG);
 #endif
 
-    // На T-Display нет слота для карты памяти, а попытка монтирования
-    // задействует GPIO14 и GPIO16 (линию данных и команд дисплея).
+    // Слот для карты памяти на плате есть (CS 13, MOSI 12, MISO 2, CLK 14),
+    // но монтирование пока не нужно.
     // if (!_sd_card.mount())
     //     ESP_LOGW(TAG, "No SD card.");
 
-    // При запуске экран выключен: залит чёрным, подсветка погашена.
-    if (!_display.fill(display::BLACK))
-        ESP_LOGW(TAG, "No display.");
-
     hello();
 
-    ESP_LOGD(TAG, "Pins: backlight GPIO%d, buttons GPIO%d and GPIO%d.",
-             (int)BACKLIGHT_GPIO, (int)BUTTON_LEFT_GPIO, (int)BUTTON_RIGHT_GPIO);
-    if (PIN_PROBE)
-    {
-        static_assert(std::extent_v<decltype(_buttons)> == std::size(PROBE_GPIOS),
-                      "one probed pin per button");
-
-        // Оба проверяемых вывода — выходы с низким уровнем.
-        for (const gpio_num_t gpio : PROBE_GPIOS)
-        {
-            gpio_set_level(gpio, 0);
-            if (gpio == BACKLIGHT_GPIO)
-                continue; // Уже настроен как выход объектом _backlight.
-
-            gpio_config_t config = {};
-            config.pin_bit_mask = 1ULL << gpio;
-            config.mode = GPIO_MODE_OUTPUT;
-            config.pull_up_en = GPIO_PULLUP_DISABLE;
-            config.pull_down_en = GPIO_PULLDOWN_DISABLE;
-            config.intr_type = GPIO_INTR_DISABLE;
-            ESP_ERROR_CHECK(gpio_config(&config));
-        }
-
-        for (size_t i = 0; i < std::size(_buttons); ++i)
-            probe.raw[i] = gpio_get_level(_buttons[i].gpio());
-
-        ESP_LOGI(TAG, "Pin probe: the left button toggles GPIO%d, the right one GPIO%d; both are low now.",
-                 (int)PROBE_GPIOS[0], (int)PROBE_GPIOS[1]);
-        ESP_LOGI(TAG, "Raw levels: GPIO%d = %d, GPIO%d = %d.",
-                 (int)_buttons[0].gpio(), probe.raw[0], (int)_buttons[1].gpio(), probe.raw[1]);
-    }
-
+    ESP_LOGD(TAG, "Pins: button K1 GPIO%d.", (int)BUTTON_GPIO);
     ESP_LOGD(TAG, "Application initialized.");
 }
 
@@ -178,9 +116,8 @@ esp::app::~app()
 /**
  * @brief Выполняет один шаг основного цикла.
  *
- * Ждёт период POLL_PERIOD_MS и опрашивает кнопки. Нажатие любой кнопки
- * включает или выключает экран, а в режиме поиска вывода (PIN_PROBE)
- * переключает уровень на проверяемом выводе этой кнопки.
+ * Ждёт период POLL_PERIOD_MS, опрашивает кнопку K1 и передаёт проверке
+ * FabGL накопившиеся события клавиатуры и мыши.
  */
 void esp::app::dispatch()
 {
@@ -188,37 +125,10 @@ void esp::app::dispatch()
     // в том числе задаче простоя, за которой следит сторожевой таймер.
     vTaskDelay(pdMS_TO_TICKS(POLL_PERIOD_MS));
 
-    for (size_t i = 0; i < std::size(_buttons); ++i)
-    {
-        button &b = _buttons[i];
+    if (_button.pressed())
+        _test.button_pressed();
 
-        if (PIN_PROBE)
-        {
-            // Уровень читается до подавления дребезга: в журнале виден
-            // и сам дребезг.
-            const int raw = gpio_get_level(b.gpio());
-            if (raw != probe.raw[i])
-            {
-                probe.raw[i] = raw;
-                ESP_LOGI(TAG, "Raw: GPIO%d = %d.", (int)b.gpio(), raw);
-            }
-        }
-
-        if (!b.pressed())
-            continue;
-
-        if (PIN_PROBE)
-        {
-            probe.out[i] = !probe.out[i];
-            gpio_set_level(PROBE_GPIOS[i], probe.out[i]);
-            ESP_LOGI(TAG, "%s button: GPIO%d is now %s; watch the screen.",
-                     b.name(), (int)PROBE_GPIOS[i], probe.out[i] ? "high" : "low");
-        }
-        else
-        {
-            toggle_screen();
-        }
-    }
+    _test.poll();
 }
 
 /**
@@ -234,29 +144,6 @@ void esp::app::exec()
 
 
 // Закрытые
-
-/**
- * @brief Включает или выключает экран.
- *
- * Включение: экран заливается белым, затем зажигается подсветка.
- * Выключение: подсветка гаснет, затем экран заливается чёрным.
- */
-void esp::app::toggle_screen()
-{
-    // Заливка всегда идёт при погашенной подсветке, поэтому смена
-    // изображения не видна. Без подсветки ЖК-матрица всё равно слабо
-    // показывает содержимое памяти, поэтому выключенный экран — чёрный.
-    if (_backlight.is_on())
-    {
-        _backlight.off();
-        _display.fill(display::BLACK);
-    }
-    else
-    {
-        _display.fill(display::WHITE);
-        _backlight.on();
-    }
-}
 
 /**
  * @brief Выводит в консоль заставку со сведениями о плате.

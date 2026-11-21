@@ -10,10 +10,10 @@ esp_src_dirs(src esp_main_src_dirs)
 idf_component_register(INCLUDE_DIRS ${esp_main_inc_dirs}
                        SRC_DIRS ${esp_main_src_dirs}
                        REQUIRES esp_driver_gpio
-                                esp_lcd
                                 fabgl
                                 sdmmc
-                       PRIV_REQUIRES efuse
+                       PRIV_REQUIRES consolefonts
+                                     efuse
                                      esp_app_format
                                      esp_driver_sdspi
                                      esp_driver_spi
