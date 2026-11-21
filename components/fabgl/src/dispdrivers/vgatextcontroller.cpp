@@ -10,7 +10,6 @@
 #include "fabutils.h"
 #include "vgatextcontroller.h"
 #include "devdrivers/swgenerator.h"
-#include "fonts/font_8x14.h"
 
 
 
@@ -54,7 +53,7 @@ VGATextController::VGATextController()
     m_cursorBackground(15),
     m_font(nullptr)
 {
-  setFont(&FONT_8x14);
+  // no built-in fonts: the application must call setFont() before setResolution()
 }
 
 
@@ -169,6 +168,11 @@ void VGATextController::setResolution(char const * modeline, int viewPortWidth, 
 
 void VGATextController::setResolution(VGATimings const& timings)
 {
+  if (m_font == nullptr) {
+    printf("VGATextController: no font, call setFont() first\n");
+    return;
+  }
+
   // setResolution() already called? If so, stop and free buffers
   if (m_DMABuffers) {
     m_GPIOStream.stop();

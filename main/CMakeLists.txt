@@ -11,6 +11,7 @@ idf_component_register(INCLUDE_DIRS ${esp_main_inc_dirs}
                        SRC_DIRS ${esp_main_src_dirs}
                        REQUIRES esp_driver_gpio
                                 esp_lcd
+                                fabgl
                                 sdmmc
                        PRIV_REQUIRES efuse
                                      esp_app_format
@@ -18,6 +19,7 @@ idf_component_register(INCLUDE_DIRS ${esp_main_inc_dirs}
                                      esp_driver_spi
                                      fatfs
                                      spi_flash
+                                     utf8
                                      yyjson)
 
 # Отладочный вывод: вызовы ESP_LOGD модуля main компилируются при любом

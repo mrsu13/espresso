@@ -27,7 +27,6 @@
 #include <stdarg.h>
 
 #include "canvas.h"
-#include "fabfonts.h"
 
 
 #pragma GCC optimize ("O2")
@@ -400,8 +399,9 @@ void Canvas::drawChar(int X, int Y, char c)
 
 void Canvas::drawText(int X, int Y, char const * text, bool wrap)
 {
+  // no built-in fonts: without selectFont() there is nothing to draw with
   if (m_fontInfo == nullptr)
-    selectFont(&FONT_8x8);
+    return;
   drawText(m_fontInfo, X, Y, text, wrap);
 }
 

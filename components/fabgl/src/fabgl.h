@@ -58,7 +58,7 @@
  *
  * VGA output requires a digital to analog converter (DAC): it can be done by three 270 Ohm resistors to have 8 colors, or by 6 resistors to have 64 colors.<br>
  *
- * There are several fixed and variable width fonts embedded.
+ * No fonts are embedded in this copy: the application provides them (see Canvas::selectFont() and Canvas::drawGlyph()).
  *
  * Unlimited number of sprites are supported. However big sprites and a large amount of them reduces the frame rate and could generate flickering.<br>
  *
@@ -310,7 +310,6 @@
 
 
 #include "fabutils.h"
-#include "fabfonts.h"
 #include "displaycontroller.h"
 #include "canvas.h"
 #include "dispdrivers/vgacontroller.h"

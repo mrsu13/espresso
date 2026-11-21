@@ -169,17 +169,18 @@ public:
   /**
    * @brief Sets font
    *
-   * Only fonts large 8 pixels (width) are supported (ie 8x8, 8x9, 8x13, 8x14, 8x16, 8x19).
-   * This method must be called before SetResolution().
+   * Only fonts large 8 pixels (width) are supported (ie 8x8, 8x9, 8x13, 8x14, 8x16, 8x19),
+   * with 256 characters. There is no built-in font: this method must be called before
+   * SetResolution().
    *
    * @param value Font info
    *
    * Example:
    *
-   *     // Setup 80x25 text mode. Remember to add: #include "fonts/font_8x19.h"
+   *     // Setup 80x25 text mode with an application provided 8x19 font
    *     fabgl::VGATextController VGAController;
    *     VGAController.begin();
-   *     VGAController.setFont(&fabgl::FONT_8x19);
+   *     VGAController.setFont(&myFont8x19);
    *     VGAController.setResolution();
    */
   void setFont(FontInfo const * value);
