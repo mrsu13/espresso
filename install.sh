@@ -1,5 +1,5 @@
 #!/bin/sh
 
-# Прошивает плату и открывает монитор. /dev/ttyACM0 — мост USB CH9102F
-# платы T-Display; выход из монитора — Ctrl+].
-idf.py -p /dev/ttyACM0 flash monitor
+# Прошивает плату и открывает монитор. /dev/ttyUSB0 — порт USB платы
+# TTGO VGA32; выход из монитора — Ctrl+].
+idf.py -p /dev/ttyUSB0 flash monitor
