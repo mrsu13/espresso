@@ -13,3 +13,35 @@ CONFIG_LOG_COLORS=y
 # плате при запуске. Для платы с 16 МБ нужна строка
 # с CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y, для платы с 4 МБ — строка
 # с CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y.
+
+# Дальше — настройки, которых требует FabGL (components/fabgl). Они взяты
+# из файла idf/sdkconfig.fabgl порта FabGL на ESP-IDF 6.
+
+# Порты PS/2 обслуживает сопроцессор ULP в режиме FSM. Его программа и
+# переменные занимают 2112 байт медленной памяти RTC, а ESP-IDF размещает
+# свои данные сразу за зарезервированной областью, поэтому резерв — 4096
+# байт. Без этих трёх настроек FabGL не компилируется.
+CONFIG_ULP_COPROC_ENABLED=y
+CONFIG_ULP_COPROC_TYPE_FSM=y
+CONFIG_ULP_COPROC_RESERVE_MEM=4096
+
+# FabGL отлажена на частоте процессора 240 МГц и с тактом FreeRTOS 1 мс,
+# как в ядре Arduino; по умолчанию ESP-IDF выбирает 160 МГц и 10 мс.
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_FREERTOS_HZ=1000
+
+# Обработчики прерываний видеовывода работают и при отключённом кэше
+# флеш-памяти (например, пока идёт запись во флеш-память) и вызывают
+# функции FreeRTOS, поэтому те должны находиться в IRAM.
+CONFIG_FREERTOS_IN_IRAM=y
+
+# FabGL назначает свои прерывания нужному ядру через задачи IPC; со стеком
+# по умолчанию, 1024 байта, у этих задач остаётся меньше 400 байт стека.
+CONFIG_ESP_IPC_TASK_STACK_SIZE=2048
+
+# Код Wi-Fi и PHY не размещается в IRAM (по умолчанию ESP-IDF помещает туда
+# около 25 КБ). Свободная IRAM становится кучей, из которой FabGL выделяет
+# память под 32-разрядные данные (MALLOC_CAP_32BIT).
+CONFIG_ESP_WIFI_IRAM_OPT=n
+CONFIG_ESP_WIFI_RX_IRAM_OPT=n
+CONFIG_ESP_PHY_IRAM_OPT=n
