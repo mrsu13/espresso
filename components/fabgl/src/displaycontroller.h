@@ -568,7 +568,8 @@ struct Sprite {
   ~Sprite();
   Bitmap * getFrame() { return frames ? frames[currentFrame] : nullptr; }
   int getFrameIndex() { return currentFrame; }
-  void nextFrame() { ++currentFrame; if (currentFrame >= framesCount) currentFrame = 0; }
+  // one store: drawing code running concurrently never sees currentFrame == framesCount (fix by Dean Belfield, vdp-gl)
+  void nextFrame() { currentFrame = (currentFrame < framesCount - 1) ? currentFrame + 1 : 0; }
   Sprite * setFrame(int frame) { currentFrame = frame; return this; }
   Sprite * addBitmap(Bitmap * bitmap);
   Sprite * addBitmap(Bitmap * bitmap[], int count);
