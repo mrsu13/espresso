@@ -475,7 +475,7 @@ if (count == 0)          // use !count
 
 **Header extension is `.h`.** Source extension is `.cpp`.
 
-**File names include the namespace prefix.** A class `co::js::value` lives in `co_js_value.h` / `co_js_value.cpp`, not in `value.h` / `js_value.h` / `value.cpp`. A class `co::vt::parser` lives in `co_vt_parser.h`. This means **every project source / header file in the codebase starts with `co_`** since every toolkit entity is in the `co` namespace (or a nested namespace within it); a host app's own layer carries its own prefix and namespace the same way. The only exceptions are vendored 3rdparty headers under `3rdparty/` and auto-generated build artefacts.
+**File names include the namespace prefix.** A class `co::js::value` lives in `co_js_value.h` / `co_js_value.cpp`, not in `value.h` / `js_value.h` / `value.cpp`. A class `co::vt::parser` lives in `co_vt_parser.h`. This means **every project source / header file in the codebase starts with `co_`** since every toolkit entity is in the `co` namespace (or a nested namespace within it); a host app's own layer carries its own prefix and namespace the same way. The only exceptions are vendored 3rdparty headers under `3rdparty/`, the program entry point `src/main.cpp`, generated sources such as the font tables in `src/fonts`, and auto-generated build artefacts.
 
 Right
 

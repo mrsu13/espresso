@@ -199,8 +199,13 @@ STRIP_FROM_PATH        = ../
 # specify the list of include paths that are normally passed to the compiler
 # using the -I flag.
 
-STRIP_FROM_INC_PATH    = ../components \
-                         ../main
+STRIP_FROM_INC_PATH    = ../src/app \
+                         ../src/tools \
+                         ../src/gfx \
+                         ../src/vga \
+                         ../src/ps2 \
+                         ../src/sound \
+                         ../src/fonts
 
 # If the SHORT_NAMES tag is set to YES, Doxygen will generate much shorter (but
 # less readable) file names. This can be useful if your file system doesn't
@@ -1032,8 +1037,7 @@ WARN_LOGFILE           = doxy.log
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = md \
-                         ../components \
-                         ../main \
+                         ../src \
                          ../README.md
 
 # This tag can be used to specify the character encoding of the source files
@@ -1118,18 +1122,16 @@ EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = */.git/* \
                          */.svn/* \
                          */build/* \
-                         */components/utf8 \
-                         */components/yyjson \
-                         */components/fabgl/INFO.md \
-                         */components/fabgl/src/esp_utils.* \
-                         */components/fabgl/src/gfx/esp_gfx_canvas.* \
-                         */components/fabgl/src/gfx/esp_gfx_config.h \
-                         */components/fabgl/src/gfx/esp_gfx_cursors.h \
-                         */components/fabgl/src/gfx/esp_gfx_display_controller.* \
-                         */components/fabgl/src/gfx/esp_gfx_utils.* \
-                         */components/fabgl/src/ps2 \
-                         */components/fabgl/src/sound \
-                         */components/fabgl/src/vga
+                         */src/3rdparty \
+                         */src/tools/esp_tools.* \
+                         */src/gfx/esp_gfx_canvas.* \
+                         */src/gfx/esp_gfx_config.h \
+                         */src/gfx/esp_gfx_cursors.h \
+                         */src/gfx/esp_gfx_display_controller.* \
+                         */src/gfx/esp_gfx_utils.* \
+                         */src/ps2 \
+                         */src/sound \
+                         */src/vga
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
 # (namespaces, classes, functions, etc.) that should be excluded from the

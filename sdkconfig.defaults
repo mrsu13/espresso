@@ -2,7 +2,7 @@
 # сборка создаёт по этому файлу sdkconfig; настройки меняют здесь, а не
 # в sdkconfig.
 
-# Определение корпуса чипа (main/src/tools/esp_esp32.cpp) знает только ESP32.
+# Определение корпуса чипа (src/tools/esp_esp32.cpp) знает только ESP32.
 CONFIG_IDF_TARGET="esp32"
 
 # Цветной журнал в мониторе (с ESP-IDF 6.0 по умолчанию выключен).
@@ -13,8 +13,9 @@ CONFIG_LOG_COLORS=y
 # 2 МБ. Настоящий объём выводится в сведениях о плате при запуске.
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 
-# Дальше — настройки, которых требует FabGL (components/fabgl). Они взяты
-# из файла idf/sdkconfig.fabgl порта FabGL на ESP-IDF 6.
+# Дальше — настройки, которых требует код, полученный из FabGL (src/gfx,
+# src/vga, src/ps2, src/sound). Они взяты из файла idf/sdkconfig.fabgl
+# порта FabGL на ESP-IDF 6.
 
 # Порты PS/2 обслуживает сопроцессор ULP в режиме FSM. Его программа и
 # переменные занимают 2112 байт медленной памяти RTC, а ESP-IDF размещает

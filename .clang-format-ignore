@@ -1,6 +1,5 @@
 # Файлы, которые clang-format не трогает: сторонние библиотеки,
 # сгенерированные таблицы шрифта и результаты сборки.
-components/yyjson/**
-components/utf8/**
-components/consolefonts/src/**
+src/3rdparty/**
+src/fonts/ter_*
 build/**
