@@ -12,8 +12,8 @@ esp_src_dirs(src esp_fabgl_src_dirs)
 # под видеовывод другое ядро.
 idf_component_register(INCLUDE_DIRS ${esp_fabgl_inc_dirs}
                        SRC_DIRS ${esp_fabgl_src_dirs}
-                       REQUIRES esp_driver_gpio esp_driver_sdm esp_timer esp_wifi sdmmc ulp
-                       PRIV_REQUIRES esp_adc esp_driver_sdspi fatfs spi_flash spiffs vfs)
+                       REQUIRES esp_driver_gpio esp_driver_sdm esp_timer esp_wifi ulp
+                       PRIV_REQUIRES spi_flash)
 
 # FabGL отлажена с оптимизацией по размеру (-Os), как в ядре Arduino и в
 # конфигурации порта; самые нагруженные модули к тому же сами включают -O2

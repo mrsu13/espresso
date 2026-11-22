@@ -10,8 +10,8 @@
 
   * Ядро: fabutils, fabglconf.h, displaycontroller, canvas, codepages, images/cursors.h (указатели
     мыши), fabgl.h (общий заголовок).
-  * VGA: dispdrivers/vga*; devdrivers/swgenerator — вывод сигнала через I2S, на котором построены
-    контроллеры VGA.
+  * VGA: контроллеры dispdrivers/vga* на 2, 4, 8, 16 и 64 цвета и прямой вывод (vgadirectcontroller);
+    devdrivers/swgenerator — вывод сигнала через I2S, на котором построены контроллеры VGA.
   * PS/2: comdrivers/ps2controller, comdrivers/ps2device, ulp_macro_ex (программа сопроцессора ULP),
     devdrivers/keyboard, devdrivers/kbdlayouts, devdrivers/mouse.
   * Звук: devdrivers/soundgen.
@@ -20,6 +20,11 @@
 
   * Шрифты: fabfonts и все шрифты (fonts/). Шрифты FabGL восьмибитные, по 256 знаков; проект
     выводит текст своим шрифтом Unicode (компонент consolefonts).
+  * Текстовый режим VGA (dispdrivers/vgatextcontroller): он показывает только восьмибитные шрифты
+    шириной 8 точек.
+  * Из fabutils — файловый браузер FileBrowser (карта SD и SPIFFS) и функции АЦП ADC1_setup() и
+    ADC1_read(); для карты памяти у проекта свой класс esp::sd_card. Вместе с ними ушли зависимости
+    компонента от fatfs, spiffs, sdmmc, esp_driver_sdspi, esp_adc и vfs.
   * Графический интерфейс: fabui, inputbox, images/bitmaps.h.
   * Эмуляция терминала: terminal, terminfo.
   * Игровые сцены и столкновения спрайтов: scene, collisiondetector.
@@ -31,7 +36,8 @@
 
 ## Изменения
 
-Изменения убирают связь с невзятыми графическим интерфейсом (класс fabgl::uiApp) и шрифтами.
+Изменения убирают связь с невзятыми графическим интерфейсом (класс fabgl::uiApp), шрифтами и
+функциями файловой системы и АЦП.
 
   * devdrivers/keyboard.h, devdrivers/keyboard.cpp: удалены метод setUIApp(), поле m_uiApp, отправка
     событий клавиатуры в uiApp и включение fabui.h. Виртуальные клавиши по-прежнему проходят через
@@ -44,9 +50,8 @@
     включение canvas.h, который раньше попадал через fabui.h и terminal.h. Описание библиотеки
     больше не обещает встроенных шрифтов.
   * canvas.cpp: drawText() без выбранного шрифта ничего не рисует; раньше он выбирал FONT_8x8.
-  * dispdrivers/vgatextcontroller.h, dispdrivers/vgatextcontroller.cpp: у текстового режима нет
-    шрифта по умолчанию (был FONT_8x14). Шрифт задаёт приложение через setFont() до
-    setResolution(); без шрифта setResolution() выводит сообщение и ничего не делает.
+  * fabutils.h, fabutils.cpp: удалены FileBrowser (со структурой DirItem и перечислением DriveType)
+    и функции АЦП вместе с их включениями.
 
 Примеры в комментариях canvas.h по-прежнему ссылаются на удалённые шрифты FONT_8x8 и
 getPresetFontInfo().

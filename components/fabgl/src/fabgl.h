@@ -81,7 +81,6 @@
  *    * fabgl::VGA4Controller, device driver for VGA 4 colors bitmapped output (low RAM requirements, CPU intensive)
  *    * fabgl::VGA8Controller, device driver for VGA 8 colors bitmapped output (low RAM requirements, CPU intensive)
  *    * fabgl::VGA16Controller, device driver for VGA 16 colors bitmapped output (low RAM requirements, CPU intensive)
- *    * fabgl::VGATextController, device driver for VGA textual output (low RAM requirements, CPU intensive)
  *    * fabgl::SSD1306Controller, device driver for SSD1306 based OLED displays
  *    * fabgl::ST7789Controller, device driver for ST7789 based TFT displays
  *    * fabgl::ILI9341Controller, device driver for ILI9341 based TFT displays
@@ -313,7 +312,6 @@
 #include "displaycontroller.h"
 #include "canvas.h"
 #include "dispdrivers/vgacontroller.h"
-#include "dispdrivers/vgatextcontroller.h"
 #include "dispdrivers/vga2controller.h"
 #include "dispdrivers/vga4controller.h"
 #include "dispdrivers/vga8controller.h"
@@ -352,7 +350,6 @@ using fabgl::PS2DeviceType;
 using fabgl::KbdMode;
 using fabgl::VirtualKey;
 using fabgl::VirtualKeyItem;
-using fabgl::FileBrowser;
 using fabgl::Canvas;
 using fabgl::PixelFormat;
 using fabgl::RGB222;
