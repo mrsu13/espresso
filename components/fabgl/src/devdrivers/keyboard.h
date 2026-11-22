@@ -27,7 +27,6 @@
 #pragma once
 
 
-
 /**
  * @file
  *
@@ -37,14 +36,14 @@
 
 #include "freertos/FreeRTOS.h"
 
-#include "fabglconf.h"
-#include "comdrivers/ps2device.h"
-#include "kbdlayouts.h"
 #include "codepages.h"
+#include "comdrivers/ps2device.h"
+#include "fabglconf.h"
+#include "kbdlayouts.h"
 
 
-namespace fabgl {
-
+namespace fabgl
+{
 
 
 /**
@@ -73,14 +72,15 @@ namespace fabgl {
  *       Serial.printf("VirtualKey = %s\n", Keyboard.virtualKeyToString(Keyboard.getNextVirtualKey()));
  *
  */
-class Keyboard : public PS2Device {
+class Keyboard : public PS2Device
+{
 
 public:
 
-  Keyboard();
-  ~Keyboard();
+    Keyboard();
+    ~Keyboard();
 
-  /**
+    /**
    * @brief Initializes Keyboard specifying CLOCK and DATA GPIOs.
    *
    * A reset command (Keyboard.reset() method) is automatically sent to the keyboard.<br>
@@ -102,9 +102,10 @@ public:
    *     // Setup pins GPIO33 for CLK and GPIO32 for DATA
    *     Keyboard.begin(GPIO_NUM_33, GPIO_NUM_32);  // clk, dat
    */
-  void begin(gpio_num_t clkGPIO, gpio_num_t dataGPIO, bool generateVirtualKeys = true, bool createVKQueue = true);
+    void begin(gpio_num_t clkGPIO, gpio_num_t dataGPIO, bool generateVirtualKeys = true,
+               bool createVKQueue = true);
 
-  /**
+    /**
    * @brief Initializes Keyboard without initializing the PS/2 controller.
    *
    * A reset command (Keyboard.reset() method) is automatically sent to the keyboard.<br>
@@ -123,9 +124,9 @@ public:
    *     PS2Controller.begin(GPIO_NUM_33, GPIO_NUM_32); // clk, dat
    *     Keyboard.begin(true, true, 0); // port 0
    */
-  void begin(bool generateVirtualKeys, bool createVKQueue, int PS2Port);
+    void begin(bool generateVirtualKeys, bool createVKQueue, int PS2Port);
 
-  /**
+    /**
    * @brief Dynamically enables or disables Virtual Keys generation
    *
    * This method can be called after begin().
@@ -136,25 +137,28 @@ public:
    *                      and put them in a queue, so you can call Keyboard.isVKDown(), Keyboard.virtualKeyAvailable()
    *                      and Keyboard.getNextVirtualKey(). I False destroys the queue.
    */
-  void enableVirtualKeys(bool generateVirtualKeys, bool createVKQueue);
+    void enableVirtualKeys(bool generateVirtualKeys, bool createVKQueue);
 
-  /**
+    /**
    * @brief Sends a Reset command to the keyboard.
    *
    * @return True if the keyboard is correctly initialized.
    */
-  bool reset();
+    bool reset();
 
-  /**
+    /**
    * @brief Checks if keyboard has been detected and correctly initialized.
    *
    * isKeyboardAvailable() returns a valid value only after Keyboard.begin() or Keyboard.reset() has been called.
    *
    * @return True if the keyboard is correctly initialized.
    */
-  bool isKeyboardAvailable() { return m_keyboardAvailable; }
+    bool isKeyboardAvailable()
+    {
+        return m_keyboardAvailable;
+    }
 
-  /**
+    /**
    * @brief Sets keyboard layout.
    *
    * It is possible to specify an international keyboard layout. The default is US-layout.<br>
@@ -168,16 +172,19 @@ public:
    *     // Set German layout
    *     Keyboard.setLayout(&fabgl::GermanLayout);
    */
-  void setLayout(KeyboardLayout const * layout);
+    void setLayout(KeyboardLayout const *layout);
 
-  /**
+    /**
    * @brief Gets current keyboard layout.
    *
    * @return The default or last set keyboard layout.
    */
-  KeyboardLayout const * getLayout() { return m_layout; }
+    KeyboardLayout const *getLayout()
+    {
+        return m_layout;
+    }
 
-  /**
+    /**
    * @brief Gets the virtual keys status.
    *
    * This method allows to know the status of each virtual key (Down or Up).<br>
@@ -187,9 +194,9 @@ public:
    *
    * @return True if the specified virtual key is down.
    */
-  bool isVKDown(VirtualKey virtualKey);
+    bool isVKDown(VirtualKey virtualKey);
 
-  /**
+    /**
    * @brief Gets the number of virtual keys available in the queue.
    *
    * Virtual keys are generated from scancodes only if generateVirtualKeys parameter is true (default)
@@ -197,9 +204,9 @@ public:
    *
    * @return The number of virtual keys available to read.
    */
-  int virtualKeyAvailable();
+    int virtualKeyAvailable();
 
-  /**
+    /**
    * @brief Gets a virtual key from the queue.
    *
    * Virtual keys are generated from scancodes only if generateVirtualKeys parameter is true (default)
@@ -210,9 +217,9 @@ public:
    *
    * @return The first virtual key of the queue (VK_NONE if no data is available in the timeout period).
    */
-  VirtualKey getNextVirtualKey(bool * keyDown = nullptr, int timeOutMS = -1);
+    VirtualKey getNextVirtualKey(bool *keyDown = nullptr, int timeOutMS = -1);
 
-  /**
+    /**
    * @brief Gets a virtual key from the queue, including associated scan code.
    *
    * Virtual keys are generated from scancodes only if generateVirtualKeys parameter is true (default)
@@ -223,31 +230,31 @@ public:
    *
    * @return True if item has been received. False if no data is available in the timeout period.
    */
-  bool getNextVirtualKey(VirtualKeyItem * item, int timeOutMS = -1);
+    bool getNextVirtualKey(VirtualKeyItem *item, int timeOutMS = -1);
 
-  /**
+    /**
    * @brief Adds or inserts a virtual key into the virtual keys queue
    *
    * @param virtualKey Virtual key to add or insert
    * @param keyDown True is the virtual key is down
    * @param insert If true virtual key is inserted as first item
    */
-  void injectVirtualKey(VirtualKey virtualKey, bool keyDown, bool insert = false);
+    void injectVirtualKey(VirtualKey virtualKey, bool keyDown, bool insert = false);
 
-  /**
+    /**
    * @brief Adds or inserts a virtual key info into the virtual keys queue
    *
    * @param item Virtual key info add or insert
    * @param insert If true virtual key is inserted as first item
    */
-  void injectVirtualKey(VirtualKeyItem const & item, bool insert = false);
+    void injectVirtualKey(VirtualKeyItem const &item, bool insert = false);
 
-  /**
+    /**
    * @brief Empties the virtual keys queue
    */
-  void emptyVirtualKeyQueue();
+    void emptyVirtualKeyQueue();
 
-  /**
+    /**
    * @brief Converts virtual key to ASCII.
    *
    * This method converts the specified virtual key to ASCII, if possible.<br>
@@ -261,9 +268,9 @@ public:
    *
    * @return The ASCII code of virtual key or -1 if virtual key cannot be translated to ASCII.
    */
-  int virtualKeyToASCII(VirtualKey virtualKey);
+    int virtualKeyToASCII(VirtualKey virtualKey);
 
-  /**
+    /**
    * @brief Sets font codepage for virtual key to ASCII conversion
    *
    * Sets current codepage for virtualkey to ASCII conversions. This method is called automatically by Terminal and UI interface.
@@ -275,9 +282,12 @@ public:
    *     // Set codepage 437
    *     Keyboard.setCodePage(CodePages::get(437));
    */
-  void setCodePage(CodePage const * codepage)                      { m_codepage = codepage; }
+    void setCodePage(CodePage const *codepage)
+    {
+        m_codepage = codepage;
+    }
 
-  /**
+    /**
    * @brief Gets the number of scancodes available in the queue.
    *
    * Scancodes are always generated but they can be consumed by the scancode-to-virtualkeys task. So, in order to use this
@@ -285,9 +295,9 @@ public:
    *
    * @return The number of scancodes available to read.
    */
-  int scancodeAvailable();
+    int scancodeAvailable();
 
-  /**
+    /**
    * @brief Gets a scancode from the queue.
    *
    * Scancodes are always generated but they can be consumed by the scancode-to-virtualkeys task. So, in order to use this
@@ -298,9 +308,9 @@ public:
    *
    * @return The first scancode of the queue (-1 if no data is available in the timeout period).
    */
-  int getNextScancode(int timeOutMS = -1, bool requestResendOnTimeOut = false);
+    int getNextScancode(int timeOutMS = -1, bool requestResendOnTimeOut = false);
 
-  /**
+    /**
    * @brief Sets keyboard LEDs status.
    *
    * Use this method to switch-on or off the NUMLOCK, CAPSLOCK and SCROLLLOCK LEDs.
@@ -311,9 +321,9 @@ public:
    *
    * @return True if command has been successfully delivered to the keyboard.
    */
-  bool setLEDs(bool numLock, bool capsLock, bool scrollLock);
+    bool setLEDs(bool numLock, bool capsLock, bool scrollLock);
 
-  /**
+    /**
    * @brief Gets keyboard LEDs status.
    *
    * Use this method to know the current status of NUMLOCK, CAPSLOCK and SCROLLLOCK LEDs.
@@ -322,9 +332,9 @@ public:
    * @param capsLock When true the CAPSLOCK LED is switched on.
    * @param scrollLock When true the SCROLLLOCK LED is switched on.
    */
-  void getLEDs(bool * numLock, bool * capsLock, bool * scrollLock);
+    void getLEDs(bool *numLock, bool *capsLock, bool *scrollLock);
 
-  /**
+    /**
    * @brief Sets typematic rate and delay.
    *
    * If the key is kept pressed down, after repeatDelayMS keyboard starts periodically sending codes with frequency repeatRateMS.
@@ -334,9 +344,12 @@ public:
    *
    * @return True if command has been successfully delivered to the keyboard.
    */
-  bool setTypematicRateAndDelay(int repeatRateMS, int repeatDelayMS) { return send_cmdTypematicRateAndDelay(repeatRateMS, repeatDelayMS); }
+    bool setTypematicRateAndDelay(int repeatRateMS, int repeatDelayMS)
+    {
+        return send_cmdTypematicRateAndDelay(repeatRateMS, repeatDelayMS);
+    }
 
-  /**
+    /**
    * @brief Sets the scancode set
    *
    * Scancode set 1 is used on original IBM PC XT (https://wiki.osdev.org/PS/2_Keyboard#Scan_Code_Set_1)
@@ -349,107 +362,97 @@ public:
    *
    * @return True if scancode has been set.
    */
-  bool setScancodeSet(int value);
+    bool setScancodeSet(int value);
 
-  /**
+    /**
    * @brief Gets current scancode set
    *
    * @return Current scan code set (1, 2 or 3)
    */
-  int scancodeSet()                { return m_scancodeSet; }
+    int scancodeSet()
+    {
+        return m_scancodeSet;
+    }
 
-  static uint8_t convScancodeSet2To1(uint8_t code);
+    static uint8_t convScancodeSet2To1(uint8_t code);
 
 #if FABGLIB_HAS_VirtualKeyO_STRING
-  static char const * virtualKeyToString(VirtualKey virtualKey);
+    static char const *virtualKeyToString(VirtualKey virtualKey);
 #endif
 
 
-  //// Delegates ////
+    //// Delegates ////
 
-  /**
+    /**
    * @brief Delegate called whenever a new virtual key is decoded from scancodes
    *
    * First parameter is a pointer to the decoded virtual key
    * Second parameter specifies if the key is Down (true) or Up (false)
    */
-  Delegate<VirtualKey *, bool> onVirtualKey;
+    Delegate<VirtualKey *, bool> onVirtualKey;
 
 
-  //// statics (used for common default properties) ////
+    //// statics (used for common default properties) ////
 
 
-  /**
+    /**
    * @brief Stack size of the task that converts scancodes to Virtual Keys Keyboard.
    *
    * Application should change before begin() method.
    *
    * Default value is FABGLIB_DEFAULT_SCODETOVK_TASK_STACK_SIZE (defined in fabglconf.h)
    */
-  static int scancodeToVirtualKeyTaskStackSize;
-
+    static int scancodeToVirtualKeyTaskStackSize;
 
 
 private:
 
-  VirtualKey scancodeToVK(uint8_t scancode, bool isExtended, KeyboardLayout const * layout = nullptr);
-  VirtualKey VKtoAlternateVK(VirtualKey in_vk, bool down, KeyboardLayout const * layout = nullptr);
-  VirtualKey manageCAPSLOCK(VirtualKey vk);
-  void updateLEDs();
-  bool blockingGetVirtualKey(VirtualKeyItem * item);
-  void convertScancode2to1(VirtualKeyItem * item);
-  void postVirtualKeyItem(VirtualKeyItem const & item);
-  static int convKeypadVKToNum(VirtualKey vk);
+    VirtualKey scancodeToVK(uint8_t scancode, bool isExtended,
+                            KeyboardLayout const *layout = nullptr);
+    VirtualKey VKtoAlternateVK(VirtualKey in_vk, bool down, KeyboardLayout const *layout = nullptr);
+    VirtualKey manageCAPSLOCK(VirtualKey vk);
+    void updateLEDs();
+    bool blockingGetVirtualKey(VirtualKeyItem *item);
+    void convertScancode2to1(VirtualKeyItem *item);
+    void postVirtualKeyItem(VirtualKeyItem const &item);
+    static int convKeypadVKToNum(VirtualKey vk);
 
-  static void SCodeToVKConverterTask(void * pvParameters);
+    static void SCodeToVKConverterTask(void *pvParameters);
 
 
-  bool                      m_keyboardAvailable;  // self test passed and support for scancode set 2
+    bool m_keyboardAvailable; // self test passed and support for scancode set 2
 
-  TaskHandle_t              m_SCodeToVKConverterTask; // Task that converts scancodes to virtual key and populates m_virtualKeyQueue
-  QueueHandle_t             m_virtualKeyQueue;
+    TaskHandle_t
+        m_SCodeToVKConverterTask; // Task that converts scancodes to virtual key and populates m_virtualKeyQueue
+    QueueHandle_t m_virtualKeyQueue;
 
-  uint8_t                   m_VKMap[(int)(VK_LAST + 7) / 8];
+    uint8_t m_VKMap[(int)(VK_LAST + 7) / 8];
 
-  // allowed values: 1, 2 or 3
-  // If virtual keys are enabled only 1 and 2 are possible. In case of scancode set 1 it is converted from scan code set 2, which is necessary
-  // in order to decode virtual keys.
-  uint8_t                   m_scancodeSet;
+    // allowed values: 1, 2 or 3
+    // If virtual keys are enabled only 1 and 2 are possible. In case of scancode set 1 it is converted from scan code set 2, which is necessary
+    // in order to decode virtual keys.
+    uint8_t m_scancodeSet;
 
-  KeyboardLayout const *    m_layout;
+    KeyboardLayout const *m_layout;
 
-  bool                      m_CTRL;
-  bool                      m_LALT;
-  bool                      m_RALT;
-  bool                      m_SHIFT;
-  bool                      m_CAPSLOCK;
-  bool                      m_GUI;
-  bool                      m_NUMLOCK;
-  bool                      m_SCROLLLOCK;
+    bool m_CTRL;
+    bool m_LALT;
+    bool m_RALT;
+    bool m_SHIFT;
+    bool m_CAPSLOCK;
+    bool m_GUI;
+    bool m_NUMLOCK;
+    bool m_SCROLLLOCK;
 
-  VirtualKey                m_lastDeadKey;
+    VirtualKey m_lastDeadKey;
 
-  // store status of the three LEDs
-  bool                      m_numLockLED;
-  bool                      m_capsLockLED;
-  bool                      m_scrollLockLED;
+    // store status of the three LEDs
+    bool m_numLockLED;
+    bool m_capsLockLED;
+    bool m_scrollLockLED;
 
-  CodePage const *          m_codepage;
-
+    CodePage const *m_codepage;
 };
 
 
-
-
-
 } // end of namespace
-
-
-
-
-
-
-
-
-
-

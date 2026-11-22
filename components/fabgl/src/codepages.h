@@ -24,7 +24,6 @@
  */
 
 
-
 #pragma once
 
 
@@ -39,20 +38,22 @@
 #include "fabutils.h"
 
 
-namespace fabgl {
-
+namespace fabgl
+{
 
 
 // associates virtual key to ASCII code
-struct VirtualKeyToASCII {
-  VirtualKey vk;
-  uint8_t    ASCII;
+struct VirtualKeyToASCII
+{
+    VirtualKey vk;
+    uint8_t ASCII;
 };
 
 
-struct CodePage {
-  uint16_t                  codepage;
-  const VirtualKeyToASCII * convTable;  // last item has vk = VK_NONE (ending marker)
+struct CodePage
+{
+    uint16_t codepage;
+    const VirtualKeyToASCII *convTable; // last item has vk = VK_NONE (ending marker)
 };
 
 
@@ -60,17 +61,21 @@ extern const CodePage CodePage437;
 extern const CodePage CodePage1252;
 
 
-struct CodePages {
-  static int count() { return 2; }
-  static CodePage const * get(uint16_t codepage, CodePage const * defaultValue = &CodePage437) {
-    static const CodePage * codepages[] = { &CodePage437, &CodePage1252 };
-    for (int i = 0; i < sizeof(CodePage) / sizeof(CodePage*); ++i)
-      if (codepages[i]->codepage == codepage)
-        return codepages[i];
-    return defaultValue;
-  }
+struct CodePages
+{
+    static int count()
+    {
+        return 2;
+    }
+    static CodePage const *get(uint16_t codepage, CodePage const *defaultValue = &CodePage437)
+    {
+        static const CodePage *codepages[] = {&CodePage437, &CodePage1252};
+        for (int i = 0; i < sizeof(CodePage) / sizeof(CodePage *); ++i)
+            if (codepages[i]->codepage == codepage)
+                return codepages[i];
+        return defaultValue;
+    }
 };
-
 
 
 /**
@@ -87,9 +92,7 @@ struct CodePages {
  *
  * @return The ASCII code of virtual key or -1 if virtual key cannot be translated to ASCII.
  */
-int virtualKeyToASCII(VirtualKeyItem const & item, CodePage const * codepage);
-
+int virtualKeyToASCII(VirtualKeyItem const &item, CodePage const *codepage);
 
 
 } // fabgl namespace
-

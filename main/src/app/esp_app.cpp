@@ -158,7 +158,7 @@ void esp::app::hello()
     // Строка формата для printf: каждая строка — кусок рисунка и одно
     // поле сведений.
     static const char *const BANNER_FMT =
-R"(                         Version ........... %s
+        R"(                         Version ........... %s
         (  (             Chip .............. %s
          )  )            Silicon revision .. v%d.%d
         (  (             CPU cores ......... %d
@@ -178,9 +178,8 @@ R"(                         Version ........... %s
     // Корпус известен только для ESP32; для других чипов выводится имя
     // цели сборки.
     const esp::ChipPackage package = esp::chip_package();
-    const char *const chip = package == esp::ChipPackage::Unknown
-        ? CONFIG_IDF_TARGET
-        : esp::chip_package_name(package);
+    const char *const chip =
+        package == esp::ChipPackage::Unknown ? CONFIG_IDF_TARGET : esp::chip_package_name(package);
 
     // Радиоинтерфейсы — по флагам возможностей чипа.
     std::string wireless;
@@ -189,8 +188,7 @@ R"(                         Version ........... %s
         {
             std::uint32_t feature;
             const char *name;
-        } features[] =
-        {
+        } features[] = {
             {CHIP_FEATURE_WIFI_BGN, "Wi-Fi"},
             {CHIP_FEATURE_BT, "BT"},
             {CHIP_FEATURE_BLE, "BLE"},
@@ -216,8 +214,7 @@ R"(                         Version ........... %s
     {
         std::uint32_t size = 0;
         if (esp_flash_get_physical_size(nullptr, &size) == ESP_OK)
-            std::snprintf(flash, sizeof(flash), "%" PRIu32 " MB %s",
-                          size / (1024 * 1024),
+            std::snprintf(flash, sizeof(flash), "%" PRIu32 " MB %s", size / (1024 * 1024),
                           (info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
         else
             std::snprintf(flash, sizeof(flash), "%s", "unknown");
@@ -233,13 +230,15 @@ R"(                         Version ........... %s
                           (info.features & CHIP_FEATURE_EMB_PSRAM) ? "embedded" : "external");
         else
             std::snprintf(psram, sizeof(psram), "%s",
-                          (info.features & CHIP_FEATURE_EMB_PSRAM) ? "embedded, not enabled" : "not used");
+                          (info.features & CHIP_FEATURE_EMB_PSRAM) ? "embedded, not enabled"
+                                                                   : "not used");
     }
 
     char sdcard[48];
     {
         if (_sd_card.mounted())
-            std::snprintf(sdcard, sizeof(sdcard), "%" PRIu64 " MB", _sd_card.capacity() / (1024 * 1024));
+            std::snprintf(sdcard, sizeof(sdcard), "%" PRIu64 " MB",
+                          _sd_card.capacity() / (1024 * 1024));
         else
             std::snprintf(sdcard, sizeof(sdcard), "%s", "No SD card");
     }
@@ -252,19 +251,11 @@ R"(                         Version ........... %s
 
     // Ревизия в esp_chip_info_t записана как MXX: 301 означает v3.1.
     // Память — куча с 32-битным доступом, включая IRAM.
-    std::printf(BANNER_FMT,
-                desc->version,
-                chip,
-                info.revision / 100, info.revision % 100,
-                info.cores,
-                wireless.c_str(),
-                flash,
-                psram,
+    std::printf(BANNER_FMT, desc->version, chip, info.revision / 100, info.revision % 100,
+                info.cores, wireless.c_str(), flash, psram,
                 heap_caps_get_total_size(MALLOC_CAP_32BIT) / 1024,
-                heap_caps_get_free_size(MALLOC_CAP_32BIT) / 1024,
-                sdcard,
-                mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
-                esp_get_idf_version());
+                heap_caps_get_free_size(MALLOC_CAP_32BIT) / 1024, sdcard, mac[0], mac[1], mac[2],
+                mac[3], mac[4], mac[5], esp_get_idf_version());
 
     ESP_LOGD(TAG, "Package %s, features 0x%08" PRIx32 ", largest free block %zu bytes.",
              esp::chip_package_name(package), info.features,

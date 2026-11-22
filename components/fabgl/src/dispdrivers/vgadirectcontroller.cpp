@@ -24,296 +24,277 @@
  */
 
 
-
 #include <alloca.h>
-#include <stdarg.h>
 #include <math.h>
+#include <stdarg.h>
 #include <string.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "soc/i2s_struct.h"
 #include "soc/i2s_reg.h"
+#include "soc/i2s_struct.h"
 #include "soc/rtc.h"
 #if __has_include("esp_private/cache_utils.h")
-  #include "esp_private/cache_utils.h"
+#   include "esp_private/cache_utils.h"
 #else
-  #include "esp_spi_flash.h"
+#   include "esp_spi_flash.h"
 #endif
 #include "esp_heap_caps.h"
 
+#include "devdrivers/swgenerator.h"
 #include "fabutils.h"
 #include "vgadirectcontroller.h"
-#include "devdrivers/swgenerator.h"
 
 
-
-#pragma GCC optimize ("O2")
-
-
-namespace fabgl {
+#pragma GCC optimize("O2")
 
 
-
+namespace fabgl
+{
 
 
 /*************************************************************************************/
 /* VGADirectController definitions */
 
 
-VGADirectController *    VGADirectController::s_instance = nullptr;
-volatile int             VGADirectController::s_scanLine;
-lldesc_t volatile *      VGADirectController::s_frameResetDesc;
-bool                     VGADirectController::s_VSync;
-lldesc_t volatile * *    VGADirectController::s_DMALines = nullptr;
-
+VGADirectController *VGADirectController::s_instance = nullptr;
+volatile int VGADirectController::s_scanLine;
+lldesc_t volatile *VGADirectController::s_frameResetDesc;
+bool VGADirectController::s_VSync;
+lldesc_t volatile **VGADirectController::s_DMALines = nullptr;
 
 
 VGADirectController::VGADirectController(bool autoRun)
-  : m_linesCount(2),
-    m_lines(nullptr),
-    m_drawScanlineCallback(nullptr),
-    m_autoRun(autoRun)
+    : m_linesCount(2)
+    , m_lines(nullptr)
+    , m_drawScanlineCallback(nullptr)
+    , m_autoRun(autoRun)
 {
-  s_instance = this;
+    s_instance = this;
 }
 
 
 void VGADirectController::init()
 {
-  VGABaseController::init();
-  m_doubleBufferOverDMA = false;
+    VGABaseController::init();
+    m_doubleBufferOverDMA = false;
 }
 
 
 void VGADirectController::allocateViewPort()
 {
-  m_lines = (uint8_t**) heap_caps_malloc(sizeof(uint8_t*) * m_linesCount, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
-  m_lines[0] = (uint8_t*) heap_caps_malloc(m_viewPortWidth * m_linesCount, MALLOC_CAP_DMA);
-  for (int i = 1; i < m_linesCount; ++i)
-    m_lines[i] = m_lines[0] + i * m_viewPortWidth;
-  s_DMALines = new lldesc_t volatile *[m_viewPortHeight];
+    m_lines = (uint8_t **)heap_caps_malloc(sizeof(uint8_t *) * m_linesCount,
+                                           MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
+    m_lines[0] = (uint8_t *)heap_caps_malloc(m_viewPortWidth * m_linesCount, MALLOC_CAP_DMA);
+    for (int i = 1; i < m_linesCount; ++i)
+        m_lines[i] = m_lines[0] + i * m_viewPortWidth;
+    s_DMALines = new lldesc_t volatile *[m_viewPortHeight];
 }
 
 
 void VGADirectController::freeViewPort()
 {
-  VGABaseController::freeViewPort();
+    VGABaseController::freeViewPort();
 
-  heap_caps_free((void*)m_lines[0]);
-  heap_caps_free((void*)m_lines);
-  m_lines = nullptr;
-  delete s_DMALines;
+    heap_caps_free((void *)m_lines[0]);
+    heap_caps_free((void *)m_lines);
+    m_lines = nullptr;
+    delete s_DMALines;
 }
 
 
-void VGADirectController::setResolution(VGATimings const& timings, int viewPortWidth, int viewPortHeight, bool doubleBuffered)
+void VGADirectController::setResolution(VGATimings const &timings, int viewPortWidth,
+                                        int viewPortHeight, bool doubleBuffered)
 {
-  // fail if setDrawScanlineCallback() has not been called
-  if (!m_drawScanlineCallback)
-    return;
+    // fail if setDrawScanlineCallback() has not been called
+    if (!m_drawScanlineCallback)
+        return;
 
-  VGABaseController::setResolution(timings, viewPortWidth, viewPortHeight, doubleBuffered);
+    VGABaseController::setResolution(timings, viewPortWidth, viewPortHeight, doubleBuffered);
 
-  if (m_autoRun)
-    run();
+    if (m_autoRun)
+        run();
 }
 
 
 void VGADirectController::run()
 {
-  // must be started before interrupt alloc
-  startGPIOStream();
+    // must be started before interrupt alloc
+    startGPIOStream();
 
-  s_scanLine = 0;
+    s_scanLine = 0;
 
-  // ESP_INTR_FLAG_LEVEL1: should be less than PS2Controller interrupt level, necessary when running on the same core
-  if (m_isr_handle == nullptr) {
-    CoreUsage::setBusiestCore(FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE);
-    esp_intr_alloc_pinnedToCore(ETS_I2S1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM, ISRHandler, this, &m_isr_handle, FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE);
-    I2S1.int_clr.val     = 0xFFFFFFFF;
-    I2S1.int_ena.out_eof = 1;
-  }
-}
-
-
-void VGADirectController::onSetupDMABuffer(lldesc_t volatile * buffer, bool isStartOfVertFrontPorch, int scan, bool isVisible, int visibleRow)
-{
-  if (isVisible) {
-    s_DMALines[visibleRow] = buffer;
-
-    buffer->buf = (uint8_t *) m_lines[visibleRow % m_linesCount];
-
-    // generate interrupt every half m_linesCount
-    if ((scan == 0 && (visibleRow % (m_linesCount / 2)) == 0)) {
-      if (visibleRow == 0)
-        s_frameResetDesc = buffer;
-      buffer->eof = 1;
+    // ESP_INTR_FLAG_LEVEL1: should be less than PS2Controller interrupt level, necessary when running on the same core
+    if (m_isr_handle == nullptr)
+    {
+        CoreUsage::setBusiestCore(FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE);
+        esp_intr_alloc_pinnedToCore(ETS_I2S1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM,
+                                    ISRHandler, this, &m_isr_handle,
+                                    FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE);
+        I2S1.int_clr.val = 0xFFFFFFFF;
+        I2S1.int_ena.out_eof = 1;
     }
-  }
 }
 
 
-void VGADirectController::setScanlineBuffer(int scanline, uint8_t volatile * lineBuffer)
+void VGADirectController::onSetupDMABuffer(lldesc_t volatile *buffer, bool isStartOfVertFrontPorch,
+                                           int scan, bool isVisible, int visibleRow)
 {
-  s_DMALines[scanline]->buf = lineBuffer;
+    if (isVisible)
+    {
+        s_DMALines[visibleRow] = buffer;
+
+        buffer->buf = (uint8_t *)m_lines[visibleRow % m_linesCount];
+
+        // generate interrupt every half m_linesCount
+        if ((scan == 0 && (visibleRow % (m_linesCount / 2)) == 0))
+        {
+            if (visibleRow == 0)
+                s_frameResetDesc = buffer;
+            buffer->eof = 1;
+        }
+    }
 }
 
 
-uint8_t volatile * VGADirectController::getScanlineBuffer(int scanline)
+void VGADirectController::setScanlineBuffer(int scanline, uint8_t volatile *lineBuffer)
 {
-  return (uint8_t volatile *) s_DMALines[scanline]->buf;
+    s_DMALines[scanline]->buf = lineBuffer;
 }
 
 
-uint8_t volatile * VGADirectController::getDefaultScanlineBuffer(int scanline)
+uint8_t volatile *VGADirectController::getScanlineBuffer(int scanline)
 {
-  return m_lines[scanline % m_linesCount];
+    return (uint8_t volatile *)s_DMALines[scanline]->buf;
 }
 
 
-void VGADirectController::setPixelAt(PixelDesc const & pixelDesc, Rect & updateRect)
+uint8_t volatile *VGADirectController::getDefaultScanlineBuffer(int scanline)
 {
+    return m_lines[scanline % m_linesCount];
 }
 
 
-void VGADirectController::absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color)
-{
-}
+void VGADirectController::setPixelAt(PixelDesc const &pixelDesc, Rect &updateRect) {}
 
 
-void VGADirectController::rawFillRow(int y, int x1, int x2, RGB888 color)
-{
-}
+void VGADirectController::absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color) {}
 
 
-void VGADirectController::rawFillRow(int y, int x1, int x2, uint8_t colorIndex)
-{
-}
+void VGADirectController::rawFillRow(int y, int x1, int x2, RGB888 color) {}
 
 
-void VGADirectController::rawInvertRow(int y, int x1, int x2)
-{
-}
+void VGADirectController::rawFillRow(int y, int x1, int x2, uint8_t colorIndex) {}
 
 
-void VGADirectController::rawCopyRow(int x1, int x2, int srcY, int dstY)
-{
-}
+void VGADirectController::rawInvertRow(int y, int x1, int x2) {}
 
 
-void VGADirectController::swapRows(int yA, int yB, int x1, int x2)
-{
-}
+void VGADirectController::rawCopyRow(int x1, int x2, int srcY, int dstY) {}
 
 
-void VGADirectController::drawEllipse(Size const & size, Rect & updateRect)
-{
-}
+void VGADirectController::swapRows(int yA, int yB, int x1, int x2) {}
 
 
-void VGADirectController::clear(Rect & updateRect)
-{
-}
+void VGADirectController::drawEllipse(Size const &size, Rect &updateRect) {}
 
 
-void VGADirectController::VScroll(int scroll, Rect & updateRect)
-{
-}
+void VGADirectController::clear(Rect &updateRect) {}
 
 
-void VGADirectController::HScroll(int scroll, Rect & updateRect)
-{
-}
+void VGADirectController::VScroll(int scroll, Rect &updateRect) {}
 
 
-void VGADirectController::drawGlyph(Glyph const & glyph, GlyphOptions glyphOptions, RGB888 penColor, RGB888 brushColor, Rect & updateRect)
+void VGADirectController::HScroll(int scroll, Rect &updateRect) {}
+
+
+void VGADirectController::drawGlyph(Glyph const &glyph, GlyphOptions glyphOptions, RGB888 penColor,
+                                    RGB888 brushColor, Rect &updateRect)
 {
 }
 
 
-void VGADirectController::invertRect(Rect const & rect, Rect & updateRect)
+void VGADirectController::invertRect(Rect const &rect, Rect &updateRect) {}
+
+
+void VGADirectController::swapFGBG(Rect const &rect, Rect &updateRect) {}
+
+
+void VGADirectController::copyRect(Rect const &source, Rect &updateRect) {}
+
+
+void VGADirectController::readScreen(Rect const &rect, RGB888 *destBuf) {}
+
+
+void VGADirectController::rawDrawBitmap_Native(int destX, int destY, Bitmap const *bitmap, int X1,
+                                               int Y1, int XCount, int YCount)
 {
 }
 
 
-void VGADirectController::swapFGBG(Rect const & rect, Rect & updateRect)
+void VGADirectController::rawDrawBitmap_Mask(int destX, int destY, Bitmap const *bitmap,
+                                             void *saveBackground, int X1, int Y1, int XCount,
+                                             int YCount)
 {
 }
 
 
-void VGADirectController::copyRect(Rect const & source, Rect & updateRect)
+void VGADirectController::rawDrawBitmap_RGBA2222(int destX, int destY, Bitmap const *bitmap,
+                                                 void *saveBackground, int X1, int Y1, int XCount,
+                                                 int YCount)
 {
 }
 
 
-void VGADirectController::readScreen(Rect const & rect, RGB888 * destBuf)
+void VGADirectController::rawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const *bitmap,
+                                                 void *saveBackground, int X1, int Y1, int XCount,
+                                                 int YCount)
 {
 }
 
 
-void VGADirectController::rawDrawBitmap_Native(int destX, int destY, Bitmap const * bitmap, int X1, int Y1, int XCount, int YCount)
+void IRAM_ATTR VGADirectController::ISRHandler(void *arg)
 {
-}
+#if FABGLIB_VGAXCONTROLLER_PERFORMANCE_CHECK
+    auto s1 = getCycleCount();
+#endif
 
+    if (I2S1.int_st.out_eof)
+    {
 
-void VGADirectController::rawDrawBitmap_Mask(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount)
-{
-}
+        auto ctrl = (VGADirectController *)arg;
 
+        auto viewPortHeight = ctrl->m_viewPortHeight;
 
-void VGADirectController::rawDrawBitmap_RGBA2222(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount)
-{
-}
+        auto desc = (volatile lldesc_t *)I2S1.out_eof_des_addr;
 
+        if (desc == s_frameResetDesc)
+        {
+            s_scanLine = 0;
+            s_VSync = false;
+        }
 
-void VGADirectController::rawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount)
-{
-}
+        int linesCount = ctrl->m_linesCount;
+        int scanLine = (s_scanLine + linesCount / 2) % viewPortHeight;
 
+        const auto lineIndex = scanLine & (linesCount - 1);
 
-void IRAM_ATTR VGADirectController::ISRHandler(void * arg)
-{
-  #if FABGLIB_VGAXCONTROLLER_PERFORMANCE_CHECK
-  auto s1 = getCycleCount();
-  #endif
+        ctrl->m_drawScanlineCallback(ctrl->m_drawScanlineArg, (uint8_t *)(ctrl->m_lines[lineIndex]),
+                                     scanLine);
 
-  if (I2S1.int_st.out_eof) {
+        s_scanLine += linesCount / 2;
 
-    auto ctrl = (VGADirectController *) arg;
-
-    auto viewPortHeight = ctrl->m_viewPortHeight;
-
-    auto desc = (volatile lldesc_t*) I2S1.out_eof_des_addr;
-
-    if (desc == s_frameResetDesc) {
-      s_scanLine = 0;
-      s_VSync = false;
+        if (s_scanLine >= viewPortHeight)
+            s_VSync = true;
     }
 
-    int linesCount = ctrl->m_linesCount;
-    int scanLine = (s_scanLine + linesCount / 2) % viewPortHeight;
+#if FABGLIB_VGAXCONTROLLER_PERFORMANCE_CHECK
+    s_vgapalctrlcycles += getCycleCount() - s1;
+#endif
 
-    const auto lineIndex = scanLine & (linesCount - 1);
-
-    ctrl->m_drawScanlineCallback(ctrl->m_drawScanlineArg, (uint8_t*)(ctrl->m_lines[lineIndex]), scanLine);
-
-    s_scanLine += linesCount / 2;
-
-    if (s_scanLine >= viewPortHeight)
-      s_VSync = true;
-
-  }
-
-  #if FABGLIB_VGAXCONTROLLER_PERFORMANCE_CHECK
-  s_vgapalctrlcycles += getCycleCount() - s1;
-  #endif
-
-  I2S1.int_clr.val = I2S1.int_st.val;
+    I2S1.int_clr.val = I2S1.int_st.val;
 }
-
 
 
 } // end of namespace
-

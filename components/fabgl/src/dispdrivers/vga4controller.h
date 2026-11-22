@@ -27,7 +27,6 @@
 #pragma once
 
 
-
 /**
  * @file
  *
@@ -35,30 +34,27 @@
  */
 
 
-#include <stdint.h>
-#include <stddef.h>
 #include <atomic>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "driver/gpio.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
+#include "devdrivers/swgenerator.h"
+#include "dispdrivers/vgapalettedcontroller.h"
+#include "displaycontroller.h"
 #include "fabglconf.h"
 #include "fabutils.h"
-#include "devdrivers/swgenerator.h"
-#include "displaycontroller.h"
-#include "dispdrivers/vgapalettedcontroller.h"
-
 
 
 #define VGA4_LinesCount 4
 
 
-
-
-namespace fabgl {
-
+namespace fabgl
+{
 
 
 /**
@@ -77,28 +73,32 @@ namespace fabgl {
 *     displayController.begin();
 *     displayController.setResolution(VGA_640x480_60Hz);
 */
-class VGA4Controller : public VGAPalettedController {
+class VGA4Controller : public VGAPalettedController
+{
 
 public:
 
-  VGA4Controller();
-  ~VGA4Controller();
+    VGA4Controller();
+    ~VGA4Controller();
 
-  // unwanted methods
-  VGA4Controller(VGA4Controller const&) = delete;
-  void operator=(VGA4Controller const&) = delete;
+    // unwanted methods
+    VGA4Controller(VGA4Controller const &) = delete;
+    void operator=(VGA4Controller const &) = delete;
 
 
-  /**
+    /**
    * @brief Returns the singleton instance of VGA4Controller class
    *
    * @return A pointer to VGA4Controller singleton object
    */
-  static VGA4Controller * instance() { return s_instance; }
+    static VGA4Controller *instance()
+    {
+        return s_instance;
+    }
 
-  void readScreen(Rect const & rect, RGB888 * destBuf);
+    void readScreen(Rect const &rect, RGB888 *destBuf);
 
-  /**
+    /**
    * @brief Determines color of specified palette item
    *
    * @param index Palette item (0..1)
@@ -109,88 +109,86 @@ public:
    *     // Color item 0 is pure Red
    *     displayController.setPaletteItem(0, RGB888(255, 0, 0));
    */
-  void setPaletteItem(int index, RGB888 const & color);
+    void setPaletteItem(int index, RGB888 const &color);
 
 
 protected:
 
-  void setupDefaultPalette();
+    void setupDefaultPalette();
 
 
 private:
 
-  // abstract method of BitmappedDisplayController
-  void setPixelAt(PixelDesc const & pixelDesc, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void setPixelAt(PixelDesc const &pixelDesc, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void drawEllipse(Size const & size, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void drawEllipse(Size const &size, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void clear(Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void clear(Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void VScroll(int scroll, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void VScroll(int scroll, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void HScroll(int scroll, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void HScroll(int scroll, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void drawGlyph(Glyph const & glyph, GlyphOptions glyphOptions, RGB888 penColor, RGB888 brushColor, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void drawGlyph(Glyph const &glyph, GlyphOptions glyphOptions, RGB888 penColor,
+                   RGB888 brushColor, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void invertRect(Rect const & rect, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void invertRect(Rect const &rect, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void copyRect(Rect const & source, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void copyRect(Rect const &source, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void swapFGBG(Rect const & rect, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void swapFGBG(Rect const &rect, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void rawDrawBitmap_Native(int destX, int destY, Bitmap const * bitmap, int X1, int Y1, int XCount, int YCount);
+    // abstract method of BitmappedDisplayController
+    void rawDrawBitmap_Native(int destX, int destY, Bitmap const *bitmap, int X1, int Y1,
+                              int XCount, int YCount);
 
-  // abstract method of BitmappedDisplayController
-  void rawDrawBitmap_Mask(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount);
+    // abstract method of BitmappedDisplayController
+    void rawDrawBitmap_Mask(int destX, int destY, Bitmap const *bitmap, void *saveBackground,
+                            int X1, int Y1, int XCount, int YCount);
 
-  // abstract method of BitmappedDisplayController
-  void rawDrawBitmap_RGBA2222(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount);
+    // abstract method of BitmappedDisplayController
+    void rawDrawBitmap_RGBA2222(int destX, int destY, Bitmap const *bitmap, void *saveBackground,
+                                int X1, int Y1, int XCount, int YCount);
 
-  // abstract method of BitmappedDisplayController
-  void rawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount);
+    // abstract method of BitmappedDisplayController
+    void rawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const *bitmap, void *saveBackground,
+                                int X1, int Y1, int XCount, int YCount);
 
-  // abstract method of BitmappedDisplayController
-  void rawFillRow(int y, int x1, int x2, RGB888 color);
-  void rawFillRow(int y, int x1, int x2, uint8_t colorIndex);
+    // abstract method of BitmappedDisplayController
+    void rawFillRow(int y, int x1, int x2, RGB888 color);
+    void rawFillRow(int y, int x1, int x2, uint8_t colorIndex);
 
-  void rawInvertRow(int y, int x1, int x2);
+    void rawInvertRow(int y, int x1, int x2);
 
-  void rawCopyRow(int x1, int x2, int srcY, int dstY);
+    void rawCopyRow(int x1, int x2, int srcY, int dstY);
 
-  void swapRows(int yA, int yB, int x1, int x2);
+    void swapRows(int yA, int yB, int x1, int x2);
 
-  // abstract method of BitmappedDisplayController
-  void absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color);
+    // abstract method of BitmappedDisplayController
+    void absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color);
 
-  // abstract method of BitmappedDisplayController
-  int getBitmapSavePixelSize() { return 1; }
+    // abstract method of BitmappedDisplayController
+    int getBitmapSavePixelSize()
+    {
+        return 1;
+    }
 
-  static void ISRHandler(void * arg);
+    static void ISRHandler(void *arg);
 
 
+    static VGA4Controller *s_instance;
 
-  static VGA4Controller *     s_instance;
-
-  volatile uint32_t *         m_packedPaletteIndexQuad_to_signals;
-
+    volatile uint32_t *m_packedPaletteIndexQuad_to_signals;
 };
 
 
-
 } // end of namespace
-
-
-
-
-
-
-

@@ -24,39 +24,37 @@
  */
 
 
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/stat.h>
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 #include <time.h>
+#include <unistd.h>
 
+#include "driver/rtc_io.h"
+#include "esp_ipc.h"
 #include "esp_task_wdt.h"
+#include "soc/dport_reg.h"
 #include "soc/efuse_reg.h"
 #include "soc/rtc.h"
-#include "esp_ipc.h"
-#include "soc/dport_reg.h"
-#include "soc/sens_struct.h"
 #include "soc/rtc_io_struct.h"
-#include "driver/rtc_io.h"
+#include "soc/sens_struct.h"
 
-#include "fabutils.h"
 #include "fabglconf.h"
+#include "fabutils.h"
 
 #if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
-  #include "esp_private/periph_ctrl.h"
+#   include "esp_private/periph_ctrl.h"
 #else
-  #include "driver/periph_ctrl.h"
+#   include "driver/periph_ctrl.h"
 #endif
 
 
-
-#pragma GCC optimize ("O2")
-
+#pragma GCC optimize("O2")
 
 
-namespace fabgl {
-
+namespace fabgl
+{
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -64,41 +62,42 @@ namespace fabgl {
 
 
 TimeOut::TimeOut()
-  : m_start(esp_timer_get_time())
+    : m_start(esp_timer_get_time())
 {
 }
 
 
 bool TimeOut::expired(int valueMS)
 {
-  return valueMS > -1 && ((esp_timer_get_time() - m_start) / 1000) > valueMS;
+    return valueMS > -1 && ((esp_timer_get_time() - m_start) / 1000) > valueMS;
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // isqrt
 
 // Integer square root by Halleck's method, with Legalize's speedup
-int isqrt (int x)
+int isqrt(int x)
 {
-  if (x < 1)
-    return 0;
-  int squaredbit = 0x40000000;
-  int remainder = x;
-  int root = 0;
-  while (squaredbit > 0) {
-    if (remainder >= (squaredbit | root)) {
-      remainder -= (squaredbit | root);
-      root >>= 1;
-      root |= squaredbit;
-    } else
-      root >>= 1;
-    squaredbit >>= 2;
-  }
-  return root;
+    if (x < 1)
+        return 0;
+    int squaredbit = 0x40000000;
+    int remainder = x;
+    int root = 0;
+    while (squaredbit > 0)
+    {
+        if (remainder >= (squaredbit | root))
+        {
+            remainder -= (squaredbit | root);
+            root >>= 1;
+            root |= squaredbit;
+        }
+        else
+            root >>= 1;
+        squaredbit >>= 2;
+    }
+    return root;
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -106,9 +105,9 @@ int isqrt (int x)
 
 bool calcParity(uint8_t v)
 {
-  v ^= v >> 4;
-  v &= 0xf;
-  return (0x6996 >> v) & 1;
+    v ^= v >> 4;
+    v &= 0xf;
+    return (0x6996 >> v) & 1;
 }
 
 
@@ -117,22 +116,22 @@ bool calcParity(uint8_t v)
 // free32
 
 // size must be a multiple of uint32_t (32 bit)
-void * realloc32(void * ptr, size_t size)
+void *realloc32(void *ptr, size_t size)
 {
-  uint32_t * newBuffer = (uint32_t*) heap_caps_malloc(size, MALLOC_CAP_32BIT);
-  if (ptr) {
-    moveItems(newBuffer, (uint32_t*)ptr, size / sizeof(uint32_t));
+    uint32_t *newBuffer = (uint32_t *)heap_caps_malloc(size, MALLOC_CAP_32BIT);
+    if (ptr)
+    {
+        moveItems(newBuffer, (uint32_t *)ptr, size / sizeof(uint32_t));
+        heap_caps_free(ptr);
+    }
+    return newBuffer;
+}
+
+
+void free32(void *ptr)
+{
     heap_caps_free(ptr);
-  }
-  return newBuffer;
 }
-
-
-void free32(void * ptr)
-{
-  heap_caps_free(ptr);
-}
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -140,7 +139,7 @@ void free32(void * ptr)
 
 uint32_t msToTicks(int ms)
 {
-  return ms < 0 ? portMAX_DELAY : pdMS_TO_TICKS(ms);
+    return ms < 0 ? portMAX_DELAY : pdMS_TO_TICKS(ms);
 }
 
 
@@ -151,20 +150,21 @@ uint32_t msToTicks(int ms)
 
 ChipPackage getChipPackage()
 {
-  // read CHIP_VER_PKG (block0, byte 3, 105th bit % 32 = 9, 3 bits)
-  uint32_t ver_pkg = (REG_READ(EFUSE_BLK0_RDATA3_REG) >> 9) & 7;
-  switch (ver_pkg) {
-    case 0:
-      return ChipPackage::ESP32D0WDQ6;  // WROOOM-32
-    case 1:
-      return ChipPackage::ESP32D0WDQ5;  // WROVER-B
-    case 2:
-      return ChipPackage::ESP32D2WDQ5;
-    case 5:
-      return ChipPackage::ESP32PICOD4;  // TTGO-VGA32
-    default:
-      return ChipPackage::Unknown;
-  }
+    // read CHIP_VER_PKG (block0, byte 3, 105th bit % 32 = 9, 3 bits)
+    uint32_t ver_pkg = (REG_READ(EFUSE_BLK0_RDATA3_REG) >> 9) & 7;
+    switch (ver_pkg)
+    {
+        case 0:
+            return ChipPackage::ESP32D0WDQ6; // WROOOM-32
+        case 1:
+            return ChipPackage::ESP32D0WDQ5; // WROVER-B
+        case 2:
+            return ChipPackage::ESP32D2WDQ5;
+        case 5:
+            return ChipPackage::ESP32PICOD4; // TTGO-VGA32
+        default:
+            return ChipPackage::Unknown;
+    }
 }
 
 #endif
@@ -178,26 +178,30 @@ ChipPackage getChipPackage()
 
 void I2SModuleEnable(int num, bool enable)
 {
-  #ifdef PERIPH_RCC_ATOMIC
-  // PERIPH_I2S1_MODULE is no more available, so set bus clock and reset directly
-  uint32_t clk = num == 0 ? DPORT_I2S0_CLK_EN : DPORT_I2S1_CLK_EN;
-  uint32_t rst = num == 0 ? DPORT_I2S0_RST : DPORT_I2S1_RST;
-  PERIPH_RCC_ATOMIC() {
-    if (enable) {
-      DPORT_SET_PERI_REG_MASK(DPORT_PERIP_CLK_EN_REG, clk);
-      DPORT_CLEAR_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, rst);
-    } else {
-      DPORT_CLEAR_PERI_REG_MASK(DPORT_PERIP_CLK_EN_REG, clk);
-      DPORT_SET_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, rst);
+#   ifdef PERIPH_RCC_ATOMIC
+    // PERIPH_I2S1_MODULE is no more available, so set bus clock and reset directly
+    uint32_t clk = num == 0 ? DPORT_I2S0_CLK_EN : DPORT_I2S1_CLK_EN;
+    uint32_t rst = num == 0 ? DPORT_I2S0_RST : DPORT_I2S1_RST;
+    PERIPH_RCC_ATOMIC()
+    {
+        if (enable)
+        {
+            DPORT_SET_PERI_REG_MASK(DPORT_PERIP_CLK_EN_REG, clk);
+            DPORT_CLEAR_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, rst);
+        }
+        else
+        {
+            DPORT_CLEAR_PERI_REG_MASK(DPORT_PERIP_CLK_EN_REG, clk);
+            DPORT_SET_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, rst);
+        }
     }
-  }
-  #else
-  auto module = num == 0 ? PERIPH_I2S0_MODULE : PERIPH_I2S1_MODULE;
-  if (enable)
-    periph_module_enable(module);
-  else
-    periph_module_disable(module);
-  #endif
+#   else
+    auto module = num == 0 ? PERIPH_I2S0_MODULE : PERIPH_I2S1_MODULE;
+    if (enable)
+        periph_module_enable(module);
+    else
+        periph_module_disable(module);
+#   endif
 }
 
 
@@ -206,13 +210,13 @@ void I2SModuleEnable(int num, bool enable)
 
 void APLLEnable(bool enable, uint32_t sdm0, uint32_t sdm1, uint32_t sdm2, uint32_t o_div)
 {
-  #if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
-  rtc_clk_apll_enable(enable);
-  if (enable)
-    rtc_clk_apll_coeff_set(o_div, sdm0, sdm1, sdm2);
-  #else
-  rtc_clk_apll_enable(enable, sdm0, sdm1, sdm2, o_div);
-  #endif
+#   if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
+    rtc_clk_apll_enable(enable);
+    if (enable)
+        rtc_clk_apll_coeff_set(o_div, sdm0, sdm1, sdm2);
+#   else
+    rtc_clk_apll_enable(enable, sdm0, sdm1, sdm2, o_div);
+#   endif
 }
 
 
@@ -223,36 +227,36 @@ void APLLEnable(bool enable, uint32_t sdm0, uint32_t sdm1, uint32_t sdm2, uint32
 
 void DACEnableI2SOutput(gpio_num_t gpio)
 {
-  // I2S0 clock and data connected to the DAC
-  SENS.sar_dac_ctrl1.dac_dig_force = 1;
-  SENS.sar_dac_ctrl1.dac_clk_inv   = 1;
+    // I2S0 clock and data connected to the DAC
+    SENS.sar_dac_ctrl1.dac_dig_force = 1;
+    SENS.sar_dac_ctrl1.dac_clk_inv = 1;
 
-  // DAC pad as floating RTC pad
-  rtc_gpio_init(gpio);
-  rtc_gpio_set_direction(gpio, RTC_GPIO_MODE_DISABLED);
-  rtc_gpio_pullup_dis(gpio);
-  rtc_gpio_pulldown_dis(gpio);
+    // DAC pad as floating RTC pad
+    rtc_gpio_init(gpio);
+    rtc_gpio_set_direction(gpio, RTC_GPIO_MODE_DISABLED);
+    rtc_gpio_pullup_dis(gpio);
+    rtc_gpio_pulldown_dis(gpio);
 
-  // power up
-  int channel = (gpio == GPIO_NUM_25 ? 0 : 1);
-  RTCIO.pad_dac[channel].dac_xpd_force = 1;
-  RTCIO.pad_dac[channel].xpd_dac       = 1;
+    // power up
+    int channel = (gpio == GPIO_NUM_25 ? 0 : 1);
+    RTCIO.pad_dac[channel].dac_xpd_force = 1;
+    RTCIO.pad_dac[channel].xpd_dac = 1;
 
-  // ADC1 sampling must not drive DAC power
-  SENS.sar_meas_ctrl2.sar1_dac_xpd_fsm = 0;
+    // ADC1 sampling must not drive DAC power
+    SENS.sar_meas_ctrl2.sar1_dac_xpd_fsm = 0;
 }
 
-#endif  // #ifndef FABGL_EMULATED
+#endif // #ifndef FABGL_EMULATED
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // configureGPIO
 void configureGPIO(gpio_num_t gpio, gpio_mode_t mode)
 {
-  #ifndef FABGL_EMULATED
-  PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpio], PIN_FUNC_GPIO);
-  gpio_set_direction(gpio, mode);
-  #endif
+#ifndef FABGL_EMULATED
+    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpio], PIN_FUNC_GPIO);
+    gpio_set_direction(gpio, mode);
+#endif
 }
 
 
@@ -261,9 +265,9 @@ void configureGPIO(gpio_num_t gpio, gpio_mode_t mode)
 #ifndef FABGL_EMULATED
 uint32_t getApbFrequency()
 {
-  rtc_cpu_freq_config_t conf;
-  rtc_clk_cpu_freq_get_config(&conf);
-  return conf.freq_mhz >= 80 ? 80000000 : (conf.source_freq_mhz * 80000000 / conf.div);
+    rtc_cpu_freq_config_t conf;
+    rtc_clk_cpu_freq_get_config(&conf);
+    return conf.freq_mhz >= 80 ? 80000000 : (conf.source_freq_mhz * 80000000 / conf.div);
 }
 #endif
 
@@ -273,9 +277,9 @@ uint32_t getApbFrequency()
 #ifndef FABGL_EMULATED
 uint32_t getCPUFrequencyMHz()
 {
-  rtc_cpu_freq_config_t conf;
-  rtc_clk_cpu_freq_get_config(&conf);
-  return conf.freq_mhz;
+    rtc_cpu_freq_config_t conf;
+    rtc_clk_cpu_freq_get_config(&conf);
+    return conf.freq_mhz;
 }
 #endif
 
@@ -285,111 +289,129 @@ uint32_t getCPUFrequencyMHz()
 
 #ifndef FABGL_EMULATED
 
-struct esp_intr_alloc_args {
-  int             source;
-  int             flags;
-  intr_handler_t  handler;
-  void *          arg;
-  intr_handle_t * ret_handle;
-  TaskHandle_t    waitingTask;
+struct esp_intr_alloc_args
+{
+    int source;
+    int flags;
+    intr_handler_t handler;
+    void *arg;
+    intr_handle_t *ret_handle;
+    TaskHandle_t waitingTask;
 };
 
 
-void esp_intr_alloc_pinnedToCore_call(void * arg)
+void esp_intr_alloc_pinnedToCore_call(void *arg)
 {
-  auto args = (esp_intr_alloc_args*) arg;
-  esp_intr_alloc(args->source, args->flags, args->handler, args->arg, args->ret_handle);
+    auto args = (esp_intr_alloc_args *)arg;
+    esp_intr_alloc(args->source, args->flags, args->handler, args->arg, args->ret_handle);
 }
 
 
-void esp_intr_alloc_pinnedToCore(int source, int flags, intr_handler_t handler, void * arg, intr_handle_t * ret_handle, int core)
+void esp_intr_alloc_pinnedToCore(int source, int flags, intr_handler_t handler, void *arg,
+                                 intr_handle_t *ret_handle, int core)
 {
-  esp_intr_alloc_args args = { source, flags, handler, arg, ret_handle, xTaskGetCurrentTaskHandle() };
-  esp_ipc_call_blocking(core, esp_intr_alloc_pinnedToCore_call, &args);
+    esp_intr_alloc_args args = {source, flags,      handler,
+                                arg,    ret_handle, xTaskGetCurrentTaskHandle()};
+    esp_ipc_call_blocking(core, esp_intr_alloc_pinnedToCore_call, &args);
 }
 
 #endif
 
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 // converts '\' or '/' to newSep
 
-void replacePathSep(char * path, char newSep)
+void replacePathSep(char *path, char newSep)
 {
-  for (; *path; ++path)
-    if (*path == '\\' || *path == '/')
-      *path = newSep;
+    for (; *path; ++path)
+        if (*path == '\\' || *path == '/')
+            *path = newSep;
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Sutherland-Cohen line clipping algorithm
 
-static int clipLine_code(int x, int y, Rect const & clipRect)
+static int clipLine_code(int x, int y, Rect const &clipRect)
 {
-  int code = 0;
-  if (x < clipRect.X1)
-    code = 1;
-  else if (x > clipRect.X2)
-    code = 2;
-  if (y < clipRect.Y1)
-    code |= 4;
-  else if (y > clipRect.Y2)
-    code |= 8;
-  return code;
+    int code = 0;
+    if (x < clipRect.X1)
+        code = 1;
+    else if (x > clipRect.X2)
+        code = 2;
+    if (y < clipRect.Y1)
+        code |= 4;
+    else if (y > clipRect.Y2)
+        code |= 8;
+    return code;
 }
 
 // false = line is out of clipping rect
 // true = line intersects or is inside the clipping rect (x1, y1, x2, y2 are changed if checkOnly=false)
-bool clipLine(int & x1, int & y1, int & x2, int & y2, Rect const & clipRect, bool checkOnly)
+bool clipLine(int &x1, int &y1, int &x2, int &y2, Rect const &clipRect, bool checkOnly)
 {
-  int newX1 = x1;
-  int newY1 = y1;
-  int newX2 = x2;
-  int newY2 = y2;
-  int topLeftCode     = clipLine_code(newX1, newY1, clipRect);
-  int bottomRightCode = clipLine_code(newX2, newY2, clipRect);
-  while (true) {
-    if ((topLeftCode == 0) && (bottomRightCode == 0)) {
-      if (!checkOnly) {
-        x1 = newX1;
-        y1 = newY1;
-        x2 = newX2;
-        y2 = newY2;
-      }
-      return true;
-    } else if (topLeftCode & bottomRightCode) {
-      break;
-    } else {
-      int x = 0, y = 0;
-      int ncode = topLeftCode != 0 ? topLeftCode : bottomRightCode;
-      if (ncode & 8) {
-        x = newX1 + (newX2 - newX1) * (clipRect.Y2 - newY1) / (newY2 - newY1);
-        y = clipRect.Y2;
-      } else if (ncode & 4) {
-        x = newX1 + (newX2 - newX1) * (clipRect.Y1 - newY1) / (newY2 - newY1);
-        y = clipRect.Y1;
-      } else if (ncode & 2) {
-        y = newY1 + (newY2 - newY1) * (clipRect.X2 - newX1) / (newX2 - newX1);
-        x = clipRect.X2;
-      } else if (ncode & 1) {
-        y = newY1 + (newY2 - newY1) * (clipRect.X1 - newX1) / (newX2 - newX1);
-        x = clipRect.X1;
-      }
-      if (ncode == topLeftCode) {
-        newX1 = x;
-        newY1 = y;
-        topLeftCode = clipLine_code(newX1, newY1, clipRect);
-      } else {
-        newX2 = x;
-        newY2 = y;
-        bottomRightCode = clipLine_code(newX2, newY2, clipRect);
-      }
+    int newX1 = x1;
+    int newY1 = y1;
+    int newX2 = x2;
+    int newY2 = y2;
+    int topLeftCode = clipLine_code(newX1, newY1, clipRect);
+    int bottomRightCode = clipLine_code(newX2, newY2, clipRect);
+    while (true)
+    {
+        if ((topLeftCode == 0) && (bottomRightCode == 0))
+        {
+            if (!checkOnly)
+            {
+                x1 = newX1;
+                y1 = newY1;
+                x2 = newX2;
+                y2 = newY2;
+            }
+            return true;
+        }
+        else if (topLeftCode & bottomRightCode)
+        {
+            break;
+        }
+        else
+        {
+            int x = 0, y = 0;
+            int ncode = topLeftCode != 0 ? topLeftCode : bottomRightCode;
+            if (ncode & 8)
+            {
+                x = newX1 + (newX2 - newX1) * (clipRect.Y2 - newY1) / (newY2 - newY1);
+                y = clipRect.Y2;
+            }
+            else if (ncode & 4)
+            {
+                x = newX1 + (newX2 - newX1) * (clipRect.Y1 - newY1) / (newY2 - newY1);
+                y = clipRect.Y1;
+            }
+            else if (ncode & 2)
+            {
+                y = newY1 + (newY2 - newY1) * (clipRect.X2 - newX1) / (newX2 - newX1);
+                x = clipRect.X2;
+            }
+            else if (ncode & 1)
+            {
+                y = newY1 + (newY2 - newY1) * (clipRect.X1 - newX1) / (newX2 - newX1);
+                x = clipRect.X1;
+            }
+            if (ncode == topLeftCode)
+            {
+                newX1 = x;
+                newY1 = y;
+                topLeftCode = clipLine_code(newX1, newY1, clipRect);
+            }
+            else
+            {
+                newX2 = x;
+                newY2 = y;
+                bottomRightCode = clipLine_code(newX2, newY2, clipRect);
+            }
+        }
     }
-  }
-  return false;
+    return false;
 }
 
 
@@ -397,67 +419,68 @@ bool clipLine(int & x1, int & y1, int & x2, int & y2, Rect const & clipRect, boo
 // removeRectangle
 // remove "rectToRemove" from "mainRect", pushing remaining rectangles to "rects" stack
 
-void removeRectangle(Stack<Rect> & rects, Rect const & mainRect, Rect const & rectToRemove)
+void removeRectangle(Stack<Rect> &rects, Rect const &mainRect, Rect const &rectToRemove)
 {
-  if (!mainRect.intersects(rectToRemove) || rectToRemove.contains(mainRect))
-    return;
+    if (!mainRect.intersects(rectToRemove) || rectToRemove.contains(mainRect))
+        return;
 
-  // top rectangle
-  if (mainRect.Y1 < rectToRemove.Y1)
-    rects.push(Rect(mainRect.X1, mainRect.Y1, mainRect.X2, rectToRemove.Y1 - 1));
+    // top rectangle
+    if (mainRect.Y1 < rectToRemove.Y1)
+        rects.push(Rect(mainRect.X1, mainRect.Y1, mainRect.X2, rectToRemove.Y1 - 1));
 
-  // bottom rectangle
-  if (mainRect.Y2 > rectToRemove.Y2)
-    rects.push(Rect(mainRect.X1, rectToRemove.Y2 + 1, mainRect.X2, mainRect.Y2));
+    // bottom rectangle
+    if (mainRect.Y2 > rectToRemove.Y2)
+        rects.push(Rect(mainRect.X1, rectToRemove.Y2 + 1, mainRect.X2, mainRect.Y2));
 
-  // left rectangle
-  if (mainRect.X1 < rectToRemove.X1)
-    rects.push(Rect(mainRect.X1, tmax(rectToRemove.Y1, mainRect.Y1), rectToRemove.X1 - 1, tmin(rectToRemove.Y2, mainRect.Y2)));
+    // left rectangle
+    if (mainRect.X1 < rectToRemove.X1)
+        rects.push(Rect(mainRect.X1, tmax(rectToRemove.Y1, mainRect.Y1), rectToRemove.X1 - 1,
+                        tmin(rectToRemove.Y2, mainRect.Y2)));
 
-  // right rectangle
-  if (mainRect.X2 > rectToRemove.X2)
-    rects.push(Rect(rectToRemove.X2 + 1, tmax(rectToRemove.Y1, mainRect.Y1), mainRect.X2, tmin(rectToRemove.Y2, mainRect.Y2)));
+    // right rectangle
+    if (mainRect.X2 > rectToRemove.X2)
+        rects.push(Rect(rectToRemove.X2 + 1, tmax(rectToRemove.Y1, mainRect.Y1), mainRect.X2,
+                        tmin(rectToRemove.Y2, mainRect.Y2)));
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Rect
 
-Rect IRAM_ATTR Rect::merge(Rect const & rect) const
+Rect IRAM_ATTR Rect::merge(Rect const &rect) const
 {
-  return Rect(imin(rect.X1, X1), imin(rect.Y1, Y1), imax(rect.X2, X2), imax(rect.Y2, Y2));
+    return Rect(imin(rect.X1, X1), imin(rect.Y1, Y1), imax(rect.X2, X2), imax(rect.Y2, Y2));
 }
 
 
-Rect IRAM_ATTR Rect::intersection(Rect const & rect) const
+Rect IRAM_ATTR Rect::intersection(Rect const &rect) const
 {
-  return Rect(tmax(X1, rect.X1), tmax(Y1, rect.Y1), tmin(X2, rect.X2), tmin(Y2, rect.Y2));
+    return Rect(tmax(X1, rect.X1), tmax(Y1, rect.Y1), tmin(X2, rect.X2), tmin(Y2, rect.Y2));
 }
 
 
 ///////////////////////////////////////////////////////////////////////////////////
 // rgb222_to_hsv
 // R, G, B in the 0..3 range
-void rgb222_to_hsv(int R, int G, int B, double * h, double * s, double * v)
+void rgb222_to_hsv(int R, int G, int B, double *h, double *s, double *v)
 {
-  double r = R / 3.0;
-  double g = G / 3.0;
-  double b = B / 3.0;
-  double cmax = tmax<double>(tmax<double>(r, g), b);
-  double cmin = tmin<double>(tmin<double>(r, g), b);
-  double diff = cmax - cmin;
-  if (cmax == cmin)
-    *h = 0;
-  else if (cmax == r)
-    *h = fmod((60.0 * ((g - b) / diff) + 360.0), 360.0);
-  else if (cmax == g)
-    *h = fmod((60.0 * ((b - r) / diff) + 120.0), 360.0);
-  else if (cmax == b)
-    *h = fmod((60.0 * ((r - g) / diff) + 240.0), 360.0);
-  *s = cmax == 0 ? 0 : (diff / cmax) * 100.0;
-  *v = cmax * 100.0;
+    double r = R / 3.0;
+    double g = G / 3.0;
+    double b = B / 3.0;
+    double cmax = tmax<double>(tmax<double>(r, g), b);
+    double cmin = tmin<double>(tmin<double>(r, g), b);
+    double diff = cmax - cmin;
+    if (cmax == cmin)
+        *h = 0;
+    else if (cmax == r)
+        *h = fmod((60.0 * ((g - b) / diff) + 360.0), 360.0);
+    else if (cmax == g)
+        *h = fmod((60.0 * ((b - r) / diff) + 120.0), 360.0);
+    else if (cmax == b)
+        *h = fmod((60.0 * ((r - g) / diff) + 240.0), 360.0);
+    *s = cmax == 0 ? 0 : (diff / cmax) * 100.0;
+    *v = cmax * 100.0;
 }
-
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -465,213 +488,221 @@ void rgb222_to_hsv(int R, int G, int B, double * h, double * s, double * v)
 
 
 StringList::StringList()
-  : m_items(nullptr),
-    m_selMap(nullptr),
-    m_ownStrings(false),
-    m_count(0),
-    m_allocated(0)
+    : m_items(nullptr)
+    , m_selMap(nullptr)
+    , m_ownStrings(false)
+    , m_count(0)
+    , m_allocated(0)
 {
 }
 
 
 StringList::~StringList()
 {
-  clear();
+    clear();
 }
 
 
 void StringList::clear()
 {
-  if (m_ownStrings) {
+    if (m_ownStrings)
+    {
+        for (int i = 0; i < m_count; ++i)
+            free((void *)m_items[i]);
+    }
+    free32(m_items);
+    free32(m_selMap);
+    m_items = nullptr;
+    m_selMap = nullptr;
+    m_count = m_allocated = 0;
+}
+
+
+void StringList::copyFrom(StringList const &src)
+{
+    clear();
+    m_count = src.m_count;
+    checkAllocatedSpace(m_count);
     for (int i = 0; i < m_count; ++i)
-      free((void*) m_items[i]);
-  }
-  free32(m_items);
-  free32(m_selMap);
-  m_items  = nullptr;
-  m_selMap = nullptr;
-  m_count  = m_allocated = 0;
+    {
+        m_items[i] = nullptr;
+        set(i, src.m_items[i]);
+    }
+    deselectAll();
 }
 
 
-void StringList::copyFrom(StringList const & src)
+void StringList::copySelectionMapFrom(StringList const &src)
 {
-  clear();
-  m_count = src.m_count;
-  checkAllocatedSpace(m_count);
-  for (int i = 0; i < m_count; ++i) {
-    m_items[i] = nullptr;
-    set(i, src.m_items[i]);
-  }
-  deselectAll();
-}
-
-
-void StringList::copySelectionMapFrom(StringList const & src)
-{
-  int maskLen = (31 + m_allocated) / 32;
-  for (int i = 0; i < maskLen; ++i)
-    m_selMap[i] = src.m_selMap[i];
+    int maskLen = (31 + m_allocated) / 32;
+    for (int i = 0; i < maskLen; ++i)
+        m_selMap[i] = src.m_selMap[i];
 }
 
 
 void StringList::checkAllocatedSpace(int requiredItems)
 {
-  if (m_allocated < requiredItems) {
-    if (m_allocated == 0) {
-      // first time allocates exact space
-      m_allocated = requiredItems;
-    } else {
-      // next times allocate double
-      while (m_allocated < requiredItems)
-        m_allocated *= 2;
+    if (m_allocated < requiredItems)
+    {
+        if (m_allocated == 0)
+        {
+            // first time allocates exact space
+            m_allocated = requiredItems;
+        }
+        else
+        {
+            // next times allocate double
+            while (m_allocated < requiredItems)
+                m_allocated *= 2;
+        }
+        m_items = (char const **)realloc32(m_items, m_allocated * sizeof(char const *));
+        m_selMap = (uint32_t *)realloc32(m_selMap, (31 + m_allocated) / 32 * sizeof(uint32_t));
     }
-    m_items  = (char const**) realloc32(m_items, m_allocated * sizeof(char const *));
-    m_selMap = (uint32_t*) realloc32(m_selMap, (31 + m_allocated) / 32 * sizeof(uint32_t));
-  }
 }
 
 
-void StringList::insert(int index, char const * str)
+void StringList::insert(int index, char const *str)
 {
-  ++m_count;
-  checkAllocatedSpace(m_count);
-  moveItems(m_items + index + 1, m_items + index, m_count - index - 1);
-  m_items[index] = nullptr;
-  set(index, str);
-  deselectAll();
+    ++m_count;
+    checkAllocatedSpace(m_count);
+    moveItems(m_items + index + 1, m_items + index, m_count - index - 1);
+    m_items[index] = nullptr;
+    set(index, str);
+    deselectAll();
 }
 
 
-int StringList::append(char const * str)
+int StringList::append(char const *str)
 {
-  insert(m_count, str);
-  return m_count - 1;
+    insert(m_count, str);
+    return m_count - 1;
 }
 
 
 int StringList::appendFmt(const char *format, ...)
 {
-  takeStrings();
-  va_list ap;
-  va_start(ap, format);
-  int size = vsnprintf(nullptr, 0, format, ap) + 1;
-  if (size > 0) {
-    va_end(ap);
+    takeStrings();
+    va_list ap;
     va_start(ap, format);
-    char buf[size + 1];
-    vsnprintf(buf, size, format, ap);
-    insert(m_count, buf);
-  }
-  va_end(ap);
-  return m_count - 1;
+    int size = vsnprintf(nullptr, 0, format, ap) + 1;
+    if (size > 0)
+    {
+        va_end(ap);
+        va_start(ap, format);
+        char buf[size + 1];
+        vsnprintf(buf, size, format, ap);
+        insert(m_count, buf);
+    }
+    va_end(ap);
+    return m_count - 1;
 }
 
 
-void StringList::append(char const * strlist[], int count)
+void StringList::append(char const *strlist[], int count)
 {
-  for (int i = 0; i < count; ++i)
-    insert(m_count, strlist[i]);
+    for (int i = 0; i < count; ++i)
+        insert(m_count, strlist[i]);
 }
 
 
 // separator cannot be "0"
-void StringList::appendSepList(char const * strlist, char separator)
+void StringList::appendSepList(char const *strlist, char separator)
 {
-  if (strlist) {
-    takeStrings();
-    char const * start = strlist;
-    while (*start) {
-      auto end = strchr(start, separator);
-      if (!end)
-        end = strchr(start, 0);
-      auto len = end - start;
-      char str[len + 1];
-      memcpy(str, start, len);
-      str[len] = 0;
-      insert(m_count, str);
-      start += len + (*end == 0 ? 0 : 1);
+    if (strlist)
+    {
+        takeStrings();
+        char const *start = strlist;
+        while (*start)
+        {
+            auto end = strchr(start, separator);
+            if (!end)
+                end = strchr(start, 0);
+            auto len = end - start;
+            char str[len + 1];
+            memcpy(str, start, len);
+            str[len] = 0;
+            insert(m_count, str);
+            start += len + (*end == 0 ? 0 : 1);
+        }
     }
-  }
 }
 
 
-void StringList::set(int index, char const * str)
+void StringList::set(int index, char const *str)
 {
-  if (m_ownStrings) {
-    free((void*)m_items[index]);
-    m_items[index] = (char const*) malloc(strlen(str) + 1);
-    strcpy((char*)m_items[index], str);
-  } else {
-    m_items[index] = str;
-  }
+    if (m_ownStrings)
+    {
+        free((void *)m_items[index]);
+        m_items[index] = (char const *)malloc(strlen(str) + 1);
+        strcpy((char *)m_items[index], str);
+    }
+    else
+    {
+        m_items[index] = str;
+    }
 }
 
 
 void StringList::remove(int index)
 {
-  if (m_ownStrings)
-    free((void*)m_items[index]);
-  moveItems(m_items + index, m_items + index + 1, m_count - index - 1);
-  --m_count;
-  deselectAll();
+    if (m_ownStrings)
+        free((void *)m_items[index]);
+    moveItems(m_items + index, m_items + index + 1, m_count - index - 1);
+    --m_count;
+    deselectAll();
 }
 
 
 void StringList::takeStrings()
 {
-  if (!m_ownStrings) {
-    m_ownStrings = true;
-    // take existing strings
-    for (int i = 0; i < m_count; ++i) {
-      char const * str = m_items[i];
-      m_items[i] = nullptr;
-      set(i, str);
+    if (!m_ownStrings)
+    {
+        m_ownStrings = true;
+        // take existing strings
+        for (int i = 0; i < m_count; ++i)
+        {
+            char const *str = m_items[i];
+            m_items[i] = nullptr;
+            set(i, str);
+        }
     }
-  }
 }
 
 
 void StringList::deselectAll()
 {
-  for (int i = 0; i < (31 + m_count) / 32; ++i)
-    m_selMap[i] = 0;
+    for (int i = 0; i < (31 + m_count) / 32; ++i)
+        m_selMap[i] = 0;
 }
 
 
 bool StringList::selected(int index)
 {
-  return m_selMap[index / 32] & (1 << (index % 32));
+    return m_selMap[index / 32] & (1 << (index % 32));
 }
 
 
 // -1 = no items selected
 int StringList::getFirstSelected()
 {
-  for (int i = 0; i < m_count; ++i)
-    if (selected(i))
-      return i;
-  return -1;
+    for (int i = 0; i < m_count; ++i)
+        if (selected(i))
+            return i;
+    return -1;
 }
 
 
 void StringList::select(int index, bool value)
 {
-  if (value)
-    m_selMap[index / 32] |= 1 << (index % 32);
-  else
-    m_selMap[index / 32] &= ~(1 << (index % 32));
+    if (value)
+        m_selMap[index / 32] |= 1 << (index % 32);
+    else
+        m_selMap[index / 32] &= ~(1 << (index % 32));
 }
-
 
 
 // StringList
 ///////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -680,129 +711,145 @@ void StringList::select(int index, bool value)
 
 void LightMemoryPool::mark(int pos, int16_t size, bool allocated)
 {
-  m_mem[pos]     = size & 0xff;
-  m_mem[pos + 1] = ((size >> 8) & 0x7f) | (allocated ? 0x80 : 0);
+    m_mem[pos] = size & 0xff;
+    m_mem[pos + 1] = ((size >> 8) & 0x7f) | (allocated ? 0x80 : 0);
 }
 
 
 int16_t LightMemoryPool::getSize(int pos)
 {
-  return m_mem[pos] | ((m_mem[pos + 1] & 0x7f) << 8);
+    return m_mem[pos] | ((m_mem[pos + 1] & 0x7f) << 8);
 }
 
 
 bool LightMemoryPool::isFree(int pos)
 {
-  return (m_mem[pos + 1] & 0x80) == 0;
+    return (m_mem[pos + 1] & 0x80) == 0;
 }
 
 
 LightMemoryPool::LightMemoryPool(int poolSize)
 {
-  m_poolSize = poolSize + 2;
-  m_mem = (uint8_t*) heap_caps_malloc(m_poolSize, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
-  mark(0, m_poolSize - 2, false);
+    m_poolSize = poolSize + 2;
+    m_mem = (uint8_t *)heap_caps_malloc(m_poolSize, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
+    mark(0, m_poolSize - 2, false);
 }
 
 
 LightMemoryPool::~LightMemoryPool()
 {
-  heap_caps_free(m_mem);
+    heap_caps_free(m_mem);
 }
 
 
-void * LightMemoryPool::alloc(int size)
+void *LightMemoryPool::alloc(int size)
 {
-  for (int pos = 0; pos < m_poolSize; ) {
-    int16_t blockSize = getSize(pos);
-    if (isFree(pos)) {
-      if (blockSize == size) {
-        // found a block having the same size
-        mark(pos, size, true);
-        return m_mem + pos + 2;
-      } else if (blockSize > size) {
-        // found a block having larger size
-        int remainingSize = blockSize - size - 2;
-        if (remainingSize > 0)
-          mark(pos + 2 + size, remainingSize, false);  // create new free block at the end of this block
-        else
-          size = blockSize; // to avoid to waste last block
-        mark(pos, size, true);  // reduce size of this block and mark as allocated
-        return m_mem + pos + 2;
-      } else {
-        // this block hasn't enough space
-        // can merge with next block?
-        int nextBlockPos = pos + 2 + blockSize;
-        if (nextBlockPos < m_poolSize && isFree(nextBlockPos)) {
-          // join blocks and stay at this pos
-          mark(pos, blockSize + getSize(nextBlockPos) + 2, false);
-        } else {
-          // move to the next block
-          pos += blockSize + 2;
+    for (int pos = 0; pos < m_poolSize;)
+    {
+        int16_t blockSize = getSize(pos);
+        if (isFree(pos))
+        {
+            if (blockSize == size)
+            {
+                // found a block having the same size
+                mark(pos, size, true);
+                return m_mem + pos + 2;
+            }
+            else if (blockSize > size)
+            {
+                // found a block having larger size
+                int remainingSize = blockSize - size - 2;
+                if (remainingSize > 0)
+                    mark(pos + 2 + size, remainingSize,
+                         false); // create new free block at the end of this block
+                else
+                    size = blockSize; // to avoid to waste last block
+                mark(pos, size, true); // reduce size of this block and mark as allocated
+                return m_mem + pos + 2;
+            }
+            else
+            {
+                // this block hasn't enough space
+                // can merge with next block?
+                int nextBlockPos = pos + 2 + blockSize;
+                if (nextBlockPos < m_poolSize && isFree(nextBlockPos))
+                {
+                    // join blocks and stay at this pos
+                    mark(pos, blockSize + getSize(nextBlockPos) + 2, false);
+                }
+                else
+                {
+                    // move to the next block
+                    pos += blockSize + 2;
+                }
+            }
         }
-      }
-    } else {
-      // move to the next block
-      pos += blockSize + 2;
+        else
+        {
+            // move to the next block
+            pos += blockSize + 2;
+        }
     }
-  }
-  return nullptr;
+    return nullptr;
 }
 
 
 bool LightMemoryPool::memCheck()
 {
-  int pos = 0;
-  while (pos < m_poolSize) {
-    int16_t blockSize = getSize(pos);
-    pos += blockSize + 2;
-  }
-  return pos == m_poolSize;
+    int pos = 0;
+    while (pos < m_poolSize)
+    {
+        int16_t blockSize = getSize(pos);
+        pos += blockSize + 2;
+    }
+    return pos == m_poolSize;
 }
 
 
 int LightMemoryPool::totFree()
 {
-  int r = 0;
-  for (int pos = 0; pos < m_poolSize; ) {
-    int16_t blockSize = getSize(pos);
-    if (isFree(pos))
-      r += blockSize;
-    pos += blockSize + 2;
-  }
-  return r;
+    int r = 0;
+    for (int pos = 0; pos < m_poolSize;)
+    {
+        int16_t blockSize = getSize(pos);
+        if (isFree(pos))
+            r += blockSize;
+        pos += blockSize + 2;
+    }
+    return r;
 }
 
 
 int LightMemoryPool::totAllocated()
 {
-  int r = 0;
-  for (int pos = 0; pos < m_poolSize; ) {
-    int16_t blockSize = getSize(pos);
-    if (!isFree(pos))
-      r += blockSize;
-    pos += blockSize + 2;
-  }
-  return r;
+    int r = 0;
+    for (int pos = 0; pos < m_poolSize;)
+    {
+        int16_t blockSize = getSize(pos);
+        if (!isFree(pos))
+            r += blockSize;
+        pos += blockSize + 2;
+    }
+    return r;
 }
 
 
 int LightMemoryPool::largestFree()
 {
-  int r = 0;
-  for (int pos = 0; pos < m_poolSize; ) {
-    int16_t blockSize = getSize(pos);
-    if (isFree(pos) && blockSize > r)
-      r = blockSize;
-    pos += blockSize + 2;
-  }
-  return r;
+    int r = 0;
+    for (int pos = 0; pos < m_poolSize;)
+    {
+        int16_t blockSize = getSize(pos);
+        if (isFree(pos) && blockSize > r)
+            r = blockSize;
+        pos += blockSize + 2;
+    }
+    return r;
 }
 
 
 // LightMemoryPool
 ///////////////////////////////////////////////////////////////////////////////////
-
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -816,7 +863,6 @@ int CoreUsage::s_busiestCore = FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE;
 ///////////////////////////////////////////////////////////////////////////////////
 
 
-
 ///////////////////////////////////////////////////////////////////////////////////
 // CurrentVideoMode
 
@@ -828,7 +874,6 @@ VideoMode CurrentVideoMode::s_videoMode = VideoMode::None;
 ///////////////////////////////////////////////////////////////////////////////////
 
 
-
 ///////////////////////////////////////////////////////////////////////////////////
 // APLLCalcParams
 
@@ -837,39 +882,42 @@ VideoMode CurrentVideoMode::s_videoMode = VideoMode::None;
 //   maxDen > 1
 //   value >= 0
 #if FABGLIB_USE_APLL_AB_COEF
-void floatToFraction(double value, int maxDen, int * num, int * den)
+void floatToFraction(double value, int maxDen, int *num, int *den)
 {
-  int64_t a, h[3] = { 0, 1, 0 }, k[3] = { 1, 0, 0 };
-  int64_t x, d, n = 1;
-  while (value != floor(value)) {
-    n <<= 1;
-    value *= 2;
-  }
-  d = value;
-  for (int i = 0; i < 64; ++i) {
-    a = n ? d / n : 0;
-    if (i && !a)
-      break;
-    x = d;
-    d = n;
-    n = x % n;
-    x = a;
-    if (k[1] * a + k[0] >= maxDen) {
-      x = (maxDen - k[0]) / k[1];
-      if (x * 2 >= a || k[1] >= maxDen)
-        i = 65;
-      else
-        break;
+    int64_t a, h[3] = {0, 1, 0}, k[3] = {1, 0, 0};
+    int64_t x, d, n = 1;
+    while (value != floor(value))
+    {
+        n <<= 1;
+        value *= 2;
     }
-    h[2] = x * h[1] + h[0];
-    h[0] = h[1];
-    h[1] = h[2];
-    k[2] = x * k[1] + k[0];
-    k[0] = k[1];
-    k[1] = k[2];
-  }
-  *den = k[1];
-  *num = h[1];
+    d = value;
+    for (int i = 0; i < 64; ++i)
+    {
+        a = n ? d / n : 0;
+        if (i && !a)
+            break;
+        x = d;
+        d = n;
+        n = x % n;
+        x = a;
+        if (k[1] * a + k[0] >= maxDen)
+        {
+            x = (maxDen - k[0]) / k[1];
+            if (x * 2 >= a || k[1] >= maxDen)
+                i = 65;
+            else
+                break;
+        }
+        h[2] = x * h[1] + h[0];
+        h[0] = h[1];
+        h[1] = h[2];
+        k[2] = x * k[1] + k[0];
+        k[0] = k[1];
+        k[1] = k[2];
+    }
+    *den = k[1];
+    *num = h[1];
 }
 #endif
 
@@ -982,81 +1030,90 @@ void floatToFraction(double value, int maxDen, int * num, int * den)
 //
 //  MIN 5303030Hz - sdm0 = 0 sdm1 = 192 sdm2 = 4 o_div = 31
 //  MAX 7575757Hz - sdm0 = 0 sdm1 = 128 sdm2 = 8 o_div = 31
-void APLLCalcParams(double freq, APLLParams * params, uint8_t * a, uint8_t * b, double * out_freq, double * error)
+void APLLCalcParams(double freq, APLLParams *params, uint8_t *a, uint8_t *b, double *out_freq,
+                    double *error)
 {
-  double FXTAL = FABGLIB_XTAL;
+    double FXTAL = FABGLIB_XTAL;
 
-  *error = 999999999;
+    *error = 999999999;
 
-  double apll_freq = freq * 2;
+    double apll_freq = freq * 2;
 
-  for (int o_div = 0; o_div <= 31; ++o_div) {
+    for (int o_div = 0; o_div <= 31; ++o_div)
+    {
 
-    int idivisor = (2 * o_div + 4);
+        int idivisor = (2 * o_div + 4);
 
-    for (int sdm2 = 4; sdm2 <= 8; ++sdm2) {
+        for (int sdm2 = 4; sdm2 <= 8; ++sdm2)
+        {
 
-      // from tables above
-      int minSDM1 = (sdm2 == 4 ? 192 : 0);
-      int maxSDM1 = (sdm2 == 8 ? 128 : 255);
-      // apll_freq = XTAL * (4 + sdm2 + sdm1 / 256) / divisor   ->   sdm1 = (apll_freq * divisor - XTAL * 4 - XTAL * sdm2) * 256 / XTAL
-      int startSDM1 = ((apll_freq * idivisor - FXTAL * 4.0 - FXTAL * sdm2) * 256.0 / FXTAL);
+            // from tables above
+            int minSDM1 = (sdm2 == 4 ? 192 : 0);
+            int maxSDM1 = (sdm2 == 8 ? 128 : 255);
+            // apll_freq = XTAL * (4 + sdm2 + sdm1 / 256) / divisor   ->   sdm1 = (apll_freq * divisor - XTAL * 4 - XTAL * sdm2) * 256 / XTAL
+            int startSDM1 = ((apll_freq * idivisor - FXTAL * 4.0 - FXTAL * sdm2) * 256.0 / FXTAL);
 #if FABGLIB_USE_APLL_AB_COEF
-      for (int isdm1 = tmax(minSDM1, startSDM1); isdm1 <= maxSDM1; ++isdm1) {
+            for (int isdm1 = tmax(minSDM1, startSDM1); isdm1 <= maxSDM1; ++isdm1)
+            {
 #else
-      int isdm1 = startSDM1; {
+            int isdm1 = startSDM1;
+            {
 #endif
 
-        int sdm1 = isdm1;
-        sdm1 = tmax(minSDM1, sdm1);
-        sdm1 = tmin(maxSDM1, sdm1);
+                int sdm1 = isdm1;
+                sdm1 = tmax(minSDM1, sdm1);
+                sdm1 = tmin(maxSDM1, sdm1);
 
-        // apll_freq = XTAL * (4 + sdm2 + sdm1 / 256 + sdm0 / 65536) / divisor   ->   sdm0 = (apll_freq * divisor - XTAL * 4 - XTAL * sdm2 - XTAL * sdm1 / 256) * 65536 / XTAL
-        int sdm0 = ((apll_freq * idivisor - FXTAL * 4.0 - FXTAL * sdm2 - FXTAL * sdm1 / 256.0) * 65536.0 / FXTAL);
-        // from tables above
-        sdm0 = (sdm2 == 8 && sdm1 == 128 ? 0 : tmin(255, sdm0));
-        sdm0 = tmax(0, sdm0);
+                // apll_freq = XTAL * (4 + sdm2 + sdm1 / 256 + sdm0 / 65536) / divisor   ->   sdm0 = (apll_freq * divisor - XTAL * 4 - XTAL * sdm2 - XTAL * sdm1 / 256) * 65536 / XTAL
+                int sdm0 =
+                    ((apll_freq * idivisor - FXTAL * 4.0 - FXTAL * sdm2 - FXTAL * sdm1 / 256.0)
+                     * 65536.0 / FXTAL);
+                // from tables above
+                sdm0 = (sdm2 == 8 && sdm1 == 128 ? 0 : tmin(255, sdm0));
+                sdm0 = tmax(0, sdm0);
 
-        // dividend inside 350-500Mhz?
-        double dividend = FXTAL * (4.0 + sdm2 + sdm1 / 256.0 + sdm0 / 65536.0);
-        if (dividend >= 350000000 && dividend <= 500000000) {
-          // adjust output frequency using "b/a"
-          double oapll_freq = dividend / idivisor;
+                // dividend inside 350-500Mhz?
+                double dividend = FXTAL * (4.0 + sdm2 + sdm1 / 256.0 + sdm0 / 65536.0);
+                if (dividend >= 350000000 && dividend <= 500000000)
+                {
+                    // adjust output frequency using "b/a"
+                    double oapll_freq = dividend / idivisor;
 
-          // Calculates "b/a", assuming tx_bck_div_num = 1 and clkm_div_num = 2:
-          //   freq = apll_clk / (2 + clkm_div_b / clkm_div_a)
-          //     abr = clkm_div_b / clkm_div_a
-          //     freq = apll_clk / (2 + abr)    =>    abr = apll_clk / freq - 2
-          uint8_t oa = 1, ob = 0;
+                    // Calculates "b/a", assuming tx_bck_div_num = 1 and clkm_div_num = 2:
+                    //   freq = apll_clk / (2 + clkm_div_b / clkm_div_a)
+                    //     abr = clkm_div_b / clkm_div_a
+                    //     freq = apll_clk / (2 + abr)    =>    abr = apll_clk / freq - 2
+                    uint8_t oa = 1, ob = 0;
 #if FABGLIB_USE_APLL_AB_COEF
-          double abr = oapll_freq / freq - 2.0;
-          if (abr > 0 && abr < 1) {
-            int num, den;
-            floatToFraction(abr, 63, &num, &den);
-            ob = tclamp(num, 0, 63);
-            oa = tclamp(den, 0, 63);
-          }
+                    double abr = oapll_freq / freq - 2.0;
+                    if (abr > 0 && abr < 1)
+                    {
+                        int num, den;
+                        floatToFraction(abr, 63, &num, &den);
+                        ob = tclamp(num, 0, 63);
+                        oa = tclamp(den, 0, 63);
+                    }
 #endif
 
-          // is this the best?
-          double ofreq = oapll_freq / (2.0 + (double)ob / oa);
-          double err = freq - ofreq;
-          if (abs(err) < abs(*error)) {
-            *params = (APLLParams){(uint8_t)sdm0, (uint8_t)sdm1, (uint8_t)sdm2, (uint8_t)o_div};
-            *a = oa;
-            *b = ob;
-            *out_freq = ofreq;
-            *error = err;
-            if (err == 0.0)
-              return;
-          }
+                    // is this the best?
+                    double ofreq = oapll_freq / (2.0 + (double)ob / oa);
+                    double err = freq - ofreq;
+                    if (abs(err) < abs(*error))
+                    {
+                        *params = (APLLParams){(uint8_t)sdm0, (uint8_t)sdm1, (uint8_t)sdm2,
+                                               (uint8_t)o_div};
+                        *a = oa;
+                        *b = ob;
+                        *out_freq = ofreq;
+                        *error = err;
+                        if (err == 0.0)
+                            return;
+                    }
+                }
+            }
         }
-      }
-
     }
-  }
 }
-
 
 
 #ifndef FABGL_EMULATED
@@ -1067,52 +1124,54 @@ void APLLCalcParams(double freq, APLLParams * params, uint8_t * a, uint8_t * b, 
 // N    : 2..254
 // M    : 1..63
 // ret: actual sample rate
-int calcI2STimingParams(int sampleRate, int * outA, int * outB, int * outN, int * outM)
+int calcI2STimingParams(int sampleRate, int *outA, int *outB, int *outN, int *outM)
 {
-  *outM = 1;
+    *outM = 1;
 
-  double N = (double)APB_CLK_FREQ / sampleRate;
-  while (N >= 255) {
-    ++(*outM);
-    N = (double)APB_CLK_FREQ / sampleRate / *outM;
-  }
-
-  double min_error = 1.0;
-  *outN = N;
-  *outB = 0;
-  *outA = 1;
-
-  for (int a = 1; a < 64; ++a) {
-    int b = (N - (double)(*outN)) * (double)a;
-    if (b > 63)
-      continue;
-
-    double divisor = (double)(*outN) + (double)b / (double)a;
-    double error = divisor > N ? divisor - N : N - divisor;
-    if (error < min_error) {
-      min_error = error;
-      *outA = a;
-      *outB = b;
+    double N = (double)APB_CLK_FREQ / sampleRate;
+    while (N >= 255)
+    {
+        ++(*outM);
+        N = (double)APB_CLK_FREQ / sampleRate / *outM;
     }
 
-    ++b;
-    if (b > 63)
-      continue;
-    divisor = (double)(*outN) + (double)b / (double)a;
-    error = divisor > N ? divisor - N : N - divisor;
-    if (error < min_error) {
-      min_error = error;
-      *outA = a;
-      *outB = b;
-    }
-  }
+    double min_error = 1.0;
+    *outN = N;
+    *outB = 0;
+    *outA = 1;
 
-  return APB_CLK_FREQ / ((double)(*outN) + (double)(*outB) / (*outA)) / *outM;
+    for (int a = 1; a < 64; ++a)
+    {
+        int b = (N - (double)(*outN)) * (double)a;
+        if (b > 63)
+            continue;
+
+        double divisor = (double)(*outN) + (double)b / (double)a;
+        double error = divisor > N ? divisor - N : N - divisor;
+        if (error < min_error)
+        {
+            min_error = error;
+            *outA = a;
+            *outB = b;
+        }
+
+        ++b;
+        if (b > 63)
+            continue;
+        divisor = (double)(*outN) + (double)b / (double)a;
+        error = divisor > N ? divisor - N : N - divisor;
+        if (error < min_error)
+        {
+            min_error = error;
+            *outA = a;
+            *outB = b;
+        }
+    }
+
+    return APB_CLK_FREQ / ((double)(*outN) + (double)(*outB) / (*outA)) / *outM;
 }
 
 #endif
 
 
-
 }
-

@@ -125,8 +125,7 @@ bool esp::sd_card::mount()
     slot_config.gpio_cs = esp::int2gpio(CS);
     slot_config.host_id = host_id;
 
-    ret = esp_vfs_fat_sdspi_mount(_mount_point, &host,
-                                  &slot_config, &mount_config, &_card);
+    ret = esp_vfs_fat_sdspi_mount(_mount_point, &host, &slot_config, &mount_config, &_card);
     if (ret != ESP_OK)
     {
         if (ret == ESP_FAIL)
@@ -185,7 +184,5 @@ bool esp::sd_card::umount()
 std::uint64_t esp::sd_card::capacity() const
 {
     // В регистре CSD ёмкость задана числом секторов.
-    return _card
-        ? (std::uint64_t)_card->csd.capacity * _card->csd.sector_size
-        : 0;
+    return _card ? (std::uint64_t)_card->csd.capacity * _card->csd.sector_size : 0;
 }

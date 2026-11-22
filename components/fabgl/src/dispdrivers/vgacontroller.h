@@ -27,7 +27,6 @@
 #pragma once
 
 
-
 /**
  * @file
  *
@@ -35,21 +34,18 @@
  */
 
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "freertos/FreeRTOS.h"
 
+#include "dispdrivers/vgabasecontroller.h"
 #include "fabglconf.h"
 #include "fabutils.h"
-#include "dispdrivers/vgabasecontroller.h"
 
 
-
-
-namespace fabgl {
-
-
+namespace fabgl
+{
 
 
 /**
@@ -80,39 +76,47 @@ namespace fabgl {
 *     // Set 640x350@70Hz resolution
 *     VGAController.setResolution(VGA_640x350_70Hz);
 */
-class VGAController : public VGABaseController {
+class VGAController : public VGABaseController
+{
 
 public:
 
-  VGAController();
+    VGAController();
 
-  // unwanted methods
-  VGAController(VGAController const&)   = delete;
-  void operator=(VGAController const&)  = delete;
+    // unwanted methods
+    VGAController(VGAController const &) = delete;
+    void operator=(VGAController const &) = delete;
 
 
-  /**
+    /**
    * @brief Returns the singleton instance of VGAController class
    *
    * @return A pointer to VGAController singleton object
    */
-  static VGAController * instance() { return s_instance; }
+    static VGAController *instance()
+    {
+        return s_instance;
+    }
 
-  // abstract method of BitmappedDisplayController
-  void suspendBackgroundPrimitiveExecution();
+    // abstract method of BitmappedDisplayController
+    void suspendBackgroundPrimitiveExecution();
 
-  // abstract method of BitmappedDisplayController
-  void resumeBackgroundPrimitiveExecution();
+    // abstract method of BitmappedDisplayController
+    void resumeBackgroundPrimitiveExecution();
 
-  // abstract method of BitmappedDisplayController
-  NativePixelFormat nativePixelFormat() { return NativePixelFormat::SBGR2222; }
+    // abstract method of BitmappedDisplayController
+    NativePixelFormat nativePixelFormat()
+    {
+        return NativePixelFormat::SBGR2222;
+    }
 
-  // import "modeline" version of setResolution
-  using VGABaseController::setResolution;
+    // import "modeline" version of setResolution
+    using VGABaseController::setResolution;
 
-  void setResolution(VGATimings const& timings, int viewPortWidth = -1, int viewPortHeight = -1, bool doubleBuffered = false);
+    void setResolution(VGATimings const &timings, int viewPortWidth = -1, int viewPortHeight = -1,
+                       bool doubleBuffered = false);
 
-  /**
+    /**
    * @brief Reads pixels inside the specified rectangle.
    *
    * Screen reading may occur while other drawings are in progress, so the result may be not updated.
@@ -138,11 +142,11 @@ public:
    *     VGAController.writeScreen(rect.translate(110, 0), buf);
    *     delete buf;
    */
-  void readScreen(Rect const & rect, RGB222 * destBuf);
+    void readScreen(Rect const &rect, RGB222 *destBuf);
 
-  void readScreen(Rect const & rect, RGB888 * destBuf);
+    void readScreen(Rect const &rect, RGB888 *destBuf);
 
-  /**
+    /**
    * @brief Writes pixels inside the specified rectangle.
    *
    * Screen writing may occur while other drawings are in progress, so written pixels may be overlapped or mixed.
@@ -168,9 +172,9 @@ public:
    *     VGAController.writeScreen(rect.translate(110, 0), buf);
    *     delete buf;
    */
-  void writeScreen(Rect const & rect, RGB222 * srcBuf);
+    void writeScreen(Rect const &rect, RGB222 *srcBuf);
 
-  /**
+    /**
    * @brief Sets a raw pixel prepared using VGAController.createRawPixel.
    *
    * A raw pixel (or raw color) is a byte (uint8_t) that contains color information and synchronization signals.
@@ -184,91 +188,93 @@ public:
    *     // Set color of pixel at 100, 100
    *     VGAController.setRawPixel(100, 100, VGAController.createRawPixel(RGB222(3, 0, 0));
    */
-  void setRawPixel(int x, int y, uint8_t rgb)    { VGA_PIXEL(x, y) = rgb; }
+    void setRawPixel(int x, int y, uint8_t rgb)
+    {
+        VGA_PIXEL(x, y) = rgb;
+    }
 
 
 private:
 
-  void init();
+    void init();
 
-  void allocateViewPort();
-  void onSetupDMABuffer(lldesc_t volatile * buffer, bool isStartOfVertFrontPorch, int scan, bool isVisible, int visibleRow);
+    void allocateViewPort();
+    void onSetupDMABuffer(lldesc_t volatile *buffer, bool isStartOfVertFrontPorch, int scan,
+                          bool isVisible, int visibleRow);
 
-  // abstract method of BitmappedDisplayController
-  void setPixelAt(PixelDesc const & pixelDesc, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void setPixelAt(PixelDesc const &pixelDesc, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void drawEllipse(Size const & size, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void drawEllipse(Size const &size, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void clear(Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void clear(Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void VScroll(int scroll, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void VScroll(int scroll, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void HScroll(int scroll, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void HScroll(int scroll, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void drawGlyph(Glyph const & glyph, GlyphOptions glyphOptions, RGB888 penColor, RGB888 brushColor, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void drawGlyph(Glyph const &glyph, GlyphOptions glyphOptions, RGB888 penColor,
+                   RGB888 brushColor, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void invertRect(Rect const & rect, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void invertRect(Rect const &rect, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void copyRect(Rect const & source, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void copyRect(Rect const &source, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void swapFGBG(Rect const & rect, Rect & updateRect);
+    // abstract method of BitmappedDisplayController
+    void swapFGBG(Rect const &rect, Rect &updateRect);
 
-  // abstract method of BitmappedDisplayController
-  void rawDrawBitmap_Native(int destX, int destY, Bitmap const * bitmap, int X1, int Y1, int XCount, int YCount);
+    // abstract method of BitmappedDisplayController
+    void rawDrawBitmap_Native(int destX, int destY, Bitmap const *bitmap, int X1, int Y1,
+                              int XCount, int YCount);
 
-  // abstract method of BitmappedDisplayController
-  void rawDrawBitmap_Mask(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount);
+    // abstract method of BitmappedDisplayController
+    void rawDrawBitmap_Mask(int destX, int destY, Bitmap const *bitmap, void *saveBackground,
+                            int X1, int Y1, int XCount, int YCount);
 
-  // abstract method of BitmappedDisplayController
-  void rawDrawBitmap_RGBA2222(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount);
+    // abstract method of BitmappedDisplayController
+    void rawDrawBitmap_RGBA2222(int destX, int destY, Bitmap const *bitmap, void *saveBackground,
+                                int X1, int Y1, int XCount, int YCount);
 
-  // abstract method of BitmappedDisplayController
-  void rawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount);
+    // abstract method of BitmappedDisplayController
+    void rawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const *bitmap, void *saveBackground,
+                                int X1, int Y1, int XCount, int YCount);
 
-  // abstract method of BitmappedDisplayController
-  void rawFillRow(int y, int x1, int x2, RGB888 color);
+    // abstract method of BitmappedDisplayController
+    void rawFillRow(int y, int x1, int x2, RGB888 color);
 
-  void rawFillRow(int y, int x1, int x2, uint8_t pattern);
+    void rawFillRow(int y, int x1, int x2, uint8_t pattern);
 
-  void rawInvertRow(int y, int x1, int x2);
+    void rawInvertRow(int y, int x1, int x2);
 
-  void swapRows(int yA, int yB, int x1, int x2);
+    void swapRows(int yA, int yB, int x1, int x2);
 
-  // abstract method of BitmappedDisplayController
-  void absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color);
+    // abstract method of BitmappedDisplayController
+    void absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color);
 
-  // abstract method of BitmappedDisplayController
-  int getBitmapSavePixelSize() { return 1; }
+    // abstract method of BitmappedDisplayController
+    int getBitmapSavePixelSize()
+    {
+        return 1;
+    }
 
-  static void VSyncInterrupt(void * arg);
-  
-  #ifdef FABGL_EMULATED
-  virtual void updateFrameBuffer(uint32_t * frameBuffer);
-  #endif
+    static void VSyncInterrupt(void *arg);
+
+#ifdef FABGL_EMULATED
+    virtual void updateFrameBuffer(uint32_t *frameBuffer);
+#endif
 
 
+    static VGAController *s_instance;
 
-  static VGAController * s_instance;
-
-  volatile int16_t       m_maxVSyncISRTime; // Maximum us VSync interrupt routine can run
-
+    volatile int16_t m_maxVSyncISRTime; // Maximum us VSync interrupt routine can run
 };
 
 
-
 } // end of namespace
-
-
-
-
-
-
-

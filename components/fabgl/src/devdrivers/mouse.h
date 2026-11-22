@@ -27,7 +27,6 @@
 #pragma once
 
 
-
 /**
  * @file
  *
@@ -38,44 +37,49 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
 
-#include "fabglconf.h"
-#include "fabutils.h"
 #include "comdrivers/ps2device.h"
 #include "displaycontroller.h"
+#include "fabglconf.h"
+#include "fabutils.h"
 
 
-namespace fabgl {
-
-
+namespace fabgl
+{
 
 
 /**
  * @brief Describes mouse movement and buttons status.
  */
-struct MouseDelta {
-  int16_t      deltaX;             /**< Horizontal movement since last report. Moving to the right generates positive values. */
-  int16_t      deltaY;             /**< Vertical movement since last report. Upward movement generates positive values. */
-  int8_t       deltaZ;             /**< Scroll wheel movement since last report. Downward movement genrates positive values. */
-  MouseButtons buttons;            /**< Mouse buttons status. */
-  uint8_t      overflowX : 1;      /**< Contains 1 when horizontal overflow has been detected. */
-  uint8_t      overflowY : 1;      /**< Contains 1 when vertical overflow has been detected. */
+struct MouseDelta
+{
+    int16_t
+        deltaX; /**< Horizontal movement since last report. Moving to the right generates positive values. */
+    int16_t
+        deltaY; /**< Vertical movement since last report. Upward movement generates positive values. */
+    int8_t
+        deltaZ; /**< Scroll wheel movement since last report. Downward movement genrates positive values. */
+    MouseButtons buttons; /**< Mouse buttons status. */
+    uint8_t overflowX : 1; /**< Contains 1 when horizontal overflow has been detected. */
+    uint8_t overflowY : 1; /**< Contains 1 when vertical overflow has been detected. */
 };
 
 
 /**
  * @brief Contains raw data received from mouse.
  */
-struct MousePacket {
-  uint8_t data[4];
+struct MousePacket
+{
+    uint8_t data[4];
 };
 
 
 /** \ingroup Enumerations
  * @brief Describes mouse type.
  */
-enum MouseType {
-  LegacyMouse,    /**< Legacy PS2 mouse with three buttons, X and Y movements. */
-  Intellimouse,   /**< Microsoft Intellimouse compatible with three buttons, X and Y movements and a scroll wheel. */
+enum MouseType
+{
+    LegacyMouse, /**< Legacy PS2 mouse with three buttons, X and Y movements. */
+    Intellimouse, /**< Microsoft Intellimouse compatible with three buttons, X and Y movements and a scroll wheel. */
 };
 
 
@@ -108,15 +112,16 @@ enum MouseType {
  *     }
  *
  */
-class Mouse : public PS2Device {
+class Mouse : public PS2Device
+{
 
 public:
 
-  Mouse();
+    Mouse();
 
-  ~Mouse();
+    ~Mouse();
 
-  /**
+    /**
    * @brief Initializes Mouse specifying CLOCK and DATA GPIOs.
    *
    * A reset command (Mouse.reset() method) is automatically sent to the mouse.<br>
@@ -133,9 +138,9 @@ public:
    *     // Setup pins GPIO26 for CLK and GPIO27 for DATA
    *     Mouse.begin(GPIO_NUM_26, GPIO_NUM_27);
    */
-  void begin(gpio_num_t clkGPIO, gpio_num_t dataGPIO);
+    void begin(gpio_num_t clkGPIO, gpio_num_t dataGPIO);
 
-  /**
+    /**
    * @brief Initializes Mouse without initializing the PS/2 controller.
    *
    * A reset command (Mouse.reset() method) is automatically sent to the mouse.<br>
@@ -149,39 +154,42 @@ public:
    *     PS2Controller.begin(GPIO_NUM_26, GPIO_NUM_27); // clk, dat
    *     Mouse.begin(0); // port 0
    */
-  void begin(int PS2Port);
+    void begin(int PS2Port);
 
-  /**
+    /**
    * @brief Sends a Reset command to the mouse.
    *
    * @return True if the mouse is correctly initialized.
    */
-  bool reset();
+    bool reset();
 
-  /**
+    /**
    * @brief Checks if mouse has been detected and correctly initialized.
    *
    * isMouseAvailable() returns a valid value only after Mouse.begin() or Mouse.reset() has been called.
    *
    * @return True if the mouse is correctly initialized.
    */
-  bool isMouseAvailable() { return m_mouseAvailable; }
+    bool isMouseAvailable()
+    {
+        return m_mouseAvailable;
+    }
 
-  /**
+    /**
    * @brief Gets mouse packet size
    *
    * @return Mouse packet size in bytes
    */
-  int getPacketSize();
+    int getPacketSize();
 
-  /**
+    /**
    * @brief Determines if there is a raw mouse movement available in the queue.
    *
    * @return Return true if there is a mouse movement (mouse packet) available to read.
    */
-  bool packetAvailable();
+    bool packetAvailable();
 
-  /**
+    /**
    * @brief Gets a mouse raw movement (packet) from the queue.
    *
    * @param packet Pointer to MousePacket structure to be filled with mouse movement.
@@ -195,16 +203,17 @@ public:
    *     MousePacket mousePacket;
    *     Mouse.getNextPacket(&mousePacket);
    */
-  bool getNextPacket(MousePacket * packet, int timeOutMS = -1, bool requestResendOnTimeOut = false);
+    bool getNextPacket(MousePacket *packet, int timeOutMS = -1,
+                       bool requestResendOnTimeOut = false);
 
-  /**
+    /**
    * @brief Determines if there is a mouse movement available in the queue.
    *
    * @return Return true if there is a mouse movement (deltas) available to read.
    */
-  bool deltaAvailable();
+    bool deltaAvailable();
 
-  /**
+    /**
    * @brief Gets a mouse movement from the queue.
    *
    * @param delta Pointer to MouseDelta structure to be filled with mouse movement. May be nullptr if not required (in this case only Status().buttons is updated.
@@ -218,9 +227,9 @@ public:
    *     MouseDelta mouseDelta;
    *     Mouse.getNextDelta(&mouseDelta);
    */
-  bool getNextDelta(MouseDelta * delta, int timeOutMS = -1, bool requestResendOnTimeOut = false);
+    bool getNextDelta(MouseDelta *delta, int timeOutMS = -1, bool requestResendOnTimeOut = false);
 
-  /**
+    /**
    * @brief Sets the maximum rate of mouse movements reporting.
    *
    * The default sample rate is 60 samples/sec.
@@ -229,9 +238,12 @@ public:
    *
    * @return True if command has been successfully delivered to the mouse.
    */
-  bool setSampleRate(int value) { return send_cmdSetSampleRate(value); }
+    bool setSampleRate(int value)
+    {
+        return send_cmdSetSampleRate(value);
+    }
 
-  /**
+    /**
    * @brief Sets the resolution.
    *
    * Resolution is the amount by which the movement counters are incremented/decremented measured as counts per millimeter.<br>
@@ -241,9 +253,12 @@ public:
    *
    * @return True if command has been successfully delivered to the mouse.
    */
-  bool setResolution(int value) { return send_cmdSetResolution(value); }
+    bool setResolution(int value)
+    {
+        return send_cmdSetResolution(value);
+    }
 
-  /**
+    /**
    * @brief Sets the scaling.
    *
    * The default scaling is 1:1.
@@ -252,9 +267,12 @@ public:
    *
    * @return True if command has been successfully delivered to the mouse.
    */
-  bool setScaling(int value) { return send_cmdSetScaling(value); }
+    bool setScaling(int value)
+    {
+        return send_cmdSetScaling(value);
+    }
 
-  /**
+    /**
    * @brief Initializes absolute position handler.
    *
    * Use this method to specify the absolute mouse area inside the rectangle (0, 0) to (width - 1, height - 1).<br>
@@ -270,14 +288,15 @@ public:
    *
    *     Mouse.setupAbsolutePositioner(Canvas.getWidth(), Canvas.getHeight(), true);
    */
-  void setupAbsolutePositioner(int width, int height, bool createAbsolutePositionsQueue, BitmappedDisplayController * updateDisplayController = nullptr);
+    void setupAbsolutePositioner(int width, int height, bool createAbsolutePositionsQueue,
+                                 BitmappedDisplayController *updateDisplayController = nullptr);
 
-  /**
+    /**
    * @brief Terminates absolute position handler.
    */
-  void terminateAbsolutePositioner();
+    void terminateAbsolutePositioner();
 
-  /**
+    /**
    * @brief Updates absolute position from the specified mouse delta event.
    *
    * This method updates absolute mouse position, mouse wheel and buttons status.<br>
@@ -297,14 +316,17 @@ public:
    *       }
    *     }
    */
-  void updateAbsolutePosition(MouseDelta * delta);
+    void updateAbsolutePosition(MouseDelta *delta);
 
-  /**
+    /**
    * @brief Gets or sets current mouse status.
    */
-  MouseStatus & status() { return m_status; }
+    MouseStatus &status()
+    {
+        return m_status;
+    }
 
-  /**
+    /**
    * @brief Gets the number of available mouse status.
    *
    * Mouse status contains absolute mouse position, scroll wheel delta and buttons status.<br>
@@ -312,9 +334,9 @@ public:
    *
    * @return Number of available mouse status.
    */
-  int availableStatus();
+    int availableStatus();
 
-  /**
+    /**
    * @brief Gets the next status from the status queue.
    *
    * Mouse status contains absolute mouse position, scroll wheel delta and buttons status.<br>
@@ -333,75 +355,73 @@ public:
    *       Canvas.setPixel(status.X, status.Y);
    *     }
    */
-  MouseStatus getNextStatus(int timeOutMS = -1);
+    MouseStatus getNextStatus(int timeOutMS = -1);
 
-  /**
+    /**
    * @brief Gets or set mouse movement acceleration factor.
    *
    * Mouse movement acceleration is calculated in Mouse.updateAbsolutePosition() and depends by the acceleration factor and time of call.<br>
    * Lower values generate little acceleration, high values generate a lot of acceleration.<br>
    * Suggested range is 0 ... 2000. Default value is 180.
    */
-  int & movementAcceleration() { return m_movementAcceleration; }
+    int &movementAcceleration()
+    {
+        return m_movementAcceleration;
+    }
 
-  /**
+    /**
    * @brief Gets or sets wheel acceleration factor.
    *
    * Wheel acceleration is calculated in Mouse.updateAbsolutePosition() and depends by the acceleration factor and time of call.<br>
    * Lower values generate little acceleration, high values generate a lot of acceleration.<br>
    * Suggested range is 0 ... 100000. Default value is 60000.
    */
-  int & wheelAcceleration()    { return m_wheelAcceleration; }
+    int &wheelAcceleration()
+    {
+        return m_wheelAcceleration;
+    }
 
-  /**
+    /**
    * @brief Empties the mouse status and events queue
    */
-  void emptyQueue();
+    void emptyQueue();
 
 
-  /**
+    /**
    * @brief Disable re-try when a mouse is not found
    */
-  static void quickCheckHardware()   { s_quickCheckHardware = true; }
+    static void quickCheckHardware()
+    {
+        s_quickCheckHardware = true;
+    }
 
 
 private:
 
-  static void mouseUpdateTask(void * arg);
-  bool decodeMousePacket(MousePacket * mousePacket, MouseDelta * delta);
+    static void mouseUpdateTask(void *arg);
+    bool decodeMousePacket(MousePacket *mousePacket, MouseDelta *delta);
 
-  static bool     s_quickCheckHardware;
+    static bool s_quickCheckHardware;
 
-  bool            m_mouseAvailable;
-  MouseType       m_mouseType;
+    bool m_mouseAvailable;
+    MouseType m_mouseType;
 
-  TaskHandle_t    m_mouseUpdateTask;
+    TaskHandle_t m_mouseUpdateTask;
 
-  // queue of one mouse packet
-  QueueHandle_t   m_receivedPacket;
+    // queue of one mouse packet
+    QueueHandle_t m_receivedPacket;
 
-  // absolute position support
-  bool            m_absoluteUpdate;
-  Size            m_area;
-  MouseStatus     m_status;
-  MouseStatus     m_prevStatus;
-  int64_t         m_prevDeltaTime;
-  int             m_movementAcceleration;  // reasonable values: 0...2000
-  int             m_wheelAcceleration;     // reasonable values: 0...100000
-  QueueHandle_t   m_absoluteQueue;         // a queue of messages generated by updateAbsolutePosition()
-  BitmappedDisplayController * m_updateDisplayController;
+    // absolute position support
+    bool m_absoluteUpdate;
+    Size m_area;
+    MouseStatus m_status;
+    MouseStatus m_prevStatus;
+    int64_t m_prevDeltaTime;
+    int m_movementAcceleration; // reasonable values: 0...2000
+    int m_wheelAcceleration; // reasonable values: 0...100000
+    QueueHandle_t m_absoluteQueue; // a queue of messages generated by updateAbsolutePosition()
+    BitmappedDisplayController *m_updateDisplayController;
 };
 
 
-
 } // end of namespace
-
-
-
-
-
-
-
-
-
-

@@ -27,7 +27,6 @@
 #pragma once
 
 
-
 /**
  * @file
  *
@@ -35,60 +34,61 @@
  */
 
 
-#include <stdint.h>
-#include <stddef.h>
 #include <atomic>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "driver/gpio.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
+#include "devdrivers/swgenerator.h"
+#include "dispdrivers/vgabasecontroller.h"
+#include "displaycontroller.h"
 #include "fabglconf.h"
 #include "fabutils.h"
-#include "devdrivers/swgenerator.h"
-#include "displaycontroller.h"
-#include "dispdrivers/vgabasecontroller.h"
 
 
-
-
-namespace fabgl {
-
-
-
-
+namespace fabgl
+{
 
 
 /**
 * @brief Represents the base class for paletted bitmapped controllers like VGA16Controller, VGA8Controller, etc..
 */
-class VGAPalettedController : public VGABaseController {
+class VGAPalettedController : public VGABaseController
+{
 
 public:
 
-  VGAPalettedController(int linesCount, int columnsQuantum, NativePixelFormat nativePixelFormat, int viewPortRatioDiv, int viewPortRatioMul, intr_handler_t isrHandler);
-  ~VGAPalettedController();
+    VGAPalettedController(int linesCount, int columnsQuantum, NativePixelFormat nativePixelFormat,
+                          int viewPortRatioDiv, int viewPortRatioMul, intr_handler_t isrHandler);
+    ~VGAPalettedController();
 
-  // unwanted methods
-  VGAPalettedController(VGAPalettedController const&) = delete;
-  void operator=(VGAPalettedController const&)        = delete;
+    // unwanted methods
+    VGAPalettedController(VGAPalettedController const &) = delete;
+    void operator=(VGAPalettedController const &) = delete;
 
-  void end();
+    void end();
 
-  // abstract method of BitmappedDisplayController
-  void suspendBackgroundPrimitiveExecution();
+    // abstract method of BitmappedDisplayController
+    void suspendBackgroundPrimitiveExecution();
 
-  // import "modeline" version of setResolution
-  using VGABaseController::setResolution;
+    // import "modeline" version of setResolution
+    using VGABaseController::setResolution;
 
-  void setResolution(VGATimings const& timings, int viewPortWidth = -1, int viewPortHeight = -1, bool doubleBuffered = false);
+    void setResolution(VGATimings const &timings, int viewPortWidth = -1, int viewPortHeight = -1,
+                       bool doubleBuffered = false);
 
-  int getPaletteSize();
+    int getPaletteSize();
 
-  virtual int colorsCount()      { return getPaletteSize(); }
+    virtual int colorsCount()
+    {
+        return getPaletteSize();
+    }
 
-  /**
+    /**
    * @brief Determines the maximum time allowed to process primitives
    *
    * Primitives processing is always started at the beginning of vertical blank.
@@ -99,95 +99,97 @@ public:
    *
    * @param value True = allowed time to process primitives is limited to the vertical blank. Slow, but avoid flickering. False = allowed time is the half of an entire frame. Fast, but may flick.
    */
-  void setProcessPrimitivesOnBlank(bool value)          { m_processPrimitivesOnBlank = value; }
+    void setProcessPrimitivesOnBlank(bool value)
+    {
+        m_processPrimitivesOnBlank = value;
+    }
 
-  // returns "static" version of m_viewPort
-  static uint8_t * sgetScanline(int y)                  { return (uint8_t*) s_viewPort[y]; }
+    // returns "static" version of m_viewPort
+    static uint8_t *sgetScanline(int y)
+    {
+        return (uint8_t *)s_viewPort[y];
+    }
 
-  // abstract method of BitmappedDisplayController
-  NativePixelFormat nativePixelFormat()                 { return m_nativePixelFormat; }
-  
-  virtual bool suspendDoubleBuffering(bool value);
+    // abstract method of BitmappedDisplayController
+    NativePixelFormat nativePixelFormat()
+    {
+        return m_nativePixelFormat;
+    }
+
+    virtual bool suspendDoubleBuffering(bool value);
 
 
 protected:
 
-  void init();
+    void init();
 
-  virtual void setupDefaultPalette() = 0;
+    virtual void setupDefaultPalette() = 0;
 
-  void updateRGB2PaletteLUT();
-  void calculateAvailableCyclesForDrawings();
-  static void primitiveExecTask(void * arg);
+    void updateRGB2PaletteLUT();
+    void calculateAvailableCyclesForDrawings();
+    static void primitiveExecTask(void *arg);
 
-  uint8_t RGB888toPaletteIndex(RGB888 const & rgb) {
-    return m_packedRGB222_to_PaletteIndex[RGB888toPackedRGB222(rgb)];
-  }
+    uint8_t RGB888toPaletteIndex(RGB888 const &rgb)
+    {
+        return m_packedRGB222_to_PaletteIndex[RGB888toPackedRGB222(rgb)];
+    }
 
-  uint8_t RGB2222toPaletteIndex(uint8_t value) {
-    return m_packedRGB222_to_PaletteIndex[value & 0b00111111];
-  }
+    uint8_t RGB2222toPaletteIndex(uint8_t value)
+    {
+        return m_packedRGB222_to_PaletteIndex[value & 0b00111111];
+    }
 
-  uint8_t RGB8888toPaletteIndex(RGBA8888 value) {
-    return RGB888toPaletteIndex(RGB888(value.R, value.G, value.B));
-  }
+    uint8_t RGB8888toPaletteIndex(RGBA8888 value)
+    {
+        return RGB888toPaletteIndex(RGB888(value.R, value.G, value.B));
+    }
 
-  // abstract method of BitmappedDisplayController
-  void swapBuffers();
+    // abstract method of BitmappedDisplayController
+    void swapBuffers();
 
 
-  TaskHandle_t                m_primitiveExecTask;
+    TaskHandle_t m_primitiveExecTask;
 
-  volatile uint8_t * *        m_lines;
+    volatile uint8_t **m_lines;
 
-  // optimization: clones of m_viewPort and m_viewPortVisible
-  static volatile uint8_t * * s_viewPort;
-  static volatile uint8_t * * s_viewPortVisible;
+    // optimization: clones of m_viewPort and m_viewPortVisible
+    static volatile uint8_t **s_viewPort;
+    static volatile uint8_t **s_viewPortVisible;
 
-  static lldesc_t volatile *  s_frameResetDesc;
+    static lldesc_t volatile *s_frameResetDesc;
 
-  static volatile int         s_scanLine;
+    static volatile int s_scanLine;
 
-  RGB222 *                    m_palette;
+    RGB222 *m_palette;
 
 
 private:
 
-  void allocateViewPort();
-  void freeViewPort();
-  void checkViewPortSize();
-  void onSetupDMABuffer(lldesc_t volatile * buffer, bool isStartOfVertFrontPorch, int scan, bool isVisible, int visibleRow);
+    void allocateViewPort();
+    void freeViewPort();
+    void checkViewPortSize();
+    void onSetupDMABuffer(lldesc_t volatile *buffer, bool isStartOfVertFrontPorch, int scan,
+                          bool isVisible, int visibleRow);
 
-  // Maximum time (in CPU cycles) available for primitives drawing
-  volatile uint32_t           m_primitiveExecTimeoutCycles;
+    // Maximum time (in CPU cycles) available for primitives drawing
+    volatile uint32_t m_primitiveExecTimeoutCycles;
 
-  volatile bool               m_taskProcessingPrimitives;
+    volatile bool m_taskProcessingPrimitives;
 
-  // true = allowed time to process primitives is limited to the vertical blank. Slow, but avoid flickering
-  // false = allowed time is the half of an entire frame. Fast, but may flick
-  bool                        m_processPrimitivesOnBlank;
+    // true = allowed time to process primitives is limited to the vertical blank. Slow, but avoid flickering
+    // false = allowed time is the half of an entire frame. Fast, but may flick
+    bool m_processPrimitivesOnBlank;
 
-  uint8_t                     m_packedRGB222_to_PaletteIndex[64];
+    uint8_t m_packedRGB222_to_PaletteIndex[64];
 
-  // configuration
-  int                         m_linesCount;     // viewport height must be divisible by m_linesCount
-  int                         m_columnsQuantum; // viewport width must be divisble by m_columnsQuantum
-  NativePixelFormat           m_nativePixelFormat;
-  int                         m_viewPortRatioDiv;
-  int                         m_viewPortRatioMul;
-  intr_handler_t              m_isrHandler;
-
-
+    // configuration
+    int m_linesCount; // viewport height must be divisible by m_linesCount
+    int m_columnsQuantum; // viewport width must be divisble by m_columnsQuantum
+    NativePixelFormat m_nativePixelFormat;
+    int m_viewPortRatioDiv;
+    int m_viewPortRatioMul;
+    intr_handler_t m_isrHandler;
 };
 
 
-
 } // end of namespace
-
-
-
-
-
-
-
-

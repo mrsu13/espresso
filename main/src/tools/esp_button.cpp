@@ -55,9 +55,7 @@ esp::button::button(gpio_num_t gpio, const char *name)
     config.mode = GPIO_MODE_INPUT;
     // GPIO34–39 работают только на вход и внутренней подтяжки не имеют:
     // на платах к кнопкам на этих выводах ставят внешний резистор.
-    config.pull_up_en = GPIO_IS_VALID_OUTPUT_GPIO(gpio)
-        ? GPIO_PULLUP_ENABLE
-        : GPIO_PULLUP_DISABLE;
+    config.pull_up_en = GPIO_IS_VALID_OUTPUT_GPIO(gpio) ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE;
     config.pull_down_en = GPIO_PULLDOWN_DISABLE;
     config.intr_type = GPIO_INTR_DISABLE;
 

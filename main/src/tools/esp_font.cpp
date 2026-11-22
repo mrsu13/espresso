@@ -130,8 +130,7 @@ int esp::font::find(char32_t codepoint) const
         return -1;
 
     const std::uint16_t *const end = _codepoints + _count;
-    const std::uint16_t *const it = std::lower_bound(_codepoints, end, static_cast<std::uint16_t>(codepoint));
-    return it != end && *it == codepoint
-        ? static_cast<int>(it - _codepoints)
-        : -1;
+    const std::uint16_t *const it =
+        std::lower_bound(_codepoints, end, static_cast<std::uint16_t>(codepoint));
+    return it != end && *it == codepoint ? static_cast<int>(it - _codepoints) : -1;
 }

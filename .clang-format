@@ -1,0 +1,127 @@
+# Настройки clang-format для espresso: правила из doc/md/10-codestyle.md.
+# Взяты из .clang-format проекта arTcl, который кодирует то же
+# руководство. Отличия: база — стиль LLVM (при BasedOnStyle: None
+# clang-format не форматирует ничего: стиль none означает
+# DisableFormat: true), не выравниваются обратные косые черты в
+# макросах, перечисления не пишутся в одну строку, вложенные директивы
+# препроцессора сдвигаются, длинные строковые литералы не разбиваются и
+# объявления using не сортируются. Сторонний и сгенерированный код
+# перечислен в .clang-format-ignore.
+
+Language: Cpp
+BasedOnStyle: LLVM
+
+# --- Отступы ---
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+
+# --- Фигурные скобки: каждая на своей строке ---
+BreakBeforeBraces: Allman
+
+# --- Ширина строки. Длинный строковый литерал не разбивается на части:
+# текст сообщения или строка режима VGA должны находиться поиском
+# целиком ---
+ColumnLimit: 100
+ReflowComments: false
+BreakStringLiterals: false
+
+# --- Указатели и ссылки прижаты к имени: T *p, T &r ---
+PointerAlignment: Right
+ReferenceAlignment: Right
+DerivePointerAlignment: false
+
+# --- switch: метки case сдвинуты относительно switch ---
+IndentCaseLabels: true
+IndentCaseBlocks: false
+
+# --- Перенос длинных условий: операция в начале новой строки ---
+BreakBeforeBinaryOperators: NonAssignment
+
+# --- Пробелы ---
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInAngles: Never
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceBeforeCpp11BracedList: false
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInLineCommentPrefix:
+  Minimum: 1
+  Maximum: 1
+
+# --- Перенос аргументов: продолжение выравнивается по столбцу после
+# открывающей скобки (раздел «Line Breaking») ---
+AlignAfterOpenBracket: Align
+BinPackArguments: true
+BinPackParameters: true
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+
+# --- Однострочные конструкции: только пустые функции и блоки ---
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+
+# --- Классы и пространства имён: содержимое пространства имён без
+# отступа, закрывающая скобка без комментария, пустая строка до и
+# после каждого модификатора доступа, пустая строка после «{»
+# пространства имён сохраняется ---
+AccessModifierOffset: -4
+NamespaceIndentation: None
+FixNamespaceComments: false
+ShortNamespaceLines: 0
+EmptyLineBeforeAccessModifier: Always
+EmptyLineAfterAccessModifier: Always
+KeepEmptyLinesAtTheStartOfBlocks: true
+
+# --- Шаблоны: без пробела между template и «<» ---
+SpaceAfterTemplateKeyword: false
+AlwaysBreakTemplateDeclarations: Yes
+
+# --- Списки инициализации конструктора: по члену на строке, запятая
+# в начале строки ---
+BreakConstructorInitializers: BeforeComma
+PackConstructorInitializers: Never
+
+# --- Никакого выравнивания по столбцам ---
+AlignTrailingComments: false
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+AlignConsecutiveMacros: None
+AlignConsecutiveBitFields: None
+AlignArrayOfStructures: None
+AlignOperands: DontAlign
+AlignEscapedNewlines: DontAlign
+
+# --- Директивы препроцессора внутри условных блоков сдвигаются на три
+# пробела после «#» на каждый уровень вложенности ---
+IndentPPDirectives: AfterHash
+PPIndentWidth: 3
+
+# --- Включения: свой заголовок первым, внутри группы — по алфавиту.
+# Объявления using не сортируются: руководство допускает их только для
+# наследования конструкторов, а кроме включений форматирование ничего
+# не переставляет ---
+IncludeBlocks: Preserve
+SortIncludes: CaseSensitive
+SortUsingDeclarations: Never
+
+# --- Пустые строки: не больше двух подряд. Две пустые строки после
+# включений и перед разделом «// Реализация» требует руководство;
+# SeparateDefinitionBlocks: Always сжимал бы их до одной, поэтому
+# пустые строки между определениями расставляются вручную ---
+MaxEmptyLinesToKeep: 2
+SeparateDefinitionBlocks: Leave
+
+# --- Прочее ---
+Cpp11BracedListStyle: true
+QualifierAlignment: Leave

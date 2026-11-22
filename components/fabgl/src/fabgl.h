@@ -24,7 +24,6 @@
  */
 
 
-
 #pragma once
 
 
@@ -34,7 +33,6 @@
  * @brief This file is the all in one include file. Application can just include this file to use FabGL library.
  *
  */
-
 
 
 /**
@@ -187,7 +185,6 @@
  */
 
 
-
 /**
  * @page confVGA VGA output schema
  *
@@ -207,7 +204,6 @@
  * Note: Do not use GPIO_NUM_2 (LED) for VGA signals.
  *
  */
-
 
 
 /**
@@ -242,7 +238,6 @@
  */
 
 
-
 /**
  * @page confAudio Configuring Audio port
  *
@@ -251,8 +246,6 @@
  * \image html schema_audio.png width=500cm
  *
  */
-
-
 
 
 /**
@@ -308,20 +301,19 @@
 */
 
 
-#include "fabutils.h"
-#include "displaycontroller.h"
 #include "canvas.h"
-#include "dispdrivers/vgacontroller.h"
-#include "dispdrivers/vga2controller.h"
-#include "dispdrivers/vga4controller.h"
-#include "dispdrivers/vga8controller.h"
-#include "dispdrivers/vga16controller.h"
-#include "dispdrivers/vgadirectcontroller.h"
 #include "comdrivers/ps2controller.h"
 #include "devdrivers/keyboard.h"
 #include "devdrivers/mouse.h"
 #include "devdrivers/soundgen.h"
-
+#include "dispdrivers/vga16controller.h"
+#include "dispdrivers/vga2controller.h"
+#include "dispdrivers/vga4controller.h"
+#include "dispdrivers/vga8controller.h"
+#include "dispdrivers/vgacontroller.h"
+#include "dispdrivers/vgadirectcontroller.h"
+#include "displaycontroller.h"
+#include "fabutils.h"
 
 
 using fabgl::Color;
@@ -359,5 +351,3 @@ using fabgl::RGBA8888;
 using fabgl::LineEnds;
 using fabgl::SupportedLayouts;
 using fabgl::CoreUsage;
-
-

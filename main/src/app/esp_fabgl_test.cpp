@@ -79,8 +79,7 @@ constexpr int COLORS = 16;
  * ширине знакоместа 10 точек. Три последние строки стоят друг под другом:
  * по ним видно, стыкуются ли линии рамок соседних знакомест.
  */
-const char *const SAMPLES[] =
-{
+const char *const SAMPLES[] = {
     "Съешь же ещё этих мягких французских булок, да выпей чаю. №1",
     "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ",
     "абвгдеёжзийклмнопрстуфхцчшщъыьэюя",
@@ -93,15 +92,16 @@ const char *const SAMPLES[] =
 enum row
 {
     ROW_KEYBOARD, /**< Клавиатура и её раскладка. */
-    ROW_KEY,      /**< Последняя нажатая или отпущенная клавиша. */
-    ROW_INPUT,    /**< Набранная строка. */
-    ROW_MOUSE,    /**< Положение и кнопки мыши. */
-    ROW_BUTTON,   /**< Кнопка K1. */
-    ROW_SOUND,    /**< Форма звуковой волны. */
-    ROW_MEMORY,   /**< Свободная память. */
-    ROW_SAMPLES,  /**< Первая строка образцов текста SAMPLES. */
-    ROW_HELP = ROW_SAMPLES + static_cast<int>(std::size(SAMPLES)), /**< Подсказка о мыши и образец цвета рисования. */
-    ROWS          /**< Число строк. */
+    ROW_KEY, /**< Последняя нажатая или отпущенная клавиша. */
+    ROW_INPUT, /**< Набранная строка. */
+    ROW_MOUSE, /**< Положение и кнопки мыши. */
+    ROW_BUTTON, /**< Кнопка K1. */
+    ROW_SOUND, /**< Форма звуковой волны. */
+    ROW_MEMORY, /**< Свободная память. */
+    ROW_SAMPLES, /**< Первая строка образцов текста SAMPLES. */
+    ROW_HELP = ROW_SAMPLES
+        + static_cast<int>(std::size(SAMPLES)), /**< Подсказка о мыши и образец цвета рисования. */
+    ROWS /**< Число строк. */
 };
 
 /** @brief Толщина линии при рисовании мышью, точки. */
@@ -184,8 +184,8 @@ esp::fabgl_test::fabgl_test()
     if (_mouse_found)
         _display.setMouseCursor(CURSOR);
 
-    ESP_LOGI(TAG, "Keyboard %s, mouse %s.",
-             _keyboard_found ? "found" : "not found", _mouse_found ? "found" : "not found");
+    ESP_LOGI(TAG, "Keyboard %s, mouse %s.", _keyboard_found ? "found" : "not found",
+             _mouse_found ? "found" : "not found");
 
     draw_screen();
 
@@ -290,7 +290,8 @@ void esp::fabgl_test::draw_screen()
     _font.draw_text(_canvas, MARGIN, TITLE_TOP, "Espresso: FabGL test");
     char mode[32];
     std::snprintf(mode, sizeof(mode), "%dx%d, %d colours", width, height, COLORS);
-    _font.draw_text(_canvas, width - MARGIN - _font.width() * static_cast<int>(std::strlen(mode)), TITLE_TOP, mode);
+    _font.draw_text(_canvas, width - MARGIN - _font.width() * static_cast<int>(std::strlen(mode)),
+                    TITLE_TOP, mode);
 
     // Полосы всех цветов палитры с номерами под ними; между полосами
     // остаётся чёрный промежуток в одну точку.
@@ -307,8 +308,9 @@ void esp::fabgl_test::draw_screen()
         std::snprintf(number, sizeof(number), "%d", i);
         _canvas.setPenColor(fabgl::White);
         _canvas.setBrushColor(fabgl::Black);
-        _font.draw_text(_canvas, x + (bar_width - _font.width() * static_cast<int>(std::strlen(number))) / 2,
-                         bars_top + BAR_HEIGHT + 2, number);
+        _font.draw_text(_canvas,
+                        x + (bar_width - _font.width() * static_cast<int>(std::strlen(number))) / 2,
+                        bars_top + BAR_HEIGHT + 2, number);
     }
 
     show_keyboard();
@@ -380,7 +382,8 @@ void esp::fabgl_test::show_key(const fabgl::VirtualKeyItem &item)
 {
     char text[96];
     std::snprintf(text, sizeof(text), "Key:      %s %s, ASCII 0x%02x",
-                  fabgl::Keyboard::virtualKeyToString(item.vk), item.down ? "down" : "up", item.ASCII);
+                  fabgl::Keyboard::virtualKeyToString(item.vk), item.down ? "down" : "up",
+                  item.ASCII);
     draw_line(ROW_KEY, text);
 }
 
@@ -401,10 +404,8 @@ void esp::fabgl_test::show_mouse()
 {
     char text[96];
     if (_mouse_found)
-        std::snprintf(text, sizeof(text), "Mouse:    X %3d, Y %3d, buttons %c%c%c",
-                      _mouse.X, _mouse.Y,
-                      _mouse.buttons.left ? 'L' : '-',
-                      _mouse.buttons.middle ? 'M' : '-',
+        std::snprintf(text, sizeof(text), "Mouse:    X %3d, Y %3d, buttons %c%c%c", _mouse.X,
+                      _mouse.Y, _mouse.buttons.left ? 'L' : '-', _mouse.buttons.middle ? 'M' : '-',
                       _mouse.buttons.right ? 'R' : '-');
     else
         std::snprintf(text, sizeof(text), "%s", "Mouse:    not found; connect it and press K1");
@@ -465,8 +466,8 @@ void esp::fabgl_test::show_paint_color()
 void esp::fabgl_test::clear_paint_area()
 {
     _canvas.setBrushColor(fabgl::Black);
-    _canvas.fillRectangle(MARGIN + 1, paint_top() + 1,
-                          _canvas.getWidth() - MARGIN - 2, _canvas.getHeight() - MARGIN - 2);
+    _canvas.fillRectangle(MARGIN + 1, paint_top() + 1, _canvas.getWidth() - MARGIN - 2,
+                          _canvas.getHeight() - MARGIN - 2);
 }
 
 /**
@@ -487,7 +488,8 @@ void esp::fabgl_test::paint(int x1, int y1, int x2, int y2)
     // Отсечение по внутренней части поля: рамка и строки над полем
     // остаются нетронутыми. Затем отсечение и толщина линии
     // возвращаются к обычным.
-    _canvas.setClippingRect(fabgl::Rect(MARGIN + 1, paint_top() + 1, width - MARGIN - 2, height - MARGIN - 2));
+    _canvas.setClippingRect(
+        fabgl::Rect(MARGIN + 1, paint_top() + 1, width - MARGIN - 2, height - MARGIN - 2));
     _canvas.setPenColor(color(_paint_color));
     _canvas.setPenWidth(PAINT_PEN_WIDTH);
     _canvas.drawLine(x1, y1, x2, y2);
@@ -603,7 +605,8 @@ void esp::fabgl_test::on_mouse(const fabgl::MouseStatus &status)
     const auto report = [&status](bool now, bool before, const char *name)
     {
         if (now != before)
-            ESP_LOGI(TAG, "Mouse %s button %s at %d, %d.", name, now ? "pressed" : "released", status.X, status.Y);
+            ESP_LOGI(TAG, "Mouse %s button %s at %d, %d.", name, now ? "pressed" : "released",
+                     status.X, status.Y);
     };
     report(status.buttons.left, previous.buttons.left, "left");
     report(status.buttons.middle, previous.buttons.middle, "middle");

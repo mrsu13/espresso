@@ -27,7 +27,6 @@
 #pragma once
 
 
-
 /**
  * @file
  *
@@ -35,24 +34,22 @@
  */
 
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 
 #if __has_include("esp32/rom/lldesc.h")
-  #include "esp32/rom/lldesc.h"
+#   include "esp32/rom/lldesc.h"
 #else
-  #include "rom/lldesc.h"
+#   include "rom/lldesc.h"
 #endif
 
 #include "fabglconf.h"
+#include "fabutils.h"
 
 
-
-
-
-namespace fabgl {
-
+namespace fabgl
+{
 
 
 /*
@@ -66,13 +63,14 @@ namespace fabgl {
  * When FABGLIB_USE_APLL_AB_COEF = 1 the frequency range is 82500 Hz to 62500000 Hz. Unfortunately the output has lot of frequency jittering.<br>
  * Average error is about 7 Hz, Minimum error is 0, Maximum error is 6349 Hz.
  */
-class GPIOStream {
+class GPIOStream
+{
 
 public:
 
-  void begin();
+    void begin();
 
-  /*
+    /*
    * Initializes GPIOStream and associate GPIOs to the outputs.
    *
    * div1_onGPIO0 If true the undivided frequency is delivered on GPIO0.
@@ -96,14 +94,17 @@ public:
    *     delay(10000);
    *     GPIOStream.stop();
    */
-  void begin(bool div1_onGPIO0, gpio_num_t div2 = GPIO_UNUSED, gpio_num_t div4 = GPIO_UNUSED, gpio_num_t div8 = GPIO_UNUSED, gpio_num_t div16 = GPIO_UNUSED, gpio_num_t div32 = GPIO_UNUSED, gpio_num_t div64 = GPIO_UNUSED, gpio_num_t div128 = GPIO_UNUSED, gpio_num_t div256 = GPIO_UNUSED);
+    void begin(bool div1_onGPIO0, gpio_num_t div2 = GPIO_UNUSED, gpio_num_t div4 = GPIO_UNUSED,
+               gpio_num_t div8 = GPIO_UNUSED, gpio_num_t div16 = GPIO_UNUSED,
+               gpio_num_t div32 = GPIO_UNUSED, gpio_num_t div64 = GPIO_UNUSED,
+               gpio_num_t div128 = GPIO_UNUSED, gpio_num_t div256 = GPIO_UNUSED);
 
-  /*
+    /*
    * Disables all outputs.
    */
-  void end();
+    void end();
 
-  /*
+    /*
    * Sets the main frequency.
    *
    * freq Frequency in Hertz.
@@ -114,34 +115,22 @@ public:
    *     // Set 25MHz as main frequency
    *     GPIOStream.play(25000000);
    */
-  void play(int freq, lldesc_t volatile * dmaBuffers = nullptr);
+    void play(int freq, lldesc_t volatile *dmaBuffers = nullptr);
 
-  /*
+    /*
    * Disables all outputs.
    */
-  void stop();
+    void stop();
 
 private:
 
-  void setupClock(int freq);
-  static void setupGPIO(gpio_num_t gpio, int bit, gpio_mode_t mode);
+    void setupClock(int freq);
+    static void setupGPIO(gpio_num_t gpio, int bit, gpio_mode_t mode);
 
-  bool                m_DMAStarted;
-  volatile lldesc_t * m_DMABuffer;
-  volatile uint8_t *  m_DMAData;
+    bool m_DMAStarted;
+    volatile lldesc_t *m_DMABuffer;
+    volatile uint8_t *m_DMAData;
 };
 
 
-
-
-
 } // end of namespace
-
-
-
-
-
-
-
-
-

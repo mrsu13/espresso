@@ -37,7 +37,5 @@ inline gpio_num_t int2gpio(int gpio);
  */
 gpio_num_t esp::int2gpio(int gpio)
 {
-    return gpio == -1
-        ? ESP_GPIO_UNUSED
-        : (gpio_num_t)gpio;
+    return gpio == -1 ? ESP_GPIO_UNUSED : (gpio_num_t)gpio;
 }
