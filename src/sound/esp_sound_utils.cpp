@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #include <math.h>
@@ -42,11 +21,7 @@
 
 #include "esp_sound_utils.h"
 
-#if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
-#   include "esp_private/periph_ctrl.h"
-#else
-#   include "driver/periph_ctrl.h"
-#endif
+#include "esp_private/periph_ctrl.h"
 
 
 #pragma GCC optimize("O2")
@@ -54,9 +29,6 @@
 
 namespace esp::sound
 {
-
-
-#ifndef FABGL_EMULATED
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -85,11 +57,6 @@ void dac_enable_i2s_output(gpio_num_t gpio)
     SENS.sar_meas_ctrl2.sar1_dac_xpd_fsm = 0;
 }
 
-
-#endif // #ifndef FABGL_EMULATED
-
-
-#ifndef FABGL_EMULATED
 
 // derived from: https://linuxos.sk/blog/mirecove-dristy/detail/esp32-dynamicka-zmena-vzorkovacej-frekvencie-/
 // A    : 1..63
@@ -143,8 +110,6 @@ int calc_i2s_timing_params(int sample_rate, int *out_a, int *out_b, int *out_n, 
 
     return APB_CLK_FREQ / ((double)(*out_n) + (double)(*out_b) / (*out_a)) / *out_m;
 }
-
-#endif
 
 
 } // end of namespace

@@ -12,12 +12,12 @@
 namespace esp
 {
 
-class fabgl_test
+class board_test
 {
 
 public:
 
-    fabgl_test();
+    board_test();
 
     void poll();
     void button_pressed();

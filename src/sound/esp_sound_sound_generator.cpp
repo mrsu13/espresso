@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #include "freertos/FreeRTOS.h"
@@ -497,16 +476,10 @@ sound_generator::~sound_generator()
         esp_timer_stop(_timer_handle);
         esp_timer_delete(_timer_handle);
         _timer_handle = nullptr;
-#if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
         sdm_channel_disable(_sdm_channel);
         sdm_del_channel(_sdm_channel);
         _sdm_channel = nullptr;
-#endif
     }
-
-#ifdef FABGL_EMULATED
-    SDL_CloseAudioDevice(m_device);
-#endif
 }
 
 
@@ -532,16 +505,15 @@ void sound_generator::set_dma_node(int index, volatile uint16_t *buf, int len)
 
 void sound_generator::dac_init()
 {
-#ifndef FABGL_EMULATED
     _dma_chain = (volatile lldesc_t *)heap_caps_malloc(2 * sizeof(lldesc_t), MALLOC_CAP_DMA);
 
     for (int i = 0; i < 2; ++i)
     {
-        _sample_buffer[i] = (uint16_t *)heap_caps_malloc(
-            FABGL_SOUNDGEN_SAMPLE_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA);
-        for (int j = 0; j < FABGL_SOUNDGEN_SAMPLE_BUFFER_SIZE; ++j)
+        _sample_buffer[i] =
+            (uint16_t *)heap_caps_malloc(SAMPLE_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA);
+        for (int j = 0; j < SAMPLE_BUFFER_SIZE; ++j)
             _sample_buffer[i][j] = 0x7f00;
-        set_dma_node(i, _sample_buffer[i], FABGL_SOUNDGEN_SAMPLE_BUFFER_SIZE);
+        set_dma_node(i, _sample_buffer[i], SAMPLE_BUFFER_SIZE);
     }
     _dma_chain[1].sosf = 1;
     _dma_chain[1].qe.stqe_next = (lldesc_t *)_dma_chain; // closes DMA chain
@@ -600,27 +572,17 @@ void sound_generator::dac_init()
     I2S0.conf.tx_start = 1;
 
     dac_enable_i2s_output(_gpio);
-#endif
 }
 
 
 void sound_generator::sigmadelta_init()
 {
-#if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
     sdm_config_t sdm_cfg = {};
     sdm_cfg.gpio_num = _gpio;
     sdm_cfg.clk_src = SDM_CLK_SRC_DEFAULT;
     sdm_cfg.sample_rate_hz = 80000000 / 11; // same as legacy prescale = 10
     sdm_new_channel(&sdm_cfg, &_sdm_channel);
     sdm_channel_enable(_sdm_channel);
-#else
-    sigmadelta_config_t sigmadelta_cfg;
-    sigmadelta_cfg.channel = SIGMADELTA_CHANNEL_0;
-    sigmadelta_cfg.sigmadelta_prescale = 10;
-    sigmadelta_cfg.sigmadelta_duty = 0;
-    sigmadelta_cfg.sigmadelta_gpio = _gpio;
-    sigmadelta_config(&sigmadelta_cfg);
-#endif
 
     esp_timer_create_args_t args = {};
     args.callback = timer_handler;
@@ -628,23 +590,6 @@ void sound_generator::sigmadelta_init()
     args.dispatch_method = ESP_TIMER_TASK;
     esp_timer_create(&args, &_timer_handle);
 }
-
-
-#ifdef FABGL_EMULATED
-void sound_generator::sdl_init()
-{
-    SDL_AudioSpec wantSpec, haveSpec;
-    SDL_zero(wantSpec);
-    wantSpec.freq = _sample_rate;
-    wantSpec.format = AUDIO_U8;
-    wantSpec.channels = 1;
-    wantSpec.samples = 2048;
-    wantSpec.callback = SDLAudioCallback;
-    wantSpec.userdata = this;
-    m_device = SDL_OpenAudioDevice(NULL, 0, &wantSpec, &haveSpec, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
-    _sample_rate = haveSpec.freq;
-}
-#endif
 
 
 void sound_generator::init()
@@ -665,9 +610,6 @@ void sound_generator::init()
         else
             sigmadelta_init();
 
-#ifdef FABGL_EMULATED
-        sdl_init();
-#endif
 
         _init_done = true;
     }
@@ -692,9 +634,6 @@ bool sound_generator::play(bool value)
                 esp_timer_stop(_timer_handle);
         }
 
-#ifdef FABGL_EMULATED
-        SDL_PauseAudioDevice(m_device, !value);
-#endif
 
         _play = value;
         return !value;
@@ -801,7 +740,7 @@ void IRAM_ATTR sound_generator::isr_handler(void *arg)
 
         auto buf = (uint16_t *)sound_generator->_sample_buffer[desc->sosf];
 
-        for (int i = 0; i < FABGL_SOUNDGEN_SAMPLE_BUFFER_SIZE; ++i)
+        for (int i = 0; i < SAMPLE_BUFFER_SIZE; ++i)
             buf[i ^ 1] = (sound_generator->sample() + 127) << 8;
     }
     I2S0.int_clr.val = I2S0.int_st.val;
@@ -813,23 +752,8 @@ void sound_generator::timer_handler(void *args)
 {
     auto sound_generator = (esp::sound::sound_generator *)args;
 
-#if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
     sdm_channel_set_pulse_density(sound_generator->_sdm_channel, sound_generator->sample());
-#else
-    sigmadelta_set_duty(SIGMADELTA_CHANNEL_0, sound_generator->sample());
-#endif
 }
-
-
-#ifdef FABGL_EMULATED
-void sound_generator::SDLAudioCallback(void *data, Uint8 *buffer, int length)
-{
-    auto sound_generator = (esp::sound::sound_generator *)data;
-
-    for (int i = 0; i < length; ++i)
-        buffer[i] = sound_generator->sample() + 127;
-}
-#endif
 
 
 // SoundGenerator

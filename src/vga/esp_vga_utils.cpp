@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #include <math.h>
@@ -43,11 +22,7 @@
 #include "esp_vga_config.h"
 #include "esp_vga_utils.h"
 
-#if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
-#   include "esp_private/periph_ctrl.h"
-#else
-#   include "driver/periph_ctrl.h"
-#endif
+#include "esp_private/periph_ctrl.h"
 
 
 #pragma GCC optimize("O2")
@@ -57,48 +32,34 @@ namespace esp::vga
 {
 
 
-#ifndef FABGL_EMULATED
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 // APLLEnable
 
 void apll_enable(bool enable, uint32_t sdm0, uint32_t sdm1, uint32_t sdm2, uint32_t o_div)
 {
-#   if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
     rtc_clk_apll_enable(enable);
     if (enable)
         rtc_clk_apll_coeff_set(o_div, sdm0, sdm1, sdm2);
-#   else
-    rtc_clk_apll_enable(enable, sdm0, sdm1, sdm2, o_div);
-#   endif
 }
-
-
-#endif // #ifndef FABGL_EMULATED
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // configureGPIO
 void configure_gpio(gpio_num_t gpio, gpio_mode_t mode)
 {
-#ifndef FABGL_EMULATED
     PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpio], PIN_FUNC_GPIO);
     gpio_set_direction(gpio, mode);
-#endif
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // getCPUFrequencyMHz
-#ifndef FABGL_EMULATED
 uint32_t cpu_frequency_mhz()
 {
     rtc_cpu_freq_config_t conf;
     rtc_clk_cpu_freq_get_config(&conf);
     return conf.freq_mhz;
 }
-#endif
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -132,7 +93,7 @@ void rgb222_to_hsv(int red, int green, int blue, double *h, double *s, double *v
 // Must be:
 //   maxDen > 1
 //   value >= 0
-#if FABGLIB_USE_APLL_AB_COEF
+#if ESP_VGA_USE_APLL_AB_COEF
 void floatToFraction(double value, int maxDen, int *num, int *den)
 {
     int64_t a, h[3] = {0, 1, 0}, k[3] = {1, 0, 0};
@@ -183,7 +144,7 @@ void floatToFraction(double value, int maxDen, int *num, int *den)
 //   sdm1  0..255
 //   sdm2  0..63
 //   o_div 0..31
-// Assume xtal = FABGLIB_XTAL (40MHz)
+// Assume xtal = XTAL_FREQUENCY (40MHz)
 // The dividend should be in the range of 350 - 500 MHz (350000000-500000000), so these are the
 // actual parameters ranges (so the minimum apll_clk is 5303030 Hz and maximum is 125000000Hz):
 //  MIN 87500000Hz - sdm0 = 0 sdm1 = 192 sdm2 = 4 o_div = 0
@@ -284,7 +245,7 @@ void floatToFraction(double value, int maxDen, int *num, int *den)
 void apll_calc_params(double freq, apll_params *params, uint8_t *a, uint8_t *b, double *out_freq,
                       double *error)
 {
-    double fxtal = FABGLIB_XTAL;
+    double fxtal = XTAL_FREQUENCY;
 
     *error = 999999999;
 
@@ -303,7 +264,7 @@ void apll_calc_params(double freq, apll_params *params, uint8_t *a, uint8_t *b, 
             int max_sdm1 = (sdm2 == 8 ? 128 : 255);
             // apll_freq = XTAL * (4 + sdm2 + sdm1 / 256) / divisor   ->   sdm1 = (apll_freq * divisor - XTAL * 4 - XTAL * sdm2) * 256 / XTAL
             int start_sdm1 = ((apll_freq * idivisor - fxtal * 4.0 - fxtal * sdm2) * 256.0 / fxtal);
-#if FABGLIB_USE_APLL_AB_COEF
+#if ESP_VGA_USE_APLL_AB_COEF
             for (int isdm1 = esp::tmax(min_sdm1, start_sdm1); isdm1 <= max_sdm1; ++isdm1)
             {
 #else
@@ -335,7 +296,7 @@ void apll_calc_params(double freq, apll_params *params, uint8_t *a, uint8_t *b, 
                     //     abr = clkm_div_b / clkm_div_a
                     //     freq = apll_clk / (2 + abr)    =>    abr = apll_clk / freq - 2
                     uint8_t oa = 1, ob = 0;
-#if FABGLIB_USE_APLL_AB_COEF
+#if ESP_VGA_USE_APLL_AB_COEF
                     double abr = oapll_freq / freq - 2.0;
                     if (abr > 0 && abr < 1)
                     {

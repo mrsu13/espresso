@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #include <math.h>
@@ -627,27 +606,6 @@ void IRAM_ATTR vga_controller::raw_draw_bitmap_rgba8888(int dest_x, int dest_y,
         } // rawSetPixelInRow
     );
 }
-
-
-#ifdef FABGL_EMULATED
-void vga_controller::updateFrameBuffer(uint32_t *frameBuffer)
-{
-    I2S1.int_st.out_eof = 1;
-    v_sync_interrupt(this);
-
-    auto dst = frameBuffer;
-    for (int row = 0; row < _view_port_height; ++row)
-    {
-        auto src = _view_port_visible[row];
-        for (int col = 0; col < _view_port_width; ++col, ++dst)
-        {
-            auto srcpx = src[col ^ 2];
-            *dst = ((((srcpx >> 0) & 3) * 85) << 16) | ((((srcpx >> 2) & 3) * 85) << 8)
-                | ((((srcpx >> 4) & 3) * 85) << 0);
-        }
-    }
-}
-#endif
 
 
 } // end of namespace

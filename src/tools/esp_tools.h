@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #pragma once
@@ -41,40 +20,23 @@
 #include "freertos/semphr.h"
 
 #include <esp_system.h>
-#if __has_include("esp_idf_version.h")
-#   include "esp_idf_version.h"
-#endif
 
 
-// manage IDF versioning
-#ifdef ESP_IDF_VERSION
-#   define FABGL_ESP_IDF_VERSION_VAL ESP_IDF_VERSION_VAL
-#   define FABGL_ESP_IDF_VERSION ESP_IDF_VERSION
-#else
-#   define FABGL_ESP_IDF_VERSION_VAL(major, minor, patch) ((major << 16) | (minor << 8) | (patch))
-#   define FABGL_ESP_IDF_VERSION FABGL_ESP_IDF_VERSION_VAL(0, 0, 0)
-#endif
-
-
-#if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
 // IDF 5 no longer includes many headers implicitly
-#   include "driver/gpio.h"
-#   include "esp32/rom/ets_sys.h"
-#   include "esp32/rom/gpio.h"
-#   include "esp32/rom/lldesc.h"
-#   include "esp_cpu.h"
-#   include "esp_heap_caps.h"
-#   include "esp_rom_sys.h"
-#   include "esp_timer.h"
-#   include "soc/gpio_periph.h"
-#   include "soc/io_mux_reg.h"
-#else
-#   include "rom/lldesc.h"
-#endif
+#include "driver/gpio.h"
+#include "esp32/rom/ets_sys.h"
+#include "esp32/rom/gpio.h"
+#include "esp32/rom/lldesc.h"
+#include "esp_cpu.h"
+#include "esp_heap_caps.h"
 #include "esp_rom_gpio.h"
+#include "esp_rom_sys.h"
+#include "esp_timer.h"
 #include "hal/spi_types.h"
 #include "soc/frc_timer_reg.h"
+#include "soc/gpio_periph.h"
 #include "soc/gpio_sig_map.h"
+#include "soc/io_mux_reg.h"
 
 // HSPI_HOST and VSPI_HOST are no more defined since IDF 5
 #ifndef HSPI_HOST
@@ -84,19 +46,16 @@
 #   define VSPI_HOST SPI3_HOST
 #endif
 
-#ifdef ARDUINO
-#   include "Arduino.h"
-#endif
 #include <esp_wifi.h>
-
-
-/** Core to use for CPU intensive tasks like VGA signals generation in VGATextController or VGAXXController */
-#define FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE \
-    (WIFI_TASK_CORE_ID ^ 1) // using the same core of WiFi may cause flickering
 
 
 namespace esp
 {
+
+
+/** @brief Ядро для задач видеовывода: не то, на котором работает Wi-Fi, иначе
+ *        изображение мерцает. */
+constexpr int VIDEO_TASKS_CORE = WIFI_TASK_CORE_ID ^ 1;
 
 
 #define GPIO_UNUSED (GPIO_NUM_MAX)
@@ -182,8 +141,7 @@ struct core_usage
 
 private:
 
-    static int
-        _busiest_core; // 0 = core 0, 1 = core 1 (default is FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE)
+    static int _busiest_core; // 0 = core 0, 1 = core 1 (default is VIDEO_TASKS_CORE)
 };
 
 

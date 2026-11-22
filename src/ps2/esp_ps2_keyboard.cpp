@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #include <string.h>
@@ -41,7 +20,7 @@ namespace esp::ps2
 {
 
 
-int keyboard::scancode_to_virtual_key_task_stack_size = FABGLIB_DEFAULT_SCODETOVK_TASK_STACK_SIZE;
+int keyboard::scancode_to_virtual_key_task_stack_size = SCANCODE_TASK_STACK_SIZE;
 
 
 keyboard::keyboard()
@@ -103,13 +82,12 @@ void keyboard::enable_virtual_keys(bool generate_virtual_keys, bool create_vk_qu
     // create task and queue?
 
     if (!_virtual_key_queue && create_vk_queue)
-        _virtual_key_queue =
-            xQueueCreate(FABGLIB_KEYBOARD_VIRTUALKEY_QUEUE_SIZE, sizeof(virtual_key_item));
+        _virtual_key_queue = xQueueCreate(VIRTUAL_KEY_QUEUE_SIZE, sizeof(virtual_key_item));
 
     if (!_s_code_to_vk_converter_task && generate_virtual_keys)
         xTaskCreate(&s_code_to_vk_converter_task, "",
-                    keyboard::scancode_to_virtual_key_task_stack_size, this,
-                    FABGLIB_SCODETOVK_TASK_PRIORITY, &_s_code_to_vk_converter_task);
+                    keyboard::scancode_to_virtual_key_task_stack_size, this, SCANCODE_TASK_PRIORITY,
+                    &_s_code_to_vk_converter_task);
 
     // destroy in reverse order
 
@@ -237,7 +215,7 @@ void keyboard::set_layout(const keyboard_layout *layout)
 }
 
 
-#if FABGLIB_HAS_VirtualKeyO_STRING
+#if ESP_PS2_VIRTUAL_KEY_NAMES
 char const *keyboard::virtual_key_to_string(virtual_key virtual_key)
 {
     char const *vktostr[] = {

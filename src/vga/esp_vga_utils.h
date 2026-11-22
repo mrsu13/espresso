@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #pragma once
@@ -49,48 +28,30 @@ namespace esp::vga
 // Unfortunately this workaround reduces performance, even when SRAM is not access, like in VGAXController interrupt handler. This is unacceptable for the interrupt routine.
 // In order to confuse the compiler and prevent the workaround from being applied, a "nop" is added between load and store instructions (PSRAM_HACK).
 
-#ifdef ARDUINO
-#   ifdef BOARD_HAS_PSRAM
-#      define FABGL_NEED_PSRAM_DISABLE_HACK
-#   endif
-#else
-#   ifdef CONFIG_SPIRAM_SUPPORT
-#      define FABGL_NEED_PSRAM_DISABLE_HACK
-#   endif
+#ifdef CONFIG_SPIRAM_SUPPORT
+#   define ESP_VGA_PSRAM_HACK_NEEDED
 #endif
 
 // since IDF 5 the compiler workaround has its own option (and CONFIG_SPIRAM_SUPPORT does not exist anymore)
-#if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0) \
-    && defined(CONFIG_SPIRAM_CACHE_WORKAROUND)
-#   define FABGL_NEED_PSRAM_DISABLE_HACK
+#if defined(CONFIG_SPIRAM_CACHE_WORKAROUND)
+#   define ESP_VGA_PSRAM_HACK_NEEDED
 #endif
 
-#ifdef FABGL_NEED_PSRAM_DISABLE_HACK
+#ifdef ESP_VGA_PSRAM_HACK_NEEDED
 #   define PSRAM_HACK asm(" nop")
 #else
 #   define PSRAM_HACK
 #endif
 
 
-#ifdef FABGL_EMULATED
-
-#   define ASM_MEMW
-#   define ASM_NOP
-#   define PSRAM_WORKAROUND1
-#   define PSRAM_WORKAROUND2
-
-#else
-
 // ESP32 PSRAM bug workaround (use when the library is NOT compiled with PSRAM hack enabled)
 // Place between a write and a read PSRAM operation (write->ASM_MEMW->read), not viceversa
-#   define ASM_MEMW asm(" MEMW");
+#define ASM_MEMW asm(" MEMW");
 
-#   define ASM_NOP asm(" NOP");
+#define ASM_NOP asm(" NOP");
 
-#   define PSRAM_WORKAROUND1 asm(" nop;nop;nop;nop");
-#   define PSRAM_WORKAROUND2 asm(" memw");
-
-#endif
+#define PSRAM_WORKAROUND1 asm(" nop;nop;nop;nop");
+#define PSRAM_WORKAROUND2 asm(" memw");
 
 
 void rgb222_to_hsv(int red, int green, int blue, double *h, double *s, double *v);
@@ -108,8 +69,6 @@ void apll_calc_params(double freq, apll_params *params, uint8_t *a, uint8_t *b, 
                       double *error);
 
 
-#ifndef FABGL_EMULATED
-
 inline __attribute__((always_inline)) uint32_t cycle_count()
 {
     uint32_t ccount;
@@ -118,8 +77,6 @@ inline __attribute__((always_inline)) uint32_t cycle_count()
                          : "=a"(ccount));
     return ccount;
 }
-
-#endif
 
 
 // enables APLL using specified coefficients, or disables it

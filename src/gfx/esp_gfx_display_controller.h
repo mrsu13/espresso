@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #pragma once
@@ -1038,7 +1017,7 @@ public:
    *
    * Application should change before begin() method.
    *
-   * Default value is FABGLIB_DEFAULT_DISPLAYCONTROLLER_QUEUE_SIZE (defined in esp_gfx_config.h)
+   * Default value is DISPLAY_CONTROLLER_QUEUE_SIZE (defined in esp_gfx_config.h)
    */
     static int queue_size;
 
@@ -1538,7 +1517,7 @@ protected:
             auto dstrow = raw_get_row(dest_y);
             auto srcrow = glyph_data + y * glyph_width_byte;
 
-            if (underline && y == glyph_height - FABGLIB_UNDERLINE_POSITION - 1)
+            if (underline && y == glyph_height - UNDERLINE_POSITION - 1)
             {
 
                 for (int x = x1, adest_x = dest_x + skew_adder;

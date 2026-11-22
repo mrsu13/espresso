@@ -1,7 +1,7 @@
 #pragma once
 
+#include "esp_board_test.h"
 #include "esp_button.h"
-#include "esp_fabgl_test.h"
 #include "esp_sdcard.h"
 
 
@@ -29,8 +29,8 @@ private:
     /** @brief Кнопка K1 (GPIO36), единственная пользовательская кнопка платы. */
     button _button;
 
-    /** @brief Проверка FabGL: VGA, клавиатура и мышь PS/2, звук. */
-    fabgl_test _test;
+    /** @brief Проверка платы: VGA, клавиатура и мышь PS/2, звук. */
+    board_test _test;
 };
 
 }

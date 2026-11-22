@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #include <strings.h>
@@ -282,16 +261,9 @@ namespace esp::ps2
 // Since IDF 5 the system keeps its own data in RTC slow memory, just after the area reserved to the ULP.
 // Program and variables must stay inside the reserved area, otherwise they overlap that data.
 #define RTCMEM_REQUIRED_BYTES ((RTCMEM_LASTVAR + 1) * 4)
-#if defined(CONFIG_ULP_COPROC_RESERVE_MEM) \
-    && CONFIG_ULP_COPROC_RESERVE_MEM < RTCMEM_REQUIRED_BYTES \
-    && FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
-#   ifdef ARDUINO
-#      warning \
-          "CONFIG_ULP_COPROC_RESERVE_MEM is too small for FabGL PS2Controller (at least 2112 bytes required, 4096 suggested)"
-#   else
-#      error \
-          "CONFIG_ULP_COPROC_RESERVE_MEM is too small for FabGL PS2Controller: set it to at least 2112 (4096 suggested) in sdkconfig"
-#   endif
+#if defined(CONFIG_ULP_COPROC_RESERVE_MEM) && CONFIG_ULP_COPROC_RESERVE_MEM < RTCMEM_REQUIRED_BYTES
+#   error \
+       "CONFIG_ULP_COPROC_RESERVE_MEM is too small for esp::ps2::ps2_controller: set it to at least 2112 (4096 suggested) in sdkconfig"
 #endif
 
 
@@ -980,14 +952,6 @@ static void replace_placeholders(uint32_t prg_start, int size, bool port_0_enabl
 
     if (port_0_enabled)
     {
-#if FABGL_ESP_IDF_VERSION <= FABGL_ESP_IDF_VERSION_VAL(3, 3, 5)
-        clk_rtc_gpio_num[0] = (uint32_t)rtc_gpio_desc[port_0_clk_gpio].rtc_num;
-        clk_rtc_gpio_reg[0] = rtc_gpio_desc[port_0_clk_gpio].reg;
-        clk_rtc_gpio_ie_s[0] = (uint32_t)ffs(rtc_gpio_desc[port_0_clk_gpio].ie) - 1;
-        dat_rtc_gpio_num[0] = (uint32_t)rtc_gpio_desc[port_0_dat_gpio].rtc_num;
-        dat_rtc_gpio_reg[0] = rtc_gpio_desc[port_0_dat_gpio].reg;
-        dat_rtc_gpio_ie_s[0] = (uint32_t)ffs(rtc_gpio_desc[port_0_dat_gpio].ie) - 1;
-#else
         int port_0_clk_io = rtc_io_number_get(port_0_clk_gpio);
         clk_rtc_gpio_num[0] = port_0_clk_io;
         clk_rtc_gpio_reg[0] = rtc_io_desc[port_0_clk_io].reg;
@@ -996,19 +960,10 @@ static void replace_placeholders(uint32_t prg_start, int size, bool port_0_enabl
         dat_rtc_gpio_num[0] = port_0_dat_io;
         dat_rtc_gpio_reg[0] = rtc_io_desc[port_0_dat_io].reg;
         dat_rtc_gpio_ie_s[0] = (uint32_t)ffs(rtc_io_desc[port_0_dat_io].ie) - 1;
-#endif
     }
 
     if (port_1_enabled)
     {
-#if FABGL_ESP_IDF_VERSION <= FABGL_ESP_IDF_VERSION_VAL(3, 3, 5)
-        clk_rtc_gpio_num[1] = (uint32_t)rtc_gpio_desc[port_1_clk_gpio].rtc_num;
-        clk_rtc_gpio_reg[1] = rtc_gpio_desc[port_1_clk_gpio].reg;
-        clk_rtc_gpio_ie_s[1] = (uint32_t)ffs(rtc_gpio_desc[port_1_clk_gpio].ie) - 1;
-        dat_rtc_gpio_num[1] = (uint32_t)rtc_gpio_desc[port_1_dat_gpio].rtc_num;
-        dat_rtc_gpio_reg[1] = rtc_gpio_desc[port_1_dat_gpio].reg;
-        dat_rtc_gpio_ie_s[1] = (uint32_t)ffs(rtc_gpio_desc[port_1_dat_gpio].ie) - 1;
-#else
         int port_1_clk_io = rtc_io_number_get(port_1_clk_gpio);
         clk_rtc_gpio_num[1] = port_1_clk_io;
         clk_rtc_gpio_reg[1] = rtc_io_desc[port_1_clk_io].reg;
@@ -1017,7 +972,6 @@ static void replace_placeholders(uint32_t prg_start, int size, bool port_0_enabl
         dat_rtc_gpio_num[1] = port_1_dat_io;
         dat_rtc_gpio_reg[1] = rtc_io_desc[port_1_dat_io].reg;
         dat_rtc_gpio_ie_s[1] = (uint32_t)ffs(rtc_io_desc[port_1_dat_io].ie) - 1;
-#endif
     }
 
     for (uint32_t i = 0; i < size; ++i)

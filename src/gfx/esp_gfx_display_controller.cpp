@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #include "esp_gfx_display_controller.h"
@@ -387,11 +366,11 @@ bitmap::~bitmap()
 // BitmappedDisplayController implementation
 
 
-int bitmapped_display_controller::queue_size = FABGLIB_DEFAULT_DISPLAYCONTROLLER_QUEUE_SIZE;
+int bitmapped_display_controller::queue_size = DISPLAY_CONTROLLER_QUEUE_SIZE;
 
 
 bitmapped_display_controller::bitmapped_display_controller()
-    : _prim_dyn_mem_pool(FABGLIB_PRIMITIVES_DYNBUFFERS_SIZE)
+    : _prim_dyn_mem_pool(PRIMITIVE_BUFFER_SIZE)
 {
     _exec_queue = nullptr;
     _exec_queue_alt = nullptr;
@@ -496,7 +475,7 @@ void bitmapped_display_controller::primitive_replace_dynamic_buffers(primitive &
         case primitive_cmd::fill_path:
         {
             int sz = primitive.path.points_count * sizeof(point);
-            if (sz < FABGLIB_PRIMITIVES_DYNBUFFERS_SIZE)
+            if (sz < PRIMITIVE_BUFFER_SIZE)
             {
                 void *newbuf = nullptr;
                 // wait until we have enough free space

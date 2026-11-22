@@ -1,15 +1,15 @@
 /**
- * @file esp_fabgl_test.h
- * @brief Объявление класса проверки FabGL esp::fabgl_test.
+ * @file esp_board_test.h
+ * @brief Объявление класса проверки платы esp::board_test.
  */
 
 /**
- * @file esp_fabgl_test.cpp
- * @brief Проверка FabGL на плате TTGO VGA32: VGA, клавиатура и мышь PS/2,
+ * @file esp_board_test.cpp
+ * @brief Проверка платы TTGO VGA32: VGA, клавиатура и мышь PS/2,
  *        звук, шрифт Unicode.
  */
 
-#include "esp_fabgl_test.h"
+#include "esp_board_test.h"
 
 #include "esp_gfx_display_controller.h"
 #include "esp_gfx_utils.h"
@@ -31,8 +31,8 @@
 
 
 /**
- * @class esp::fabgl_test
- * @brief Проверка FabGL на плате TTGO VGA32 v1.4.
+ * @class esp::board_test
+ * @brief Проверка платы TTGO VGA32 v1.4.
  *
  * Конструктор включает вывод на VGA (640 × 480, 16 цветов), порты PS/2
  * (клавиатура на порту 0, мышь на порту 1) и звук (ЦАП, GPIO25), рисует
@@ -126,10 +126,10 @@ constexpr int NOTES[] = {523, 587, 659, 698, 784, 880, 988, 1047};
 /** @brief Длительность ноты, мс. */
 constexpr int NOTE_MS = 250;
 
-/** @brief Названия форм звуковой волны в порядке номеров (см. esp::fabgl_test::play()). */
+/** @brief Названия форм звуковой волны в порядке номеров (см. esp::board_test::play()). */
 const char *const WAVEFORMS[] = {"sine", "square", "triangle", "sawtooth", "noise"};
 
-static_assert(std::size(WAVEFORMS) == 5, "WAVEFORMS must match esp::fabgl_test::play()");
+static_assert(std::size(WAVEFORMS) == 5, "WAVEFORMS must match esp::board_test::play()");
 
 /** @brief Указатель мыши. */
 constexpr esp::gfx::cursor_name CURSOR = esp::gfx::cursor_pointer_shadowed;
@@ -152,11 +152,12 @@ esp::gfx::color color(int index)
 /**
  * @brief Включает VGA, PS/2 и звук и рисует проверочный экран.
  *
- * Выводы — по умолчанию FabGL; они совпадают с разводкой платы TTGO VGA32:
+ * Выводы — по умолчанию модулей esp::vga, esp::ps2 и esp::sound; они
+ * совпадают с разводкой платы TTGO VGA32:
  * красный 21 и 22, зелёный 18 и 19, синий 4 и 5, HSync 23, VSync 15;
  * клавиатура CLK 33, DATA 32; мышь CLK 26, DATA 27; звук — ЦАП на GPIO25.
  */
-esp::fabgl_test::fabgl_test()
+esp::board_test::board_test()
     : _canvas(&_display)
     , _font(ter_10x18::WIDTH, ter_10x18::HEIGHT, ter_10x18::CODEPOINTS, ter_10x18::GLYPHS,
             ter_10x18::COUNT, ter_10x18::FALLBACK)
@@ -176,14 +177,15 @@ esp::fabgl_test::fabgl_test()
     // текст закрывает прежний.
     _canvas.set_glyph_options(esp::gfx::glyph_options().set_fill_background(true));
 
-    // FabGL ищет устройства только здесь и при их сбросе (check_devices()):
+    // Контроллер PS/2 ищет устройства только здесь и при их сбросе
+    // (check_devices()):
     // клавиатуру и мышь лучше подключить до включения платы.
     esp::ps2::ps2_controller::begin(esp::ps2::ps2_preset::keyboard_port_0_mouse_port_1);
     esp::ps2::ps2_controller::keyboard()->set_layout(&esp::ps2::US_LAYOUT);
     _keyboard_found = esp::ps2::ps2_controller::keyboard()->is_keyboard_available();
 
-    // Указатель мыши двигает сама FabGL, а новые состояния мыши она кладёт
-    // в очередь, которую читает poll(). Указатель начинает с центра экрана.
+    // Указатель мыши двигает сам контроллер дисплея, а новые состояния мыши
+    // драйвер мыши кладёт в очередь, которую читает poll(). Указатель начинает с центра экрана.
     esp::ps2::mouse *const mouse = esp::ps2::ps2_controller::mouse();
     mouse->setup_absolute_positioner(_canvas.width(), _canvas.height(), true, &_display);
     _mouse = mouse->status();
@@ -211,7 +213,7 @@ esp::fabgl_test::fabgl_test()
  *
  * Событий не ждёт; приложение вызывает метод каждые несколько миллисекунд.
  */
-void esp::fabgl_test::poll()
+void esp::board_test::poll()
 {
     // Нулевой тайм-аут: забрать то, что уже есть в очереди, и не ждать.
     esp::ps2::keyboard *const keyboard = esp::ps2::ps2_controller::keyboard();
@@ -239,7 +241,7 @@ void esp::fabgl_test::poll()
  * Подаёт звук, обновляет счётчик нажатий и сведения о памяти и заново
  * ищет клавиатуру и мышь, если их не было (см. check_devices()).
  */
-void esp::fabgl_test::button_pressed()
+void esp::board_test::button_pressed()
 {
     ++_presses;
     show_button();
@@ -259,7 +261,7 @@ void esp::fabgl_test::button_pressed()
  *
  * @return Ордината, точки.
  */
-int esp::fabgl_test::status_top() const
+int esp::board_test::status_top() const
 {
     return TITLE_TOP + _font.height() + 6 + BAR_HEIGHT + 2 + _font.height() + 6;
 }
@@ -268,7 +270,7 @@ int esp::fabgl_test::status_top() const
  * @brief Возвращает верхний край поля для рисования: оно под строками текста.
  * @return Ордината, точки.
  */
-int esp::fabgl_test::paint_top() const
+int esp::board_test::paint_top() const
 {
     return status_top() + rows * _font.height() + 6;
 }
@@ -276,7 +278,7 @@ int esp::fabgl_test::paint_top() const
 /**
  * @brief Рисует проверочный экран целиком.
  */
-void esp::fabgl_test::draw_screen()
+void esp::board_test::draw_screen()
 {
     const int width = _canvas.width();
     const int height = _canvas.height();
@@ -294,7 +296,7 @@ void esp::fabgl_test::draw_screen()
     // знаки ASCII, поэтому число знаков равно её длине).
     _canvas.set_brush_color(esp::gfx::blue);
     _canvas.fill_rectangle(1, 1, width - 2, TITLE_TOP + line);
-    _font.draw_text(_canvas, MARGIN, TITLE_TOP, "Espresso: FabGL test");
+    _font.draw_text(_canvas, MARGIN, TITLE_TOP, "Espresso: board test");
     char mode[32];
     std::snprintf(mode, sizeof(mode), "%dx%d, %d colours", width, height, COLORS);
     _font.draw_text(_canvas, width - MARGIN - _font.width() * static_cast<int>(std::strlen(mode)),
@@ -346,7 +348,7 @@ void esp::fabgl_test::draw_screen()
  * @param row Номер строки (перечисление row).
  * @param text Текст в кодировке UTF-8.
  */
-void esp::fabgl_test::draw_line(int row, const char *text)
+void esp::board_test::draw_line(int row, const char *text)
 {
     const int line = _font.height();
     const int y = status_top() + row * line;
@@ -370,7 +372,7 @@ void esp::fabgl_test::draw_line(int row, const char *text)
 /**
  * @brief Показывает, найдена ли клавиатура, и её раскладку.
  */
-void esp::fabgl_test::show_keyboard()
+void esp::board_test::show_keyboard()
 {
     char text[96];
     if (_keyboard_found)
@@ -385,7 +387,7 @@ void esp::fabgl_test::show_keyboard()
  * @brief Показывает последнюю нажатую или отпущенную клавишу.
  * @param item Событие клавиатуры.
  */
-void esp::fabgl_test::show_key(const esp::ps2::virtual_key_item &item)
+void esp::board_test::show_key(const esp::ps2::virtual_key_item &item)
 {
     char text[96];
     std::snprintf(text, sizeof(text), "Key:      %s %s, ASCII 0x%02x",
@@ -397,7 +399,7 @@ void esp::fabgl_test::show_key(const esp::ps2::virtual_key_item &item)
 /**
  * @brief Показывает набранную строку.
  */
-void esp::fabgl_test::show_input()
+void esp::board_test::show_input()
 {
     char text[96];
     std::snprintf(text, sizeof(text), "Input:    %s_", _input.c_str());
@@ -407,7 +409,7 @@ void esp::fabgl_test::show_input()
 /**
  * @brief Показывает положение и кнопки мыши или её отсутствие.
  */
-void esp::fabgl_test::show_mouse()
+void esp::board_test::show_mouse()
 {
     char text[96];
     if (_mouse_found)
@@ -422,7 +424,7 @@ void esp::fabgl_test::show_mouse()
 /**
  * @brief Показывает число нажатий кнопки K1.
  */
-void esp::fabgl_test::show_button()
+void esp::board_test::show_button()
 {
     char text[96];
     std::snprintf(text, sizeof(text), "Button:   K1 (GPIO36), presses: %d", _presses);
@@ -432,7 +434,7 @@ void esp::fabgl_test::show_button()
 /**
  * @brief Показывает форму звуковой волны и подсказку о клавишах звука.
  */
-void esp::fabgl_test::show_sound()
+void esp::board_test::show_sound()
 {
     char text[96];
     std::snprintf(text, sizeof(text), "Sound:    %s; F1-F8 play notes, F9 changes the waveform",
@@ -443,7 +445,7 @@ void esp::fabgl_test::show_sound()
 /**
  * @brief Показывает объём свободной памяти и наибольший свободный блок.
  */
-void esp::fabgl_test::show_memory()
+void esp::board_test::show_memory()
 {
     char text[96];
     std::snprintf(text, sizeof(text), "Memory:   %zu kB free, largest block %zu kB",
@@ -455,7 +457,7 @@ void esp::fabgl_test::show_memory()
 /**
  * @brief Показывает образец цвета рисования в конце строки подсказки.
  */
-void esp::fabgl_test::show_paint_color()
+void esp::board_test::show_paint_color()
 {
     const int right = _canvas.width() - MARGIN - 1;
     const int top = status_top() + row_help * _font.height() + 1;
@@ -470,7 +472,7 @@ void esp::fabgl_test::show_paint_color()
 /**
  * @brief Очищает поле для рисования, не трогая его рамку.
  */
-void esp::fabgl_test::clear_paint_area()
+void esp::board_test::clear_paint_area()
 {
     _canvas.set_brush_color(esp::gfx::black);
     _canvas.fill_rectangle(MARGIN + 1, paint_top() + 1, _canvas.width() - MARGIN - 2,
@@ -487,7 +489,7 @@ void esp::fabgl_test::clear_paint_area()
  * @param x2 Абсцисса конца.
  * @param y2 Ордината конца.
  */
-void esp::fabgl_test::paint(int x1, int y1, int x2, int y2)
+void esp::board_test::paint(int x1, int y1, int x2, int y2)
 {
     const int width = _canvas.width();
     const int height = _canvas.height();
@@ -511,7 +513,7 @@ void esp::fabgl_test::paint(int x1, int y1, int x2, int y2)
  *
  * @param item Событие клавиатуры.
  */
-void esp::fabgl_test::on_key(const esp::ps2::virtual_key_item &item)
+void esp::board_test::on_key(const esp::ps2::virtual_key_item &item)
 {
     show_key(item);
 
@@ -562,8 +564,8 @@ void esp::fabgl_test::on_key(const esp::ps2::virtual_key_item &item)
             break;
     }
 
-    // В строку попадают только печатные символы ASCII; FabGL уже учла
-    // Shift, Caps Lock и раскладку.
+    // В строку попадают только печатные символы ASCII; клавиатура уже
+    // учла Shift, Caps Lock и раскладку.
     if (item.ascii >= 0x20 && item.ascii < 0x7f && _input.size() < INPUT_MAX)
     {
         _input += static_cast<char>(item.ascii);
@@ -580,7 +582,7 @@ void esp::fabgl_test::on_key(const esp::ps2::virtual_key_item &item)
  *
  * @param status Новое состояние мыши.
  */
-void esp::fabgl_test::on_mouse(const esp::ps2::mouse_status &status)
+void esp::board_test::on_mouse(const esp::ps2::mouse_status &status)
 {
     const esp::ps2::mouse_status previous = _mouse;
     _mouse = status;
@@ -626,7 +628,7 @@ void esp::fabgl_test::on_mouse(const esp::ps2::mouse_status &status)
  * Найденное устройство не трогается. Сброс устройства занимает до двух
  * секунд, всё это время основной цикл стоит.
  */
-void esp::fabgl_test::check_devices()
+void esp::board_test::check_devices()
 {
     if (!_keyboard_found)
     {
@@ -653,13 +655,13 @@ void esp::fabgl_test::check_devices()
 /**
  * @brief Подаёт звук текущей формы волны.
  *
- * Не ждёт окончания звука: FabGL сама удаляет генератор волны, когда
+ * Не ждёт окончания звука: генератор звука сам удаляет генератор волны, когда
  * длительность истекает.
  *
  * @param frequency Частота, Гц; для шума не важна.
  * @param duration_ms Длительность, мс.
  */
-void esp::fabgl_test::play(int frequency, int duration_ms)
+void esp::board_test::play(int frequency, int duration_ms)
 {
     // esp::sound::sound_generator::play_sound() — шаблон, тип генератора выбирается при компиляции,
     // поэтому форму волны выбирает переключатель.

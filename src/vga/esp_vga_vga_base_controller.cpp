@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #include <alloca.h>
@@ -49,7 +28,7 @@ namespace esp::vga
 {
 
 
-#if FABGLIB_VGAXCONTROLLER_PERFORMANCE_CHECK
+#if ESP_VGA_PERFORMANCE_CHECK
 volatile uint64_t s_vgapalctrlcycles = 0;
 #endif
 
@@ -463,8 +442,7 @@ void vga_base_controller::set_resolution(vga_timings const &timings, int view_po
 // to reduce memory allocation overhead try to allocate the minimum number of blocks.
 void vga_base_controller::allocate_view_port(uint32_t alloc_caps, int rowlen)
 {
-    int lines_count
-        [FABGLIB_VIEWPORT_MEMORY_POOL_COUNT]; // where store number of lines for each pool
+    int lines_count[VIEW_PORT_MEMORY_POOL_COUNT]; // where store number of lines for each pool
     int pools_count = 0; // number of allocated pools
     int remaining_lines = _view_port_height;
     _view_port_height = 0; // m_viewPortHeight needs to be recalculated
@@ -474,14 +452,14 @@ void vga_base_controller::allocate_view_port(uint32_t alloc_caps, int rowlen)
 
     // allocate pools
     _view_port_memory_pool = (uint8_t **)heap_caps_malloc(
-        sizeof(uint8_t *) * (FABGLIB_VIEWPORT_MEMORY_POOL_COUNT + 1), MALLOC_CAP_32BIT);
-    while (remaining_lines > 0 && pools_count < FABGLIB_VIEWPORT_MEMORY_POOL_COUNT)
+        sizeof(uint8_t *) * (VIEW_PORT_MEMORY_POOL_COUNT + 1), MALLOC_CAP_32BIT);
+    while (remaining_lines > 0 && pools_count < VIEW_PORT_MEMORY_POOL_COUNT)
     {
         int largest_block = heap_caps_get_largest_free_block(alloc_caps);
-        if (largest_block < FABGLIB_MINFREELARGESTBLOCK)
+        if (largest_block < MIN_FREE_LARGEST_BLOCK)
             break;
         lines_count[pools_count] = esp::tmax(
-            1, esp::tmin(remaining_lines, (largest_block - FABGLIB_MINFREELARGESTBLOCK) / rowlen));
+            1, esp::tmin(remaining_lines, (largest_block - MIN_FREE_LARGEST_BLOCK) / rowlen));
         _view_port_memory_pool[pools_count] =
             (uint8_t *)heap_caps_malloc(lines_count[pools_count] * rowlen, alloc_caps);
         if (_view_port_memory_pool[pools_count] == nullptr)

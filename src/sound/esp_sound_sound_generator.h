@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #pragma once
@@ -51,24 +30,21 @@
 #include "esp_tools.h"
 
 
-#if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
-#   include "driver/sdm.h"
-#else
-#   include "driver/dac.h"
-#   include "driver/sigmadelta.h"
-#endif
+#include "driver/sdm.h"
 
 
 namespace esp::sound
 {
 
 
-#define FABGL_SOUNDGEN_DEFAULT_SAMPLE_RATE 16384
+/** @brief Частота дискретизации по умолчанию, Гц. */
+constexpr int DEFAULT_SAMPLE_RATE = 16384;
 
 
 // DAC mode specific:
 // setting 64 at 16KHz, generates 16000/64=250 interrupts per second
-#define FABGL_SOUNDGEN_SAMPLE_BUFFER_SIZE 64
+/** @brief Отсчётов в буфере DMA (ЦАП): 64 при 16 кГц — 250 прерываний в секунду. */
+constexpr int SAMPLE_BUFFER_SIZE = 64;
 
 
 /** @brief Base abstract class for waveform generators. A waveform generator can be seen as an audio channel that will be mixed by SoundGenerator. */
@@ -455,8 +431,7 @@ public:
    *     // creates sound generator using 16Khz sample rate, GPIO 23 in sigma-delta mode
    *     SoundGenerator soundGenerator(16000, GPIO_NUM_23, SoundGenMethod::SigmaDelta);
    */
-    sound_generator(int sample_rate = FABGL_SOUNDGEN_DEFAULT_SAMPLE_RATE,
-                    gpio_num_t gpio = GPIO_AUTO,
+    sound_generator(int sample_rate = DEFAULT_SAMPLE_RATE, gpio_num_t gpio = GPIO_AUTO,
                     sound_gen_method gen_method = sound_gen_method::Auto);
 
     ~sound_generator();
@@ -599,11 +574,6 @@ private:
 
     int sample();
 
-#ifdef FABGL_EMULATED
-    void sdl_init();
-    static void SDLAudioCallback(void *data, Uint8 *buffer, int length);
-#endif
-
 
     waveform_generator *_channels;
 
@@ -627,13 +597,7 @@ private:
 
     esp_timer_handle_t _timer_handle;
 
-#if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
     sdm_channel_handle_t _sdm_channel = nullptr;
-#endif
-
-#ifdef FABGL_EMULATED
-    SDL_AudioDeviceID m_device;
-#endif
 };
 
 

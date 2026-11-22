@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #pragma once
@@ -377,7 +356,7 @@ public:
 
     static uint8_t conv_scancode_set_2_to_1(uint8_t code);
 
-#if FABGLIB_HAS_VirtualKeyO_STRING
+#if ESP_PS2_VIRTUAL_KEY_NAMES
     static char const *virtual_key_to_string(virtual_key virtual_key);
 #endif
 
@@ -401,7 +380,7 @@ public:
    *
    * Application should change before begin() method.
    *
-   * Default value is FABGLIB_DEFAULT_SCODETOVK_TASK_STACK_SIZE (defined in esp_ps2_config.h)
+   * Default value is SCANCODE_TASK_STACK_SIZE (defined in esp_ps2_config.h)
    */
     static int scancode_to_virtual_key_task_stack_size;
 

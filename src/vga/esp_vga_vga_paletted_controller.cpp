@@ -1,27 +1,6 @@
-/*
-  Created by Fabrizio Di Vittorio (fdivitto2013@gmail.com) - <http://www.fabgl.com>
-  Copyright (c) 2019-2022 Fabrizio Di Vittorio.
-  All rights reserved.
-
-
-* Please contact fdivitto2013@gmail.com if you need a commercial license.
-
-
-* This library and related software is available under GPL v3.
-
-  FabGL is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  FabGL is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with FabGL.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2019-2022 Fabrizio Di Vittorio.
+// Изменено для Espresso в 2026 г.
 
 
 #include <alloca.h>
@@ -177,20 +156,19 @@ void vga_paletted_controller::set_resolution(vga_timings const &timings, int vie
     // ESP_INTR_FLAG_LEVEL1: should be less than PS2Controller interrupt level, necessary when running on the same core
     if (_isr_handle == nullptr)
     {
-        esp::core_usage::set_busiest_core(FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE);
-        esp::esp_intr_alloc_pinned_to_core(
-            ETS_I2S1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM, _isr_handler, this,
-            &_isr_handle, FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE);
+        esp::core_usage::set_busiest_core(esp::VIDEO_TASKS_CORE);
+        esp::esp_intr_alloc_pinned_to_core(ETS_I2S1_INTR_SOURCE,
+                                           ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM, _isr_handler,
+                                           this, &_isr_handle, esp::VIDEO_TASKS_CORE);
         I2S1.int_clr.val = 0xFFFFFFFF;
         I2S1.int_ena.out_eof = 1;
     }
 
     if (_primitive_exec_task == nullptr)
     {
-        xTaskCreatePinnedToCore(primitive_exec_task, "",
-                                FABGLIB_VGAPALETTEDCONTROLLER_PRIMTASK_STACK_SIZE, this,
-                                FABGLIB_VGAPALETTEDCONTROLLER_PRIMTASK_PRIORITY,
-                                &_primitive_exec_task, esp::core_usage::quiet_core());
+        xTaskCreatePinnedToCore(primitive_exec_task, "", PRIMITIVE_TASK_STACK_SIZE, this,
+                                PRIMITIVE_TASK_PRIORITY, &_primitive_exec_task,
+                                esp::core_usage::quiet_core());
     }
 
     resume_background_primitive_execution();

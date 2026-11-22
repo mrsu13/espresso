@@ -38,13 +38,13 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE LOG_LOCAL_LEVEL=ESP_LOG_DEBU
 # Обработчики прерываний видеовывода должны успевать подготовить строки к
 # выводу, поэтому этот код собирается с -Os и при отладочной сборке
 # проекта (-Og).
-file(GLOB esp_fabgl_sources
+file(GLOB esp_size_optimized_sources
      "${CMAKE_CURRENT_LIST_DIR}/gfx/*.cpp"
      "${CMAKE_CURRENT_LIST_DIR}/vga/*.cpp"
      "${CMAKE_CURRENT_LIST_DIR}/ps2/*.cpp"
      "${CMAKE_CURRENT_LIST_DIR}/sound/*.cpp"
      "${CMAKE_CURRENT_LIST_DIR}/tools/esp_tools.cpp")
-set_source_files_properties(${esp_fabgl_sources} PROPERTIES COMPILE_OPTIONS -Os)
+set_source_files_properties(${esp_size_optimized_sources} PROPERTIES COMPILE_OPTIONS -Os)
 
 # yyjson (проверено на версиях 0.9.0 и 0.13.0) вызывает у GCC 15 при -Og
 # ложные предупреждения -Wmaybe-uninitialized, а ESP-IDF собирает
