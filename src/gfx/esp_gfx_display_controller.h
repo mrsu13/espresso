@@ -54,136 +54,136 @@ namespace esp::gfx
   Notes:
     - all positions can have negative and outofbound coordinates. Shapes are always clipped correctly.
 */
-enum PrimitiveCmd : uint8_t
+enum primitive_cmd : uint8_t
 {
 
     // Needed to send the updated area of screen buffer on some displays (ie SSD1306)
-    Flush,
+    flush,
 
     // Refresh display. Some displays (ie SSD1306) aren't repainted if there aren't primitives
     // so posting Refresh allows to resend the screenbuffer
     // params: rect (rectangle to refresh)
-    Refresh,
+    refresh,
 
     // Reset paint state
     // params: none
-    Reset,
+    reset,
 
     // Set current pen color
     // params: color
-    SetPenColor,
+    set_pen_color,
 
     // Set current brush color
     // params: color
-    SetBrushColor,
+    set_brush_color,
 
     // Paint a pixel at specified coordinates, using current pen color
     // params: color
-    SetPixel,
+    set_pixel,
 
     // Paint a pixel at specified coordinates using the specified color
     // params: pixelDesc
-    SetPixelAt,
+    set_pixel_at,
 
     // Move current position to the specified one
     // params: point
-    MoveTo,
+    move_to,
 
     // Draw a line from current position to the specified one, using current pen color. Update current position.
     // params: point
-    LineTo,
+    line_to,
 
     // Fill a rectangle using current brush color
     // params: rect
-    FillRect,
+    fill_rect,
 
     // Draw a rectangle using current pen color
     // params: rect
-    DrawRect,
+    draw_rect,
 
     // Fill an ellipse, current position is the center, using current brush color
     // params: size
-    FillEllipse,
+    fill_ellipse,
 
     // Draw an ellipse, current position is the center, using current pen color
     // params: size
-    DrawEllipse,
+    draw_ellipse,
 
     // Fill viewport with brush color
     // params: none
-    Clear,
+    clear,
 
     // Scroll vertically without copying buffers
     // params: ivalue (scroll amount, can be negative)
-    VScroll,
+    v_scroll,
 
     // Scroll horizontally (time consuming operation!)
     // params: ivalue (scroll amount, can be negative)
-    HScroll,
+    h_scroll,
 
     // Draw a glyph (BW image)
     // params: glyph
-    DrawGlyph,
+    draw_glyph,
 
     // Set paint options
     // params: glyphOptions
-    SetGlyphOptions,
+    set_glyph_options,
 
     // Set gluph options
     // params: paintOptions
-    SetPaintOptions,
+    set_paint_options,
 
     // Invert a rectangle
     // params: rect
-    InvertRect,
+    invert_rect,
 
     // Copy (overlapping) rectangle to current position
     // params: rect (source rectangle)
-    CopyRect,
+    copy_rect,
 
     // Set scrolling region
     // params: rect
-    SetScrollingRegion,
+    set_scrolling_region,
 
     // Swap foreground (pen) and background (brush) colors of all pixels inside the specified rectangles. Other colors remain untaltered.
     // params: rect
-    SwapFGBG,
+    swap_fgbg,
 
     // Draw a bitmap
     // params: bitmapDrawingInfo
-    DrawBitmap,
+    draw_bitmap,
 
     // Refresh sprites
     // no params
-    RefreshSprites,
+    refresh_sprites,
 
     // Swap buffers (m_doubleBufferedEnabled must be True)
     // params: notifyTask
-    SwapBuffers,
+    swap_buffers,
 
     // Fill a path, using current brush color
     // params: path
-    FillPath,
+    fill_path,
 
     // Draw a path, using current pen color
     // params: path
-    DrawPath,
+    draw_path,
 
     // Set axis origin
     // params: point
-    SetOrigin,
+    set_origin,
 
     // Set clipping rectangle
     // params: rect
-    SetClippingRect,
+    set_clipping_rect,
 
     // Set pen width
     // params: ivalue
-    SetPenWidth,
+    set_pen_width,
 
     // Set line ends
     // params: lineEnds
-    SetLineEnds,
+    set_line_ends,
 };
 
 
@@ -192,24 +192,24 @@ enum PrimitiveCmd : uint8_t
  *
  * First eight full implement all available colors when 1 bit per channel mode is used (having 8 colors).
  */
-enum Color
+enum color
 {
-    Black, /**< Equivalent to RGB888(0,0,0) */
-    Red, /**< Equivalent to RGB888(128,0,0) */
-    Green, /**< Equivalent to RGB888(0,128,0) */
-    Yellow, /**< Equivalent to RGB888(128,128,0) */
-    Blue, /**< Equivalent to RGB888(0,0,128) */
-    Magenta, /**< Equivalent to RGB888(128,0,128) */
-    Cyan, /**< Equivalent to RGB888(0,128,128) */
-    White, /**< Equivalent to RGB888(128,128,128) */
-    BrightBlack, /**< Equivalent to RGB888(64,64,64) */
-    BrightRed, /**< Equivalent to RGB888(255,0,0) */
-    BrightGreen, /**< Equivalent to RGB888(0,255,0) */
-    BrightYellow, /**< Equivalent to RGB888(255,255,0) */
-    BrightBlue, /**< Equivalent to RGB888(0,0,255) */
-    BrightMagenta, /**< Equivalent to RGB888(255,0,255) */
-    BrightCyan, /**< Equivalent to RGB888(0,255,255) */
-    BrightWhite, /**< Equivalent to RGB888(255,255,255) */
+    black, /**< Equivalent to RGB888(0,0,0) */
+    red, /**< Equivalent to RGB888(128,0,0) */
+    green, /**< Equivalent to RGB888(0,128,0) */
+    yellow, /**< Equivalent to RGB888(128,128,0) */
+    blue, /**< Equivalent to RGB888(0,0,128) */
+    magenta, /**< Equivalent to RGB888(128,0,128) */
+    cyan, /**< Equivalent to RGB888(0,128,128) */
+    white, /**< Equivalent to RGB888(128,128,128) */
+    bright_black, /**< Equivalent to RGB888(64,64,64) */
+    bright_red, /**< Equivalent to RGB888(255,0,0) */
+    bright_green, /**< Equivalent to RGB888(0,255,0) */
+    bright_yellow, /**< Equivalent to RGB888(255,255,0) */
+    bright_blue, /**< Equivalent to RGB888(0,0,255) */
+    bright_magenta, /**< Equivalent to RGB888(255,0,255) */
+    bright_cyan, /**< Equivalent to RGB888(0,255,255) */
+    bright_white, /**< Equivalent to RGB888(255,255,255) */
 };
 
 
@@ -218,37 +218,37 @@ enum Color
  *
  * For each channel minimum value is 0, maximum value is 255.
  */
-struct RGB888
+struct rgb888
 {
-    uint8_t R; /**< The Red channel   */
-    uint8_t G; /**< The Green channel */
-    uint8_t B; /**< The Blue channel  */
+    uint8_t r; /**< The Red channel   */
+    uint8_t g; /**< The Green channel */
+    uint8_t b; /**< The Blue channel  */
 
-    RGB888()
-        : R(0)
-        , G(0)
-        , B(0)
+    rgb888()
+        : r(0)
+        , g(0)
+        , b(0)
     {
     }
-    RGB888(Color color);
-    RGB888(uint8_t red, uint8_t green, uint8_t blue)
-        : R(red)
-        , G(green)
-        , B(blue)
+    rgb888(color color);
+    rgb888(uint8_t red, uint8_t green, uint8_t blue)
+        : r(red)
+        , g(green)
+        , b(blue)
     {
     }
 } __attribute__((packed));
 
 
-inline bool operator==(RGB888 const &lhs, RGB888 const &rhs)
+inline bool operator==(rgb888 const &lhs, rgb888 const &rhs)
 {
-    return lhs.R == rhs.R && lhs.G == rhs.G && lhs.B == rhs.B;
+    return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b;
 }
 
 
-inline bool operator!=(RGB888 const &lhs, RGB888 const &rhs)
+inline bool operator!=(rgb888 const &lhs, rgb888 const &rhs)
 {
-    return lhs.R != rhs.R || lhs.G != rhs.G || lhs.B == rhs.B;
+    return lhs.r != rhs.r || lhs.g != rhs.g || lhs.b == rhs.b;
 }
 
 
@@ -257,25 +257,25 @@ inline bool operator!=(RGB888 const &lhs, RGB888 const &rhs)
  *
  * For each channel minimum value is 0, maximum value is 255.
  */
-struct RGBA8888
+struct rgba8888
 {
-    uint8_t R; /**< The Red channel   */
-    uint8_t G; /**< The Green channel */
-    uint8_t B; /**< The Blue channel  */
-    uint8_t A; /**< The Alpha channel */
+    uint8_t r; /**< The Red channel   */
+    uint8_t g; /**< The Green channel */
+    uint8_t b; /**< The Blue channel  */
+    uint8_t a; /**< The Alpha channel */
 
-    RGBA8888()
-        : R(0)
-        , G(0)
-        , B(0)
-        , A(0)
+    rgba8888()
+        : r(0)
+        , g(0)
+        , b(0)
+        , a(0)
     {
     }
-    RGBA8888(int red, int green, int blue, int alpha)
-        : R(red)
-        , G(green)
-        , B(blue)
-        , A(alpha)
+    rgba8888(int red, int green, int blue, int alpha)
+        : r(red)
+        , g(green)
+        , b(blue)
+        , a(alpha)
     {
     }
 };
@@ -287,39 +287,39 @@ struct RGBA8888
  * When 1 bit per channel (8 colors) is used then the maximum value (white) is 1 (R = 1, G = 1, B = 1).
  * When 2 bits per channel (64 colors) are used then the maximum value (white) is 3 (R = 3, G = 3, B = 3).
  */
-struct RGB222
+struct rgb222
 {
-    uint8_t R : 2; /**< The Red channel   */
-    uint8_t G : 2; /**< The Green channel */
-    uint8_t B : 2; /**< The Blue channel  */
+    uint8_t r : 2; /**< The Red channel   */
+    uint8_t g : 2; /**< The Green channel */
+    uint8_t b : 2; /**< The Blue channel  */
 
-    RGB222()
-        : R(0)
-        , G(0)
-        , B(0)
+    rgb222()
+        : r(0)
+        , g(0)
+        , b(0)
     {
     }
-    RGB222(uint8_t red, uint8_t green, uint8_t blue)
-        : R(red)
-        , G(green)
-        , B(blue)
+    rgb222(uint8_t red, uint8_t green, uint8_t blue)
+        : r(red)
+        , g(green)
+        , b(blue)
     {
     }
-    RGB222(RGB888 const &value);
+    rgb222(rgb888 const &value);
 
-    static bool lowBitOnly; // true= 8 colors, false 64 colors
+    static bool low_bit_only; // true= 8 colors, false 64 colors
 };
 
 
-inline bool operator==(RGB222 const &lhs, RGB222 const &rhs)
+inline bool operator==(rgb222 const &lhs, rgb222 const &rhs)
 {
-    return lhs.R == rhs.R && lhs.G == rhs.G && lhs.B == rhs.B;
+    return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b;
 }
 
 
-inline bool operator!=(RGB222 const &lhs, RGB222 const &rhs)
+inline bool operator!=(rgb222 const &lhs, rgb222 const &rhs)
 {
-    return lhs.R != rhs.R || lhs.G != rhs.G || lhs.B == rhs.B;
+    return lhs.r != rhs.r || lhs.g != rhs.g || lhs.b == rhs.b;
 }
 
 
@@ -328,18 +328,18 @@ inline bool operator!=(RGB222 const &lhs, RGB222 const &rhs)
  *
  * For each channel minimum value is 0, maximum value is 3.
  */
-struct RGBA2222
+struct rgba2222
 {
-    uint8_t R : 2; /**< The Red channel (LSB) */
-    uint8_t G : 2; /**< The Green channel */
-    uint8_t B : 2; /**< The Blue channel  */
-    uint8_t A : 2; /**< The Alpha channel (MSB) */
+    uint8_t r : 2; /**< The Red channel (LSB) */
+    uint8_t g : 2; /**< The Green channel */
+    uint8_t b : 2; /**< The Blue channel  */
+    uint8_t a : 2; /**< The Alpha channel (MSB) */
 
-    RGBA2222(int red, int green, int blue, int alpha)
-        : R(red)
-        , G(green)
-        , B(blue)
-        , A(alpha)
+    rgba2222(int red, int green, int blue, int alpha)
+        : r(red)
+        , g(green)
+        , b(blue)
+        , a(alpha)
     {
     }
 };
@@ -349,7 +349,7 @@ struct RGBA2222
 //  64 .. 127 => 1
 // 128 .. 191 => 2
 // 192 .. 255 => 3
-uint8_t RGB888toPackedRGB222(RGB888 const &rgb);
+uint8_t rgb888_to_packed_rgb222(rgb888 const &rgb);
 
 
 /**
@@ -357,26 +357,26 @@ uint8_t RGB888toPackedRGB222(RGB888 const &rgb);
  *
  * A glyph is a bitmap (1 bit per pixel). The fabgl::Terminal uses glyphs to render characters.
  */
-struct Glyph
+struct glyph
 {
-    int16_t X; /**< Horizontal glyph coordinate */
-    int16_t Y; /**< Vertical glyph coordinate */
+    int16_t x; /**< Horizontal glyph coordinate */
+    int16_t y; /**< Vertical glyph coordinate */
     uint8_t width; /**< Glyph horizontal size */
     uint8_t height; /**< Glyph vertical size */
     uint8_t const *
         data; /**< Byte aligned binary data of the glyph. A 0 represents background or a transparent pixel. A 1 represents foreground. */
 
-    Glyph()
-        : X(0)
-        , Y(0)
+    glyph()
+        : x(0)
+        , y(0)
         , width(0)
         , height(0)
         , data(nullptr)
     {
     }
-    Glyph(int X_, int Y_, int width_, int height_, uint8_t const *data_)
-        : X(X_)
-        , Y(Y_)
+    glyph(int x_, int y_, int width_, int height_, uint8_t const *data_)
+        : x(x_)
+        , y(y_)
         , width(width_)
         , height(height_)
         , data(data_)
@@ -388,14 +388,14 @@ struct Glyph
 /**
  * @brief Specifies various glyph painting options.
  */
-union GlyphOptions
+union glyph_options
 {
     struct
     {
-        uint16_t fillBackground
+        uint16_t fill_background
             : 1; /**< If enabled glyph background is filled with current background color. */
         uint16_t bold : 1; /**< If enabled produces a bold-like style. */
-        uint16_t reduceLuminosity
+        uint16_t reduce_luminosity
             : 1; /**< If enabled reduces luminosity. To implement characters faint. */
         uint16_t italic
             : 1; /**< If enabled skews the glyph on the right. To implement characters italic. */
@@ -405,57 +405,57 @@ union GlyphOptions
             : 1; /**< If enabled the glyph is filled with the background color. To implement characters invisible or blink. */
         uint16_t underline
             : 1; /**< If enabled the glyph is underlined. To implement characters underline. */
-        uint16_t doubleWidth
+        uint16_t double_width
             : 2; /**< If enabled the glyph is doubled. To implement characters double width. 0 = normal, 1 = double width, 2 = double width - double height top, 3 = double width - double height bottom. */
-        uint16_t userOpt1 : 1; /**< User defined option */
-        uint16_t userOpt2 : 1; /**< User defined option */
+        uint16_t user_opt_1 : 1; /**< User defined option */
+        uint16_t user_opt_2 : 1; /**< User defined option */
     };
     uint16_t value;
 
     /** @brief Helper method to set or reset fillBackground */
-    GlyphOptions &FillBackground(bool value)
+    glyph_options &set_fill_background(bool value)
     {
-        fillBackground = value;
+        fill_background = value;
         return *this;
     }
 
     /** @brief Helper method to set or reset bold */
-    GlyphOptions &Bold(bool value)
+    glyph_options &set_bold(bool value)
     {
         bold = value;
         return *this;
     }
 
     /** @brief Helper method to set or reset italic */
-    GlyphOptions &Italic(bool value)
+    glyph_options &set_italic(bool value)
     {
         italic = value;
         return *this;
     }
 
     /** @brief Helper method to set or reset underlined */
-    GlyphOptions &Underline(bool value)
+    glyph_options &set_underline(bool value)
     {
         underline = value;
         return *this;
     }
 
     /** @brief Helper method to set or reset doubleWidth */
-    GlyphOptions &DoubleWidth(uint8_t value)
+    glyph_options &set_double_width(uint8_t value)
     {
-        doubleWidth = value;
+        double_width = value;
         return *this;
     }
 
     /** @brief Helper method to set or reset foreground and background swapping */
-    GlyphOptions &Invert(uint8_t value)
+    glyph_options &set_invert(uint8_t value)
     {
         invert = value;
         return *this;
     }
 
     /** @brief Helper method to set or reset foreground and background swapping */
-    GlyphOptions &Blank(uint8_t value)
+    glyph_options &set_blank(uint8_t value)
     {
         blank = value;
         return *this;
@@ -466,89 +466,89 @@ union GlyphOptions
 /** \ingroup Enumerations
  * @brief This enum defines the display controller native pixel format
  */
-enum class NativePixelFormat : uint8_t
+enum class native_pixel_format : uint8_t
 {
-    Mono, /**< 1 bit per pixel. 0 = black, 1 = white */
-    SBGR2222, /**< 8 bit per pixel: VHBBGGRR (bit 7=VSync 6=HSync 5=B 4=B 3=G 2=G 1=R 0=R). Each color channel can have values from 0 to 3 (maxmum intensity). */
-    RGB565BE, /**< 16 bit per pixel: RGB565 big endian. */
-    PALETTE2, /**< 1 bit palette (2 colors), packed as 8 pixels per byte. */
-    PALETTE4, /**< 2 bit palette (4 colors), packed as 4 pixels per byte. */
-    PALETTE8, /**< 3 bit palette (8 colors), packed as 8 pixels every 3 bytes. */
-    PALETTE16, /**< 4 bit palette (16 colors), packed as two pixels per byte. */
+    mono, /**< 1 bit per pixel. 0 = black, 1 = white */
+    sbgr2222, /**< 8 bit per pixel: VHBBGGRR (bit 7=VSync 6=HSync 5=B 4=B 3=G 2=G 1=R 0=R). Each color channel can have values from 0 to 3 (maxmum intensity). */
+    rgb565be, /**< 16 bit per pixel: RGB565 big endian. */
+    palette2, /**< 1 bit palette (2 colors), packed as 8 pixels per byte. */
+    palette4, /**< 2 bit palette (4 colors), packed as 4 pixels per byte. */
+    palette8, /**< 3 bit palette (8 colors), packed as 8 pixels every 3 bytes. */
+    palette16, /**< 4 bit palette (16 colors), packed as two pixels per byte. */
 };
 
 
 /** \ingroup Enumerations
  * @brief This enum defines a pixel format
  */
-enum class PixelFormat : uint8_t
+enum class pixel_format : uint8_t
 {
-    Undefined, /**< Undefined pixel format */
-    Native, /**< Native device pixel format */
-    Mask, /**< 1 bit per pixel. 0 = transparent, 1 = opaque (color must be specified apart) */
-    RGBA2222, /**< 8 bit per pixel: AABBGGRR (bit 7=A 6=A 5=B 4=B 3=G 2=G 1=R 0=R). AA = 0 fully transparent, AA = 3 fully opaque. Each color channel can have values from 0 to 3 (maxmum intensity). */
-    RGBA8888 /**< 32 bits per pixel: RGBA (R=byte 0, G=byte1, B=byte2, A=byte3). Minimum value for each channel is 0, maximum is 255. */
+    undefined, /**< Undefined pixel format */
+    native, /**< Native device pixel format */
+    mask, /**< 1 bit per pixel. 0 = transparent, 1 = opaque (color must be specified apart) */
+    rgba2222, /**< 8 bit per pixel: AABBGGRR (bit 7=A 6=A 5=B 4=B 3=G 2=G 1=R 0=R). AA = 0 fully transparent, AA = 3 fully opaque. Each color channel can have values from 0 to 3 (maxmum intensity). */
+    rgba8888 /**< 32 bits per pixel: RGBA (R=byte 0, G=byte1, B=byte2, A=byte3). Minimum value for each channel is 0, maximum is 255. */
 };
 
 
 /** \ingroup Enumerations
 * @brief This enum defines line ends when pen width is greater than 1
 */
-enum class LineEnds : uint8_t
+enum class line_ends : uint8_t
 {
-    None, /**< No line ends */
-    Circle, /**< Circle line ends */
+    none, /**< No line ends */
+    circle, /**< Circle line ends */
 };
 
 
 /**
  * @brief Represents an image
  */
-struct Bitmap
+struct bitmap
 {
     int16_t width; /**< Bitmap horizontal size */
     int16_t height; /**< Bitmap vertical size */
-    PixelFormat format; /**< Bitmap pixel format */
-    RGB888 foregroundColor; /**< Foreground color when format is PixelFormat::Mask */
+    pixel_format format; /**< Bitmap pixel format */
+    rgb888 foreground_color; /**< Foreground color when format is PixelFormat::Mask */
     uint8_t *data; /**< Bitmap binary data */
-    bool dataAllocated; /**< If true data is released when bitmap is destroyed */
+    bool data_allocated; /**< If true data is released when bitmap is destroyed */
 
-    Bitmap()
+    bitmap()
         : width(0)
         , height(0)
-        , format(PixelFormat::Undefined)
-        , foregroundColor(RGB888(255, 255, 255))
+        , format(pixel_format::undefined)
+        , foreground_color(rgb888(255, 255, 255))
         , data(nullptr)
-        , dataAllocated(false)
+        , data_allocated(false)
     {
     }
-    Bitmap(int width_, int height_, void const *data_, PixelFormat format_, bool copy = false);
-    Bitmap(int width_, int height_, void const *data_, PixelFormat format_, RGB888 foregroundColor_,
-           bool copy = false);
-    ~Bitmap();
+    bitmap(int width_, int height_, void const *data_, pixel_format format_, bool copy = false);
+    bitmap(int width_, int height_, void const *data_, pixel_format format_,
+           rgb888 foreground_color_, bool copy = false);
+    ~bitmap();
 
-    void setPixel(int x, int y, int value); // use with PixelFormat::Mask. value can be 0 or not 0
-    void setPixel(int x, int y, RGBA2222 value); // use with PixelFormat::RGBA2222
-    void setPixel(int x, int y, RGBA8888 value); // use with PixelFormat::RGBA8888
+    void set_pixel(int x, int y, int value); // use with PixelFormat::Mask. value can be 0 or not 0
+    void set_pixel(int x, int y, rgba2222 value); // use with PixelFormat::RGBA2222
+    void set_pixel(int x, int y, rgba8888 value); // use with PixelFormat::RGBA8888
 
-    int getAlpha(int x, int y);
+    int alpha(int x, int y);
 
 private:
 
     void allocate();
-    void copyFrom(void const *srcData);
+    void copy_from(void const *src_data);
 };
 
 
-struct BitmapDrawingInfo
+struct bitmap_drawing_info
 {
-    int16_t X;
-    int16_t Y;
-    Bitmap const *bitmap;
+    int16_t x;
+    int16_t y;
+    esp::gfx::bitmap const *bitmap;
 
-    BitmapDrawingInfo(int X_, int Y_, Bitmap const *bitmap_)
-        : X(X_)
-        , Y(Y_)
+    bitmap_drawing_info(int x_, int y_, esp::gfx::bitmap const *bitmap_)
+        : x(x_)
+        , y(y_)
         , bitmap(bitmap_)
     {
     }
@@ -558,38 +558,38 @@ struct BitmapDrawingInfo
 /** \ingroup Enumerations
  * @brief This enum defines a set of predefined mouse cursors.
  */
-enum CursorName : uint8_t
+enum cursor_name : uint8_t
 {
-    CursorPointerAmigaLike, /**< 11x11 Amiga like colored mouse pointer */
-    CursorPointerSimpleReduced, /**< 10x15 mouse pointer */
-    CursorPointerSimple, /**< 11x19 mouse pointer */
-    CursorPointerShadowed, /**< 11x19 shadowed mouse pointer */
-    CursorPointer, /**< 12x17 mouse pointer */
-    CursorPen, /**< 16x16 pen */
-    CursorCross1, /**< 9x9 cross */
-    CursorCross2, /**< 11x11 cross */
-    CursorPoint, /**< 5x5 point */
-    CursorLeftArrow, /**< 11x11 left arrow */
-    CursorRightArrow, /**< 11x11 right arrow */
-    CursorDownArrow, /**< 11x11 down arrow */
-    CursorUpArrow, /**< 11x11 up arrow */
-    CursorMove, /**< 19x19 move */
-    CursorResize1, /**< 12x12 resize orientation 1 */
-    CursorResize2, /**< 12x12 resize orientation 2 */
-    CursorResize3, /**< 11x17 resize orientation 3 */
-    CursorResize4, /**< 17x11 resize orientation 4 */
-    CursorTextInput, /**< 7x15 text input */
+    cursor_pointer_amiga_like, /**< 11x11 Amiga like colored mouse pointer */
+    cursor_pointer_simple_reduced, /**< 10x15 mouse pointer */
+    cursor_pointer_simple, /**< 11x19 mouse pointer */
+    cursor_pointer_shadowed, /**< 11x19 shadowed mouse pointer */
+    cursor_pointer, /**< 12x17 mouse pointer */
+    cursor_pen, /**< 16x16 pen */
+    cursor_cross_1, /**< 9x9 cross */
+    cursor_cross_2, /**< 11x11 cross */
+    cursor_point, /**< 5x5 point */
+    cursor_left_arrow, /**< 11x11 left arrow */
+    cursor_right_arrow, /**< 11x11 right arrow */
+    cursor_down_arrow, /**< 11x11 down arrow */
+    cursor_up_arrow, /**< 11x11 up arrow */
+    cursor_move, /**< 19x19 move */
+    cursor_resize_1, /**< 12x12 resize orientation 1 */
+    cursor_resize_2, /**< 12x12 resize orientation 2 */
+    cursor_resize_3, /**< 11x17 resize orientation 3 */
+    cursor_resize_4, /**< 17x11 resize orientation 4 */
+    cursor_text_input, /**< 7x15 text input */
 };
 
 
 /**
  * @brief Defines a cursor.
  */
-struct Cursor
+struct cursor
 {
-    int16_t hotspotX; /**< Cursor horizontal hotspot (0 = left bitmap side) */
-    int16_t hotspotY; /**< Cursor vertical hotspot (0 = upper bitmap side) */
-    Bitmap bitmap; /**< Cursor bitmap */
+    int16_t hotspot_x; /**< Cursor horizontal hotspot (0 = left bitmap side) */
+    int16_t hotspot_y; /**< Cursor vertical hotspot (0 = upper bitmap side) */
+    esp::gfx::bitmap bitmap; /**< Cursor bitmap */
 };
 
 
@@ -600,123 +600,123 @@ struct Cursor
  * a position in a scene (fabgl::Scane class). Only one bitmap is displayed at the time.<br>
  * Bitmaps can have different sizes.
  */
-struct Sprite
+struct sprite
 {
     volatile int16_t x;
     volatile int16_t y;
-    Bitmap **frames; // array of pointer to Bitmap
-    int16_t framesCount;
-    int16_t currentFrame;
-    int16_t savedX;
-    int16_t savedY;
-    int16_t savedBackgroundWidth;
-    int16_t savedBackgroundHeight;
-    uint8_t *savedBackground;
+    bitmap **frames; // array of pointer to Bitmap
+    int16_t frames_count;
+    int16_t current_frame;
+    int16_t saved_x;
+    int16_t saved_y;
+    int16_t saved_background_width;
+    int16_t saved_background_height;
+    uint8_t *saved_background;
     struct
     {
         uint8_t visible : 1;
         // A static sprite should be positioned before dynamic sprites.
         // It is never re-rendered unless allowDraw is 1. Static sprites always sets allowDraw=0 after drawings.
-        uint8_t isStatic : 1;
+        uint8_t is_static : 1;
         // This is always '1' for dynamic sprites and always '0' for static sprites.
-        uint8_t allowDraw : 1;
+        uint8_t allow_draw : 1;
     };
 
-    Sprite();
-    ~Sprite();
-    Bitmap *getFrame()
+    sprite();
+    ~sprite();
+    bitmap *frame()
     {
-        return frames ? frames[currentFrame] : nullptr;
+        return frames ? frames[current_frame] : nullptr;
     }
-    int getFrameIndex()
+    int frame_index()
     {
-        return currentFrame;
+        return current_frame;
     }
     // one store: drawing code running concurrently never sees currentFrame == framesCount (fix by Dean Belfield, vdp-gl)
-    void nextFrame()
+    void next_frame()
     {
-        currentFrame = (currentFrame < framesCount - 1) ? currentFrame + 1 : 0;
+        current_frame = (current_frame < frames_count - 1) ? current_frame + 1 : 0;
     }
-    Sprite *setFrame(int frame)
+    sprite *set_frame(int frame)
     {
-        currentFrame = frame;
+        current_frame = frame;
         return this;
     }
-    Sprite *addBitmap(Bitmap *bitmap);
-    Sprite *addBitmap(Bitmap *bitmap[], int count);
-    void clearBitmaps();
-    int getWidth()
+    sprite *add_bitmap(bitmap *bitmap);
+    sprite *add_bitmap(bitmap *bitmap[], int count);
+    void clear_bitmaps();
+    int width()
     {
-        return frames[currentFrame]->width;
+        return frames[current_frame]->width;
     }
-    int getHeight()
+    int height()
     {
-        return frames[currentFrame]->height;
+        return frames[current_frame]->height;
     }
-    Sprite *moveBy(int offsetX, int offsetY);
-    Sprite *moveBy(int offsetX, int offsetY, int wrapAroundWidth, int wrapAroundHeight);
-    Sprite *moveTo(int x, int y);
+    sprite *move_by(int offset_x, int offset_y);
+    sprite *move_by(int offset_x, int offset_y, int wrap_around_width, int wrap_around_height);
+    sprite *move_to(int x, int y);
 };
 
 
-struct Path
+struct path
 {
-    Point const *points;
-    int pointsCount;
-    bool freePoints; // deallocate points after drawing
+    point const *points;
+    int points_count;
+    bool free_points; // deallocate points after drawing
 } __attribute__((packed));
 
 
 /**
  * @brief Specifies general paint options.
  */
-struct PaintOptions
+struct paint_options
 {
-    uint8_t swapFGBG : 1; /**< If enabled swaps foreground and background colors */
-    uint8_t NOT
+    uint8_t swap_fgbg : 1; /**< If enabled swaps foreground and background colors */
+    uint8_t negate
         : 1; /**< If enabled performs NOT logical operator on destination. Implemented only for straight lines and non-filled rectangles. */
 
-    PaintOptions()
-        : swapFGBG(false)
-        , NOT(false)
+    paint_options()
+        : swap_fgbg(false)
+        , negate(false)
     {
     }
 } __attribute__((packed));
 
 
-struct PixelDesc
+struct pixel_desc
 {
-    Point pos;
-    RGB888 color;
+    point pos;
+    rgb888 color;
 } __attribute__((packed));
 
 
-struct Primitive
+struct primitive
 {
-    PrimitiveCmd cmd;
+    primitive_cmd cmd;
     union
     {
         int16_t ivalue;
-        RGB888 color;
-        Point position;
-        Size size;
-        Glyph glyph;
-        Rect rect;
-        GlyphOptions glyphOptions;
-        PaintOptions paintOptions;
-        BitmapDrawingInfo bitmapDrawingInfo;
-        Path path;
-        PixelDesc pixelDesc;
-        LineEnds lineEnds;
-        TaskHandle_t notifyTask;
+        rgb888 color;
+        point position;
+        esp::gfx::size size;
+        esp::gfx::glyph glyph;
+        esp::gfx::rect rect;
+        esp::gfx::glyph_options glyph_options;
+        esp::gfx::paint_options paint_options;
+        esp::gfx::bitmap_drawing_info bitmap_drawing_info;
+        esp::gfx::path path;
+        esp::gfx::pixel_desc pixel_desc;
+        esp::gfx::line_ends line_ends;
+        TaskHandle_t notify_task;
     } __attribute__((packed));
 
-    Primitive() {}
-    Primitive(PrimitiveCmd cmd_)
+    primitive() {}
+    primitive(primitive_cmd cmd_)
         : cmd(cmd_)
     {
     }
-    Primitive(PrimitiveCmd cmd_, Rect const &rect_)
+    primitive(primitive_cmd cmd_, esp::gfx::rect const &rect_)
         : cmd(cmd_)
         , rect(rect_)
     {
@@ -724,42 +724,42 @@ struct Primitive
 } __attribute__((packed));
 
 
-struct PaintState
+struct paint_state
 {
-    RGB888 penColor;
-    RGB888 brushColor;
-    Point position; // value already traslated to "origin"
-    GlyphOptions glyphOptions;
-    PaintOptions paintOptions;
-    Rect scrollingRegion;
-    Point origin;
-    Rect clippingRect; // relative clipping rectangle
-    Rect
-        absClippingRect; // actual absolute clipping rectangle (calculated when setting "origin" or "clippingRect")
-    int16_t penWidth;
-    LineEnds lineEnds;
+    rgb888 pen_color;
+    rgb888 brush_color;
+    point position; // value already traslated to "origin"
+    esp::gfx::glyph_options glyph_options;
+    esp::gfx::paint_options paint_options;
+    rect scrolling_region;
+    point origin;
+    rect clipping_rect; // relative clipping rectangle
+    rect
+        abs_clipping_rect; // actual absolute clipping rectangle (calculated when setting "origin" or "clippingRect")
+    int16_t pen_width;
+    esp::gfx::line_ends line_ends;
 };
 
 
 /** \ingroup Enumerations
  * @brief This enum defines types of display controllers
  */
-enum class DisplayControllerType
+enum class display_controller_type
 {
-    Bitmapped, /**< The display controller can represents text and bitmapped graphics */
+    bitmapped, /**< The display controller can represents text and bitmapped graphics */
 };
 
 
 /**
  * @brief Represents the base abstract class for all display controllers
  */
-class BaseDisplayController
+class base_display_controller
 {
 
 public:
 
-    virtual void setResolution(char const *modeline, int viewPortWidth = -1,
-                               int viewPortHeight = -1, bool doubleBuffered = false) = 0;
+    virtual void set_resolution(char const *modeline, int view_port_width = -1,
+                                int view_port_height = -1, bool double_buffered = false) = 0;
 
     virtual void begin() = 0;
 
@@ -768,23 +768,23 @@ public:
    *
    * @return Display controller type.
    */
-    virtual DisplayControllerType controllerType() = 0;
+    virtual display_controller_type controller_type() = 0;
 
     /**
    * @brief Determines number of colors this display can provide
    *
    * @return Number of colors.
    */
-    virtual int colorsCount() = 0;
+    virtual int colors_count() = 0;
 
     /**
    * @brief Determines the screen width in pixels.
    *
    * @return Screen width in pixels.
    */
-    int getScreenWidth()
+    int screen_width()
     {
-        return m_screenWidth;
+        return _screen_width;
     }
 
     /**
@@ -792,9 +792,9 @@ public:
    *
    * @return Screen height in pixels.
    */
-    int getScreenHeight()
+    int screen_height()
     {
-        return m_screenHeight;
+        return _screen_height;
     }
 
     /**
@@ -802,9 +802,9 @@ public:
    *
    * @return Horizontal size of the viewport.
    */
-    int getViewPortWidth()
+    int view_port_width()
     {
-        return m_viewPortWidth;
+        return _view_port_width;
     }
 
     /**
@@ -812,42 +812,42 @@ public:
    *
    * @return Vertical size of the viewport.
    */
-    int getViewPortHeight()
+    int view_port_height()
     {
-        return m_viewPortHeight;
+        return _view_port_height;
     }
 
 protected:
 
     // inherited classes should call setScreenSize once display size is known
-    void setScreenSize(int width, int height)
+    void set_screen_size(int width, int height)
     {
-        m_screenWidth = width;
-        m_screenHeight = height;
+        _screen_width = width;
+        _screen_height = height;
     }
 
     // we store here these info to avoid to have virtual methods (due the -vtables in flash- problem)
-    int16_t m_screenWidth;
-    int16_t m_screenHeight;
-    volatile int16_t m_viewPortWidth;
-    volatile int16_t m_viewPortHeight;
+    int16_t _screen_width;
+    int16_t _screen_height;
+    volatile int16_t _view_port_width;
+    volatile int16_t _view_port_height;
 };
 
 
 /**
  * @brief Represents the base abstract class for bitmapped display controllers
  */
-class BitmappedDisplayController : public BaseDisplayController
+class bitmapped_display_controller : public base_display_controller
 {
 
 public:
 
-    BitmappedDisplayController();
-    virtual ~BitmappedDisplayController();
+    bitmapped_display_controller();
+    virtual ~bitmapped_display_controller();
 
-    DisplayControllerType controllerType()
+    display_controller_type controller_type()
     {
-        return DisplayControllerType::Bitmapped;
+        return display_controller_type::bitmapped;
     }
 
     /**
@@ -855,16 +855,16 @@ public:
    *
    * @return Display native pixel format
    */
-    virtual NativePixelFormat nativePixelFormat() = 0;
+    virtual esp::gfx::native_pixel_format native_pixel_format() = 0;
 
-    PaintState &paintState()
+    esp::gfx::paint_state &paint_state()
     {
-        return m_paintState;
+        return _paint_state;
     }
 
-    void addPrimitive(Primitive &primitive);
+    void add_primitive(primitive &primitive);
 
-    void primitivesExecutionWait();
+    void primitives_execution_wait();
 
     /**
    * @brief Enables or disables drawings inside vertical retracing time.
@@ -877,7 +877,7 @@ public:
    *
    * @param value When true drawings are done on background, when false drawings are executed instantly.
    */
-    void enableBackgroundPrimitiveExecution(bool value);
+    void enable_background_primitive_execution(bool value);
 
     /**
    * @brief Enables or disables execution time limitation inside vertical retracing interrupt
@@ -886,14 +886,14 @@ public:
    *
    * @param value True enables timeout (default), False disables timeout
    */
-    void enableBackgroundPrimitiveTimeout(bool value)
+    void enable_background_primitive_timeout(bool value)
     {
-        m_backgroundPrimitiveTimeoutEnabled = value;
+        _background_primitive_timeout_enabled = value;
     }
 
-    bool backgroundPrimitiveTimeoutEnabled()
+    bool background_primitive_timeout_enabled()
     {
-        return m_backgroundPrimitiveTimeoutEnabled;
+        return _background_primitive_timeout_enabled;
     }
 
     /**
@@ -904,14 +904,14 @@ public:
    * To avoid it a call to "processPrimitives()" should be performed very often.<br>
    * This method maintains a counter so can be nested.
    */
-    virtual void suspendBackgroundPrimitiveExecution() = 0;
+    virtual void suspend_background_primitive_execution() = 0;
 
     /**
    * @brief Resumes drawings after suspendBackgroundPrimitiveExecution().
    *
    * Resumes drawings enabling vertical sync interrupt.
    */
-    virtual void resumeBackgroundPrimitiveExecution() = 0;
+    virtual void resume_background_primitive_execution() = 0;
 
     /**
    * @brief Draws immediately all primitives in the queue.
@@ -919,7 +919,7 @@ public:
    * Draws all primitives before they are processed in the vertical sync interrupt.<br>
    * May generate flickering because don't care of vertical sync.
    */
-    void processPrimitives();
+    void process_primitives();
 
     /**
    * @brief Sets the list of active sprites.
@@ -945,9 +945,9 @@ public:
    *     VGAController.setSprites(sprites, 10);
    */
     template<typename T>
-    void setSprites(T *sprites, int count)
+    void set_sprites(T *sprites, int count)
     {
-        setSprites(sprites, count, sizeof(T));
+        set_sprites(sprites, count, sizeof(T));
     }
 
     /**
@@ -955,9 +955,9 @@ public:
    *
    * Call this method when you don't need active sprites anymore.
    */
-    void removeSprites()
+    void remove_sprites()
     {
-        setSprites(nullptr, 0, 0);
+        set_sprites(nullptr, 0, 0);
     }
 
     /**
@@ -968,16 +968,16 @@ public:
    * to force a refresh using this method.<br>
    * BitmappedDisplayController.refreshSprites() is required also when using the double buffered mode, to paint sprites.
    */
-    void refreshSprites();
+    void refresh_sprites();
 
     /**
    * @brief Determines whether BitmappedDisplayController is on double buffered mode.
    *
    * @return True if BitmappedDisplayController is on double buffered mode.
    */
-    bool isDoubleBuffered()
+    bool is_double_buffered()
     {
-        return m_doubleBufferedSetup;
+        return _double_buffered_setup;
     }
 
     /**
@@ -987,9 +987,9 @@ public:
    *
    * @return True if BitmappedDisplayController is on double buffered mode and it is actually enabled.
    */
-    bool isDoubleBufferedEnabled()
+    bool is_double_buffered_enabled()
     {
-        return m_doubleBufferedEnabled;
+        return _double_buffered_enabled;
     }
 
     /**
@@ -1000,14 +1000,14 @@ public:
    *
    * @return Returns previous value (true = suspended, false = double buffering)
    */
-    virtual bool suspendDoubleBuffering(bool value);
+    virtual bool suspend_double_buffering(bool value);
 
     /**
    * @brief Sets mouse cursor and make it visible.
    *
    * @param cursor Cursor to use when mouse pointer need to be painted. nullptr = disable mouse pointer.
    */
-    void setMouseCursor(Cursor *cursor);
+    void set_mouse_cursor(cursor *cursor);
 
     /**
    * @brief Sets mouse cursor from a set of predefined cursors.
@@ -1018,7 +1018,7 @@ public:
    *
    *     VGAController.setMouseCursor(CursorName::CursorPointerShadowed);
    */
-    void setMouseCursor(CursorName cursorName);
+    void set_mouse_cursor(cursor_name cursor_name);
 
     /**
    * @brief Sets mouse cursor position.
@@ -1026,9 +1026,9 @@ public:
    * @param X Mouse cursor horizontal position.
    * @param Y Mouse cursor vertical position.
    */
-    void setMouseCursorPos(int X, int Y);
+    void set_mouse_cursor_pos(int x, int y);
 
-    virtual void readScreen(Rect const &rect, RGB888 *destBuf) = 0;
+    virtual void read_screen(rect const &rect, rgb888 *dest_buf) = 0;
 
 
     // statics (used for common default properties)
@@ -1040,142 +1040,142 @@ public:
    *
    * Default value is FABGLIB_DEFAULT_DISPLAYCONTROLLER_QUEUE_SIZE (defined in esp_gfx_config.h)
    */
-    static int queueSize;
+    static int queue_size;
 
 
 protected:
 
     //// abstract methods
 
-    virtual void setPixelAt(PixelDesc const &pixelDesc, Rect &updateRect) = 0;
+    virtual void set_pixel_at(pixel_desc const &pixel_desc, esp::gfx::rect &update_rect) = 0;
 
-    virtual void absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color) = 0;
+    virtual void abs_draw_line(int x1, int y1, int x2, int y2, rgb888 color) = 0;
 
-    virtual void rawFillRow(int y, int x1, int x2, RGB888 color) = 0;
+    virtual void raw_fill_row(int y, int x1, int x2, rgb888 color) = 0;
 
-    virtual void drawEllipse(Size const &size, Rect &updateRect) = 0;
+    virtual void draw_ellipse(size const &size, esp::gfx::rect &update_rect) = 0;
 
-    virtual void clear(Rect &updateRect) = 0;
+    virtual void clear(esp::gfx::rect &update_rect) = 0;
 
-    virtual void VScroll(int scroll, Rect &updateRect) = 0;
+    virtual void v_scroll(int scroll, esp::gfx::rect &update_rect) = 0;
 
-    virtual void HScroll(int scroll, Rect &updateRect) = 0;
+    virtual void h_scroll(int scroll, esp::gfx::rect &update_rect) = 0;
 
-    virtual void drawGlyph(Glyph const &glyph, GlyphOptions glyphOptions, RGB888 penColor,
-                           RGB888 brushColor, Rect &updateRect) = 0;
+    virtual void draw_glyph(glyph const &glyph, glyph_options glyph_options, rgb888 pen_color,
+                            rgb888 brush_color, esp::gfx::rect &update_rect) = 0;
 
-    virtual void invertRect(Rect const &rect, Rect &updateRect) = 0;
+    virtual void invert_rect(rect const &rect, esp::gfx::rect &update_rect) = 0;
 
-    virtual void swapFGBG(Rect const &rect, Rect &updateRect) = 0;
+    virtual void swap_fgbg(rect const &rect, esp::gfx::rect &update_rect) = 0;
 
-    virtual void copyRect(Rect const &source, Rect &updateRect) = 0;
+    virtual void copy_rect(rect const &source, esp::gfx::rect &update_rect) = 0;
 
-    virtual void swapBuffers() = 0;
+    virtual void swap_buffers() = 0;
 
-    virtual int getBitmapSavePixelSize() = 0;
+    virtual int bitmap_save_pixel_size() = 0;
 
-    virtual void rawDrawBitmap_Native(int destX, int destY, Bitmap const *bitmap, int X1, int Y1,
-                                      int XCount, int YCount) = 0;
+    virtual void raw_draw_bitmap_native(int dest_x, int dest_y, bitmap const *bitmap, int x1,
+                                        int y1, int x_count, int y_count) = 0;
 
-    virtual void rawDrawBitmap_Mask(int destX, int destY, Bitmap const *bitmap,
-                                    void *saveBackground, int X1, int Y1, int XCount,
-                                    int YCount) = 0;
+    virtual void raw_draw_bitmap_mask(int dest_x, int dest_y, bitmap const *bitmap,
+                                      void *save_background, int x1, int y1, int x_count,
+                                      int y_count) = 0;
 
-    virtual void rawDrawBitmap_RGBA2222(int destX, int destY, Bitmap const *bitmap,
-                                        void *saveBackground, int X1, int Y1, int XCount,
-                                        int YCount) = 0;
+    virtual void raw_draw_bitmap_rgba2222(int dest_x, int dest_y, bitmap const *bitmap,
+                                          void *save_background, int x1, int y1, int x_count,
+                                          int y_count) = 0;
 
-    virtual void rawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const *bitmap,
-                                        void *saveBackground, int X1, int Y1, int XCount,
-                                        int YCount) = 0;
+    virtual void raw_draw_bitmap_rgba8888(int dest_x, int dest_y, bitmap const *bitmap,
+                                          void *save_background, int x1, int y1, int x_count,
+                                          int y_count) = 0;
 
     //// implemented methods
 
-    void execPrimitive(Primitive const &prim, Rect &updateRect, bool insideISR);
+    void exec_primitive(primitive const &prim, esp::gfx::rect &update_rect, bool inside_isr);
 
-    void updateAbsoluteClippingRect();
+    void update_absolute_clipping_rect();
 
-    RGB888 getActualPenColor();
+    rgb888 actual_pen_color();
 
-    RGB888 getActualBrushColor();
+    rgb888 actual_brush_color();
 
-    void lineTo(Point const &position, Rect &updateRect);
+    void line_to(point const &position, esp::gfx::rect &update_rect);
 
-    void drawRect(Rect const &rect, Rect &updateRect);
+    void draw_rect(rect const &rect, esp::gfx::rect &update_rect);
 
-    void drawPath(Path const &path, Rect &updateRect);
+    void draw_path(path const &path, esp::gfx::rect &update_rect);
 
-    void absDrawThickLine(int X1, int Y1, int X2, int Y2, int penWidth, RGB888 const &color);
+    void abs_draw_thick_line(int x1, int y1, int x2, int y2, int pen_width, rgb888 const &color);
 
-    void fillRect(Rect const &rect, RGB888 const &color, Rect &updateRect);
+    void fill_rect(rect const &rect, rgb888 const &color, esp::gfx::rect &update_rect);
 
-    void fillEllipse(int centerX, int centerY, Size const &size, RGB888 const &color,
-                     Rect &updateRect);
+    void fill_ellipse(int center_x, int center_y, size const &size, rgb888 const &color,
+                      esp::gfx::rect &update_rect);
 
-    void fillPath(Path const &path, RGB888 const &color, Rect &updateRect);
+    void fill_path(path const &path, rgb888 const &color, esp::gfx::rect &update_rect);
 
-    void setSprites(Sprite *sprites, int count, int spriteSize);
+    void set_sprites(sprite *sprites, int count, int sprite_size);
 
-    Sprite *getSprite(int index);
+    sprite *get_sprite(int index);
 
-    int spritesCount()
+    int sprites_count()
     {
-        return m_spritesCount;
+        return _sprites_count;
     }
 
-    void hideSprites(Rect &updateRect);
+    void hide_sprites(esp::gfx::rect &update_rect);
 
-    void showSprites(Rect &updateRect);
+    void show_sprites(esp::gfx::rect &update_rect);
 
-    void drawBitmap(BitmapDrawingInfo const &bitmapDrawingInfo, Rect &updateRect);
+    void draw_bitmap(bitmap_drawing_info const &bitmap_drawing_info, esp::gfx::rect &update_rect);
 
-    void absDrawBitmap(int destX, int destY, Bitmap const *bitmap, void *saveBackground,
-                       bool ignoreClippingRect);
+    void abs_draw_bitmap(int dest_x, int dest_y, bitmap const *bitmap, void *save_background,
+                         bool ignore_clipping_rect);
 
-    void setDoubleBuffered(bool value);
+    void set_double_buffered(bool value);
 
-    bool getPrimitive(Primitive *primitive, int timeOutMS = 0);
+    bool get_primitive(primitive *primitive, int time_out_ms = 0);
 
-    bool getPrimitiveISR(Primitive *primitive);
+    bool get_primitive_isr(primitive *primitive);
 
-    void waitForPrimitives();
+    void wait_for_primitives();
 
-    Sprite *mouseCursor()
+    sprite *mouse_cursor()
     {
-        return &m_mouseCursor;
+        return &_mouse_cursor;
     }
 
-    void resetPaintState();
+    void reset_paint_state();
 
 private:
 
-    void primitiveReplaceDynamicBuffers(Primitive &primitive);
+    void primitive_replace_dynamic_buffers(primitive &primitive);
 
 
-    PaintState m_paintState;
+    esp::gfx::paint_state _paint_state;
 
-    volatile bool m_doubleBufferedSetup; // true = controller initialized for double buffering
-    volatile bool m_doubleBufferedEnabled; // true = double buffering actually enabled
+    volatile bool _double_buffered_setup; // true = controller initialized for double buffering
+    volatile bool _double_buffered_enabled; // true = double buffering actually enabled
 
-    volatile QueueHandle_t m_execQueue; // current primitives queue
-    volatile QueueHandle_t m_execQueueAlt; // alternate (in pause) primitive queue
+    volatile QueueHandle_t _exec_queue; // current primitives queue
+    volatile QueueHandle_t _exec_queue_alt; // alternate (in pause) primitive queue
 
-    bool m_backgroundPrimitiveExecutionEnabled; // when False primitives are execute immediately
+    bool _background_primitive_execution_enabled; // when False primitives are execute immediately
     volatile bool
-        m_backgroundPrimitiveTimeoutEnabled; // when False VSyncInterrupt() has not timeout
+        _background_primitive_timeout_enabled; // when False VSyncInterrupt() has not timeout
 
-    void *m_sprites; // pointer to array of sprite structures
-    int m_spriteSize; // size of sprite structure
-    int m_spritesCount; // number of sprites in m_sprites array
-    bool m_spritesHidden; // true between hideSprites() and showSprites()
+    void *_sprites; // pointer to array of sprite structures
+    int _sprite_size; // size of sprite structure
+    int _sprites_count; // number of sprites in m_sprites array
+    bool _sprites_hidden; // true between hideSprites() and showSprites()
 
     // mouse cursor (mouse pointer) support
-    Sprite m_mouseCursor;
-    int16_t m_mouseHotspotX;
-    int16_t m_mouseHotspotY;
+    sprite _mouse_cursor;
+    int16_t _mouse_hotspot_x;
+    int16_t _mouse_hotspot_y;
 
     // memory pool used to allocate buffers of primitives
-    LightMemoryPool m_primDynMemPool;
+    light_memory_pool _prim_dyn_mem_pool;
 };
 
 
@@ -1184,29 +1184,29 @@ private:
 // GenericBitmappedDisplayController
 
 
-class GenericBitmappedDisplayController : public BitmappedDisplayController
+class generic_bitmapped_display_controller : public bitmapped_display_controller
 {
 
 protected:
 
 
     template<typename TPreparePixel, typename TRawSetPixel>
-    void genericSetPixelAt(PixelDesc const &pixelDesc, Rect &updateRect, TPreparePixel preparePixel,
-                           TRawSetPixel rawSetPixel)
+    void generic_set_pixel_at(pixel_desc const &pixel_desc, esp::gfx::rect &update_rect,
+                              TPreparePixel prepare_pixel, TRawSetPixel raw_set_pixel)
     {
-        const int x = pixelDesc.pos.X + paintState().origin.X;
-        const int y = pixelDesc.pos.Y + paintState().origin.Y;
+        const int x = pixel_desc.pos.x + paint_state().origin.x;
+        const int y = pixel_desc.pos.y + paint_state().origin.y;
 
-        const int clipX1 = paintState().absClippingRect.X1;
-        const int clipY1 = paintState().absClippingRect.Y1;
-        const int clipX2 = paintState().absClippingRect.X2;
-        const int clipY2 = paintState().absClippingRect.Y2;
+        const int clipX1 = paint_state().abs_clipping_rect.x1;
+        const int clipY1 = paint_state().abs_clipping_rect.y1;
+        const int clipX2 = paint_state().abs_clipping_rect.x2;
+        const int clipY2 = paint_state().abs_clipping_rect.y2;
 
         if (x >= clipX1 && x <= clipX2 && y >= clipY1 && y <= clipY2)
         {
-            updateRect = updateRect.merge(Rect(x, y, x, y));
-            hideSprites(updateRect);
-            rawSetPixel(x, y, preparePixel(pixelDesc.color));
+            update_rect = update_rect.merge(rect(x, y, x, y));
+            hide_sprites(update_rect);
+            raw_set_pixel(x, y, prepare_pixel(pixel_desc.color));
         }
     }
 
@@ -1215,53 +1215,57 @@ protected:
     // line clipped on current absolute clipping rectangle
     template<typename TPreparePixel, typename TRawFillRow, typename TRawInvertRow,
              typename TRawSetPixel, typename TRawInvertPixel>
-    void genericAbsDrawLine(int X1, int Y1, int X2, int Y2, RGB888 const &color,
-                            TPreparePixel preparePixel, TRawFillRow rawFillRow,
-                            TRawInvertRow rawInvertRow, TRawSetPixel rawSetPixel,
-                            TRawInvertPixel rawInvertPixel)
+    void generic_abs_draw_line(int x1, int y1, int x2, int y2, rgb888 const &color,
+                               TPreparePixel prepare_pixel, TRawFillRow raw_fill_row,
+                               TRawInvertRow raw_invert_row, TRawSetPixel raw_set_pixel,
+                               TRawInvertPixel raw_invert_pixel)
     {
-        if (paintState().penWidth > 1)
+        if (paint_state().pen_width > 1)
         {
-            absDrawThickLine(X1, Y1, X2, Y2, paintState().penWidth, color);
+            abs_draw_thick_line(x1, y1, x2, y2, paint_state().pen_width, color);
             return;
         }
-        auto pattern = preparePixel(color);
-        if (Y1 == Y2)
+        auto pattern = prepare_pixel(color);
+        if (y1 == y2)
         {
             // horizontal line
-            if (Y1 < paintState().absClippingRect.Y1 || Y1 > paintState().absClippingRect.Y2)
+            if (y1 < paint_state().abs_clipping_rect.y1 || y1 > paint_state().abs_clipping_rect.y2)
                 return;
-            if (X1 > X2)
-                esp::tswap(X1, X2);
-            if (X1 > paintState().absClippingRect.X2 || X2 < paintState().absClippingRect.X1)
+            if (x1 > x2)
+                esp::tswap(x1, x2);
+            if (x1 > paint_state().abs_clipping_rect.x2 || x2 < paint_state().abs_clipping_rect.x1)
                 return;
-            X1 = esp::iclamp(X1, paintState().absClippingRect.X1, paintState().absClippingRect.X2);
-            X2 = esp::iclamp(X2, paintState().absClippingRect.X1, paintState().absClippingRect.X2);
-            if (paintState().paintOptions.NOT)
-                rawInvertRow(Y1, X1, X2);
+            x1 = esp::iclamp(x1, paint_state().abs_clipping_rect.x1,
+                             paint_state().abs_clipping_rect.x2);
+            x2 = esp::iclamp(x2, paint_state().abs_clipping_rect.x1,
+                             paint_state().abs_clipping_rect.x2);
+            if (paint_state().paint_options.negate)
+                raw_invert_row(y1, x1, x2);
             else
-                rawFillRow(Y1, X1, X2, pattern);
+                raw_fill_row(y1, x1, x2, pattern);
         }
-        else if (X1 == X2)
+        else if (x1 == x2)
         {
             // vertical line
-            if (X1 < paintState().absClippingRect.X1 || X1 > paintState().absClippingRect.X2)
+            if (x1 < paint_state().abs_clipping_rect.x1 || x1 > paint_state().abs_clipping_rect.x2)
                 return;
-            if (Y1 > Y2)
-                esp::tswap(Y1, Y2);
-            if (Y1 > paintState().absClippingRect.Y2 || Y2 < paintState().absClippingRect.Y1)
+            if (y1 > y2)
+                esp::tswap(y1, y2);
+            if (y1 > paint_state().abs_clipping_rect.y2 || y2 < paint_state().abs_clipping_rect.y1)
                 return;
-            Y1 = esp::iclamp(Y1, paintState().absClippingRect.Y1, paintState().absClippingRect.Y2);
-            Y2 = esp::iclamp(Y2, paintState().absClippingRect.Y1, paintState().absClippingRect.Y2);
-            if (paintState().paintOptions.NOT)
+            y1 = esp::iclamp(y1, paint_state().abs_clipping_rect.y1,
+                             paint_state().abs_clipping_rect.y2);
+            y2 = esp::iclamp(y2, paint_state().abs_clipping_rect.y1,
+                             paint_state().abs_clipping_rect.y2);
+            if (paint_state().paint_options.negate)
             {
-                for (int y = Y1; y <= Y2; ++y)
-                    rawInvertPixel(X1, y);
+                for (int y = y1; y <= y2; ++y)
+                    raw_invert_pixel(x1, y);
             }
             else
             {
-                for (int y = Y1; y <= Y2; ++y)
-                    rawSetPixel(X1, y, pattern);
+                for (int y = y1; y <= y2; ++y)
+                    raw_set_pixel(x1, y, pattern);
             }
         }
         else
@@ -1277,35 +1281,35 @@ protected:
             //               https://github.com/ktfh/ClippedLine/blob/master/clip.hpp
             // For now Sutherland-Cohen algorithm is only used to check the line is actually visible,
             // then test for every point inside the main Bresenham's loop.
-            if (!clipLine(X1, Y1, X2, Y2, paintState().absClippingRect,
-                          true)) // true = do not change line coordinates!
+            if (!clip_line(x1, y1, x2, y2, paint_state().abs_clipping_rect,
+                           true)) // true = do not change line coordinates!
                 return;
-            const int dx = abs(X2 - X1);
-            const int dy = abs(Y2 - Y1);
-            const int sx = X1 < X2 ? 1 : -1;
-            const int sy = Y1 < Y2 ? 1 : -1;
+            const int dx = abs(x2 - x1);
+            const int dy = abs(y2 - y1);
+            const int sx = x1 < x2 ? 1 : -1;
+            const int sy = y1 < y2 ? 1 : -1;
             int err = (dx > dy ? dx : -dy) / 2;
             while (true)
             {
-                if (paintState().absClippingRect.contains(X1, Y1))
+                if (paint_state().abs_clipping_rect.contains(x1, y1))
                 {
-                    if (paintState().paintOptions.NOT)
-                        rawInvertPixel(X1, Y1);
+                    if (paint_state().paint_options.negate)
+                        raw_invert_pixel(x1, y1);
                     else
-                        rawSetPixel(X1, Y1, pattern);
+                        raw_set_pixel(x1, y1, pattern);
                 }
-                if (X1 == X2 && Y1 == Y2)
+                if (x1 == x2 && y1 == y2)
                     break;
                 int e2 = err;
                 if (e2 > -dx)
                 {
                     err -= dy;
-                    X1 += sx;
+                    x1 += sx;
                 }
                 if (e2 < dy)
                 {
                     err += dx;
-                    Y1 += sy;
+                    y1 += sy;
                 }
             }
         }
@@ -1314,25 +1318,25 @@ protected:
 
     // McIlroy's algorithm
     template<typename TPreparePixel, typename TRawSetPixel>
-    void genericDrawEllipse(Size const &size, Rect &updateRect, TPreparePixel preparePixel,
-                            TRawSetPixel rawSetPixel)
+    void generic_draw_ellipse(size const &size, esp::gfx::rect &update_rect,
+                              TPreparePixel prepare_pixel, TRawSetPixel raw_set_pixel)
     {
-        auto pattern = preparePixel(getActualPenColor());
+        auto pattern = prepare_pixel(actual_pen_color());
 
-        const int clipX1 = paintState().absClippingRect.X1;
-        const int clipY1 = paintState().absClippingRect.Y1;
-        const int clipX2 = paintState().absClippingRect.X2;
-        const int clipY2 = paintState().absClippingRect.Y2;
+        const int clipX1 = paint_state().abs_clipping_rect.x1;
+        const int clipY1 = paint_state().abs_clipping_rect.y1;
+        const int clipX2 = paint_state().abs_clipping_rect.x2;
+        const int clipY2 = paint_state().abs_clipping_rect.y2;
 
-        const int centerX = paintState().position.X;
-        const int centerY = paintState().position.Y;
+        const int center_x = paint_state().position.x;
+        const int center_y = paint_state().position.y;
 
         const int halfWidth = size.width / 2;
         const int halfHeight = size.height / 2;
 
-        updateRect = updateRect.merge(Rect(centerX - halfWidth, centerY - halfHeight,
-                                           centerX + halfWidth, centerY + halfHeight));
-        hideSprites(updateRect);
+        update_rect = update_rect.merge(rect(center_x - halfWidth, center_y - halfHeight,
+                                             center_x + halfWidth, center_y + halfHeight));
+        hide_sprites(update_rect);
 
         const int a2 = halfWidth * halfWidth;
         const int b2 = halfHeight * halfHeight;
@@ -1349,24 +1353,24 @@ protected:
 
         while (y >= 0 && x <= halfWidth)
         {
-            const int col1 = centerX - x;
-            const int col2 = centerX + x;
-            const int row1 = centerY - y;
-            const int row2 = centerY + y;
+            const int col1 = center_x - x;
+            const int col2 = center_x + x;
+            const int row1 = center_y - y;
+            const int row2 = center_y + y;
 
             if (col1 >= clipX1 && col1 <= clipX2)
             {
                 if (row1 >= clipY1 && row1 <= clipY2)
-                    rawSetPixel(col1, row1, pattern);
+                    raw_set_pixel(col1, row1, pattern);
                 if (row2 >= clipY1 && row2 <= clipY2)
-                    rawSetPixel(col1, row2, pattern);
+                    raw_set_pixel(col1, row2, pattern);
             }
             if (col2 >= clipX1 && col2 <= clipX2)
             {
                 if (row1 >= clipY1 && row1 <= clipY2)
-                    rawSetPixel(col2, row1, pattern);
+                    raw_set_pixel(col2, row1, pattern);
                 if (row2 >= clipY1 && row2 <= clipY2)
-                    rawSetPixel(col2, row2, pattern);
+                    raw_set_pixel(col2, row2, pattern);
             }
 
             if (t + b2 * x <= crit1 || t + a2 * y <= crit3)
@@ -1395,199 +1399,202 @@ protected:
 
 
     template<typename TPreparePixel, typename TRawGetRow, typename TRawSetPixelInRow>
-    void genericDrawGlyph(Glyph const &glyph, GlyphOptions glyphOptions, RGB888 penColor,
-                          RGB888 brushColor, Rect &updateRect, TPreparePixel preparePixel,
-                          TRawGetRow rawGetRow, TRawSetPixelInRow rawSetPixelInRow)
+    void generic_draw_glyph(glyph const &glyph, glyph_options glyph_options, rgb888 pen_color,
+                            rgb888 brush_color, esp::gfx::rect &update_rect,
+                            TPreparePixel prepare_pixel, TRawGetRow raw_get_row,
+                            TRawSetPixelInRow raw_set_pixel_in_row)
     {
-        if (!glyphOptions.bold && !glyphOptions.italic && !glyphOptions.blank
-            && !glyphOptions.underline && !glyphOptions.doubleWidth && glyph.width <= 32)
-            genericDrawGlyph_light(glyph, glyphOptions, penColor, brushColor, updateRect,
-                                   preparePixel, rawGetRow, rawSetPixelInRow);
+        if (!glyph_options.bold && !glyph_options.italic && !glyph_options.blank
+            && !glyph_options.underline && !glyph_options.double_width && glyph.width <= 32)
+            generic_draw_glyph_light(glyph, glyph_options, pen_color, brush_color, update_rect,
+                                     prepare_pixel, raw_get_row, raw_set_pixel_in_row);
         else
-            genericDrawGlyph_full(glyph, glyphOptions, penColor, brushColor, updateRect,
-                                  preparePixel, rawGetRow, rawSetPixelInRow);
+            generic_draw_glyph_full(glyph, glyph_options, pen_color, brush_color, update_rect,
+                                    prepare_pixel, raw_get_row, raw_set_pixel_in_row);
     }
 
 
     // TODO: Italic doesn't work well when clipping rect is specified
     template<typename TPreparePixel, typename TRawGetRow, typename TRawSetPixelInRow>
-    void genericDrawGlyph_full(Glyph const &glyph, GlyphOptions glyphOptions, RGB888 penColor,
-                               RGB888 brushColor, Rect &updateRect, TPreparePixel preparePixel,
-                               TRawGetRow rawGetRow, TRawSetPixelInRow rawSetPixelInRow)
+    void generic_draw_glyph_full(glyph const &glyph, glyph_options glyph_options, rgb888 pen_color,
+                                 rgb888 brush_color, esp::gfx::rect &update_rect,
+                                 TPreparePixel prepare_pixel, TRawGetRow raw_get_row,
+                                 TRawSetPixelInRow raw_set_pixel_in_row)
     {
-        const int clipX1 = paintState().absClippingRect.X1;
-        const int clipY1 = paintState().absClippingRect.Y1;
-        const int clipX2 = paintState().absClippingRect.X2;
-        const int clipY2 = paintState().absClippingRect.Y2;
+        const int clipX1 = paint_state().abs_clipping_rect.x1;
+        const int clipY1 = paint_state().abs_clipping_rect.y1;
+        const int clipX2 = paint_state().abs_clipping_rect.x2;
+        const int clipY2 = paint_state().abs_clipping_rect.y2;
 
-        const int origX = paintState().origin.X;
-        const int origY = paintState().origin.Y;
+        const int orig_x = paint_state().origin.x;
+        const int orig_y = paint_state().origin.y;
 
-        const int glyphX = glyph.X + origX;
-        const int glyphY = glyph.Y + origY;
+        const int glyphX = glyph.x + orig_x;
+        const int glyphY = glyph.y + orig_y;
 
         if (glyphX > clipX2 || glyphY > clipY2)
             return;
 
-        int16_t glyphWidth = glyph.width;
-        int16_t glyphHeight = glyph.height;
-        uint8_t const *glyphData = glyph.data;
-        int16_t glyphWidthByte = (glyphWidth + 7) / 8;
-        int16_t glyphSize = glyphHeight * glyphWidthByte;
+        int16_t glyph_width = glyph.width;
+        int16_t glyph_height = glyph.height;
+        uint8_t const *glyph_data = glyph.data;
+        int16_t glyph_width_byte = (glyph_width + 7) / 8;
+        int16_t glyph_size = glyph_height * glyph_width_byte;
 
-        bool fillBackground = glyphOptions.fillBackground;
-        bool bold = glyphOptions.bold;
-        bool italic = glyphOptions.italic;
-        bool blank = glyphOptions.blank;
-        bool underline = glyphOptions.underline;
-        int doubleWidth = glyphOptions.doubleWidth;
+        bool fill_background = glyph_options.fill_background;
+        bool bold = glyph_options.bold;
+        bool italic = glyph_options.italic;
+        bool blank = glyph_options.blank;
+        bool underline = glyph_options.underline;
+        int double_width = glyph_options.double_width;
 
         // modify glyph to handle top half and bottom half double height
         // doubleWidth = 1 is handled directly inside drawing routine
-        if (doubleWidth > 1)
+        if (double_width > 1)
         {
-            uint8_t *newGlyphData = (uint8_t *)alloca(glyphSize);
+            uint8_t *new_glyph_data = (uint8_t *)alloca(glyph_size);
             // doubling top-half or doubling bottom-half?
-            int offset = (doubleWidth == 2 ? 0 : (glyphHeight >> 1));
-            for (int y = 0; y < glyphHeight; ++y)
-                for (int x = 0; x < glyphWidthByte; ++x)
-                    newGlyphData[x + y * glyphWidthByte] =
-                        glyphData[x + (offset + (y >> 1)) * glyphWidthByte];
-            glyphData = newGlyphData;
+            int offset = (double_width == 2 ? 0 : (glyph_height >> 1));
+            for (int y = 0; y < glyph_height; ++y)
+                for (int x = 0; x < glyph_width_byte; ++x)
+                    new_glyph_data[x + y * glyph_width_byte] =
+                        glyph_data[x + (offset + (y >> 1)) * glyph_width_byte];
+            glyph_data = new_glyph_data;
         }
 
         // a very simple and ugly skew (italic) implementation!
-        int skewAdder = 0, skewH1 = 0, skewH2 = 0;
+        int skew_adder = 0, skew_h1 = 0, skew_h2 = 0;
         if (italic)
         {
-            skewAdder = 2;
-            skewH1 = glyphHeight / 3;
-            skewH2 = skewH1 * 2;
+            skew_adder = 2;
+            skew_h1 = glyph_height / 3;
+            skew_h2 = skew_h1 * 2;
         }
 
-        int16_t X1 = 0;
-        int16_t XCount = glyphWidth;
-        int16_t destX = glyphX;
+        int16_t x1 = 0;
+        int16_t x_count = glyph_width;
+        int16_t dest_x = glyphX;
 
-        if (destX < clipX1)
+        if (dest_x < clipX1)
         {
-            X1 = (clipX1 - destX) / (doubleWidth ? 2 : 1);
-            destX = clipX1;
+            x1 = (clipX1 - dest_x) / (double_width ? 2 : 1);
+            dest_x = clipX1;
         }
-        if (X1 >= glyphWidth)
+        if (x1 >= glyph_width)
             return;
 
-        if (destX + XCount + skewAdder > clipX2 + 1)
-            XCount = clipX2 + 1 - destX - skewAdder;
-        if (X1 + XCount > glyphWidth)
-            XCount = glyphWidth - X1;
+        if (dest_x + x_count + skew_adder > clipX2 + 1)
+            x_count = clipX2 + 1 - dest_x - skew_adder;
+        if (x1 + x_count > glyph_width)
+            x_count = glyph_width - x1;
 
-        int16_t Y1 = 0;
-        int16_t YCount = glyphHeight;
-        int destY = glyphY;
+        int16_t y1 = 0;
+        int16_t y_count = glyph_height;
+        int dest_y = glyphY;
 
-        if (destY < clipY1)
+        if (dest_y < clipY1)
         {
-            Y1 = clipY1 - destY;
-            destY = clipY1;
+            y1 = clipY1 - dest_y;
+            dest_y = clipY1;
         }
-        if (Y1 >= glyphHeight)
+        if (y1 >= glyph_height)
             return;
 
-        if (destY + YCount > clipY2 + 1)
-            YCount = clipY2 + 1 - destY;
-        if (Y1 + YCount > glyphHeight)
-            YCount = glyphHeight - Y1;
+        if (dest_y + y_count > clipY2 + 1)
+            y_count = clipY2 + 1 - dest_y;
+        if (y1 + y_count > glyph_height)
+            y_count = glyph_height - y1;
 
-        updateRect = updateRect.merge(
-            Rect(destX, destY, destX + XCount + skewAdder - 1, destY + YCount - 1));
-        hideSprites(updateRect);
+        update_rect = update_rect.merge(
+            rect(dest_x, dest_y, dest_x + x_count + skew_adder - 1, dest_y + y_count - 1));
+        hide_sprites(update_rect);
 
-        if (glyphOptions.invert ^ paintState().paintOptions.swapFGBG)
-            esp::tswap(penColor, brushColor);
+        if (glyph_options.invert ^ paint_state().paint_options.swap_fgbg)
+            esp::tswap(pen_color, brush_color);
 
         // a very simple and ugly reduce luminosity (faint) implementation!
-        if (glyphOptions.reduceLuminosity)
+        if (glyph_options.reduce_luminosity)
         {
-            if (penColor.R > 128)
-                penColor.R = 128;
-            if (penColor.G > 128)
-                penColor.G = 128;
-            if (penColor.B > 128)
-                penColor.B = 128;
+            if (pen_color.r > 128)
+                pen_color.r = 128;
+            if (pen_color.g > 128)
+                pen_color.g = 128;
+            if (pen_color.b > 128)
+                pen_color.b = 128;
         }
 
-        auto penPattern = preparePixel(penColor);
-        auto brushPattern = preparePixel(brushColor);
-        auto boldPattern = bold
-            ? preparePixel(RGB888(penColor.R / 2 + 1, penColor.G / 2 + 1, penColor.B / 2 + 1))
-            : preparePixel(RGB888(0, 0, 0));
+        auto pen_pattern = prepare_pixel(pen_color);
+        auto brush_pattern = prepare_pixel(brush_color);
+        auto bold_pattern = bold
+            ? prepare_pixel(rgb888(pen_color.r / 2 + 1, pen_color.g / 2 + 1, pen_color.b / 2 + 1))
+            : prepare_pixel(rgb888(0, 0, 0));
 
-        for (int y = Y1; y < Y1 + YCount; ++y, ++destY)
+        for (int y = y1; y < y1 + y_count; ++y, ++dest_y)
         {
 
             // true if previous pixel has been set
-            bool prevSet = false;
+            bool prev_set = false;
 
-            auto dstrow = rawGetRow(destY);
-            auto srcrow = glyphData + y * glyphWidthByte;
+            auto dstrow = raw_get_row(dest_y);
+            auto srcrow = glyph_data + y * glyph_width_byte;
 
-            if (underline && y == glyphHeight - FABGLIB_UNDERLINE_POSITION - 1)
+            if (underline && y == glyph_height - FABGLIB_UNDERLINE_POSITION - 1)
             {
 
-                for (int x = X1, adestX = destX + skewAdder; x < X1 + XCount && adestX <= clipX2;
-                     ++x, ++adestX)
+                for (int x = x1, adest_x = dest_x + skew_adder;
+                     x < x1 + x_count && adest_x <= clipX2; ++x, ++adest_x)
                 {
-                    rawSetPixelInRow(dstrow, adestX, blank ? brushPattern : penPattern);
-                    if (doubleWidth)
+                    raw_set_pixel_in_row(dstrow, adest_x, blank ? brush_pattern : pen_pattern);
+                    if (double_width)
                     {
-                        ++adestX;
-                        if (adestX > clipX2)
+                        ++adest_x;
+                        if (adest_x > clipX2)
                             break;
-                        rawSetPixelInRow(dstrow, adestX, blank ? brushPattern : penPattern);
+                        raw_set_pixel_in_row(dstrow, adest_x, blank ? brush_pattern : pen_pattern);
                     }
                 }
             }
             else
             {
 
-                for (int x = X1, adestX = destX + skewAdder; x < X1 + XCount && adestX <= clipX2;
-                     ++x, ++adestX)
+                for (int x = x1, adest_x = dest_x + skew_adder;
+                     x < x1 + x_count && adest_x <= clipX2; ++x, ++adest_x)
                 {
                     if ((srcrow[x >> 3] << (x & 7)) & 0x80 && !blank)
                     {
-                        rawSetPixelInRow(dstrow, adestX, penPattern);
-                        prevSet = true;
+                        raw_set_pixel_in_row(dstrow, adest_x, pen_pattern);
+                        prev_set = true;
                     }
-                    else if (bold && prevSet)
+                    else if (bold && prev_set)
                     {
-                        rawSetPixelInRow(dstrow, adestX, boldPattern);
-                        prevSet = false;
+                        raw_set_pixel_in_row(dstrow, adest_x, bold_pattern);
+                        prev_set = false;
                     }
-                    else if (fillBackground)
+                    else if (fill_background)
                     {
-                        rawSetPixelInRow(dstrow, adestX, brushPattern);
-                        prevSet = false;
+                        raw_set_pixel_in_row(dstrow, adest_x, brush_pattern);
+                        prev_set = false;
                     }
                     else
                     {
-                        prevSet = false;
+                        prev_set = false;
                     }
-                    if (doubleWidth)
+                    if (double_width)
                     {
-                        ++adestX;
-                        if (adestX > clipX2)
+                        ++adest_x;
+                        if (adest_x > clipX2)
                             break;
-                        if (fillBackground)
-                            rawSetPixelInRow(dstrow, adestX, prevSet ? penPattern : brushPattern);
-                        else if (prevSet)
-                            rawSetPixelInRow(dstrow, adestX, penPattern);
+                        if (fill_background)
+                            raw_set_pixel_in_row(dstrow, adest_x,
+                                                 prev_set ? pen_pattern : brush_pattern);
+                        else if (prev_set)
+                            raw_set_pixel_in_row(dstrow, adest_x, pen_pattern);
                     }
                 }
             }
 
-            if (italic && (y == skewH1 || y == skewH2))
-                --skewAdder;
+            if (italic && (y == skew_h1 || y == skew_h2))
+                --skew_adder;
         }
     }
 
@@ -1600,214 +1607,222 @@ protected:
     //   glyphOptions.... others = 0
     //   paintState().paintOptions.swapFGBG: 0 or 1
     template<typename TPreparePixel, typename TRawGetRow, typename TRawSetPixelInRow>
-    void genericDrawGlyph_light(Glyph const &glyph, GlyphOptions glyphOptions, RGB888 penColor,
-                                RGB888 brushColor, Rect &updateRect, TPreparePixel preparePixel,
-                                TRawGetRow rawGetRow, TRawSetPixelInRow rawSetPixelInRow)
+    void generic_draw_glyph_light(glyph const &glyph, glyph_options glyph_options, rgb888 pen_color,
+                                  rgb888 brush_color, esp::gfx::rect &update_rect,
+                                  TPreparePixel prepare_pixel, TRawGetRow raw_get_row,
+                                  TRawSetPixelInRow raw_set_pixel_in_row)
     {
-        const int clipX1 = paintState().absClippingRect.X1;
-        const int clipY1 = paintState().absClippingRect.Y1;
-        const int clipX2 = paintState().absClippingRect.X2;
-        const int clipY2 = paintState().absClippingRect.Y2;
+        const int clipX1 = paint_state().abs_clipping_rect.x1;
+        const int clipY1 = paint_state().abs_clipping_rect.y1;
+        const int clipX2 = paint_state().abs_clipping_rect.x2;
+        const int clipY2 = paint_state().abs_clipping_rect.y2;
 
-        const int origX = paintState().origin.X;
-        const int origY = paintState().origin.Y;
+        const int orig_x = paint_state().origin.x;
+        const int orig_y = paint_state().origin.y;
 
-        const int glyphX = glyph.X + origX;
-        const int glyphY = glyph.Y + origY;
+        const int glyphX = glyph.x + orig_x;
+        const int glyphY = glyph.y + orig_y;
 
         if (glyphX > clipX2 || glyphY > clipY2)
             return;
 
-        int16_t glyphWidth = glyph.width;
-        int16_t glyphHeight = glyph.height;
-        uint8_t const *glyphData = glyph.data;
-        int16_t glyphWidthByte = (glyphWidth + 7) / 8;
+        int16_t glyph_width = glyph.width;
+        int16_t glyph_height = glyph.height;
+        uint8_t const *glyph_data = glyph.data;
+        int16_t glyph_width_byte = (glyph_width + 7) / 8;
 
-        int16_t X1 = 0;
-        int16_t XCount = glyphWidth;
-        int16_t destX = glyphX;
+        int16_t x1 = 0;
+        int16_t x_count = glyph_width;
+        int16_t dest_x = glyphX;
 
-        int16_t Y1 = 0;
-        int16_t YCount = glyphHeight;
-        int destY = glyphY;
+        int16_t y1 = 0;
+        int16_t y_count = glyph_height;
+        int dest_y = glyphY;
 
-        if (destX < clipX1)
+        if (dest_x < clipX1)
         {
-            X1 = clipX1 - destX;
-            destX = clipX1;
+            x1 = clipX1 - dest_x;
+            dest_x = clipX1;
         }
-        if (X1 >= glyphWidth)
+        if (x1 >= glyph_width)
             return;
 
-        if (destX + XCount > clipX2 + 1)
-            XCount = clipX2 + 1 - destX;
-        if (X1 + XCount > glyphWidth)
-            XCount = glyphWidth - X1;
+        if (dest_x + x_count > clipX2 + 1)
+            x_count = clipX2 + 1 - dest_x;
+        if (x1 + x_count > glyph_width)
+            x_count = glyph_width - x1;
 
-        if (destY < clipY1)
+        if (dest_y < clipY1)
         {
-            Y1 = clipY1 - destY;
-            destY = clipY1;
+            y1 = clipY1 - dest_y;
+            dest_y = clipY1;
         }
-        if (Y1 >= glyphHeight)
+        if (y1 >= glyph_height)
             return;
 
-        if (destY + YCount > clipY2 + 1)
-            YCount = clipY2 + 1 - destY;
-        if (Y1 + YCount > glyphHeight)
-            YCount = glyphHeight - Y1;
+        if (dest_y + y_count > clipY2 + 1)
+            y_count = clipY2 + 1 - dest_y;
+        if (y1 + y_count > glyph_height)
+            y_count = glyph_height - y1;
 
-        updateRect = updateRect.merge(Rect(destX, destY, destX + XCount - 1, destY + YCount - 1));
-        hideSprites(updateRect);
+        update_rect =
+            update_rect.merge(rect(dest_x, dest_y, dest_x + x_count - 1, dest_y + y_count - 1));
+        hide_sprites(update_rect);
 
-        if (glyphOptions.invert ^ paintState().paintOptions.swapFGBG)
-            esp::tswap(penColor, brushColor);
+        if (glyph_options.invert ^ paint_state().paint_options.swap_fgbg)
+            esp::tswap(pen_color, brush_color);
 
         // a very simple and ugly reduce luminosity (faint) implementation!
-        if (glyphOptions.reduceLuminosity)
+        if (glyph_options.reduce_luminosity)
         {
-            if (penColor.R > 128)
-                penColor.R = 128;
-            if (penColor.G > 128)
-                penColor.G = 128;
-            if (penColor.B > 128)
-                penColor.B = 128;
+            if (pen_color.r > 128)
+                pen_color.r = 128;
+            if (pen_color.g > 128)
+                pen_color.g = 128;
+            if (pen_color.b > 128)
+                pen_color.b = 128;
         }
 
-        bool fillBackground = glyphOptions.fillBackground;
+        bool fill_background = glyph_options.fill_background;
 
-        auto penPattern = preparePixel(penColor);
-        auto brushPattern = preparePixel(brushColor);
+        auto pen_pattern = prepare_pixel(pen_color);
+        auto brush_pattern = prepare_pixel(brush_color);
 
-        for (int y = Y1; y < Y1 + YCount; ++y, ++destY)
+        for (int y = y1; y < y1 + y_count; ++y, ++dest_y)
         {
-            auto dstrow = rawGetRow(destY);
-            uint8_t const *srcrow = glyphData + y * glyphWidthByte;
+            auto dstrow = raw_get_row(dest_y);
+            uint8_t const *srcrow = glyph_data + y * glyph_width_byte;
 
             uint32_t src = (srcrow[0] << 24) | (srcrow[1] << 16) | (srcrow[2] << 8) | (srcrow[3]);
-            src <<= X1;
-            if (fillBackground)
+            src <<= x1;
+            if (fill_background)
             {
                 // filled background
-                for (int x = X1, adestX = destX; x < X1 + XCount; ++x, ++adestX, src <<= 1)
-                    rawSetPixelInRow(dstrow, adestX, src & 0x80000000 ? penPattern : brushPattern);
+                for (int x = x1, adest_x = dest_x; x < x1 + x_count; ++x, ++adest_x, src <<= 1)
+                    raw_set_pixel_in_row(dstrow, adest_x,
+                                         src & 0x80000000 ? pen_pattern : brush_pattern);
             }
             else
             {
                 // transparent background
-                for (int x = X1, adestX = destX; x < X1 + XCount; ++x, ++adestX, src <<= 1)
+                for (int x = x1, adest_x = dest_x; x < x1 + x_count; ++x, ++adest_x, src <<= 1)
                     if (src & 0x80000000)
-                        rawSetPixelInRow(dstrow, adestX, penPattern);
+                        raw_set_pixel_in_row(dstrow, adest_x, pen_pattern);
             }
         }
     }
 
 
     template<typename TRawInvertRow>
-    void genericInvertRect(Rect const &rect, Rect &updateRect, TRawInvertRow rawInvertRow)
+    void generic_invert_rect(rect const &rect, esp::gfx::rect &update_rect,
+                             TRawInvertRow raw_invert_row)
     {
-        const int origX = paintState().origin.X;
-        const int origY = paintState().origin.Y;
+        const int orig_x = paint_state().origin.x;
+        const int orig_y = paint_state().origin.y;
 
-        const int clipX1 = paintState().absClippingRect.X1;
-        const int clipY1 = paintState().absClippingRect.Y1;
-        const int clipX2 = paintState().absClippingRect.X2;
-        const int clipY2 = paintState().absClippingRect.Y2;
+        const int clipX1 = paint_state().abs_clipping_rect.x1;
+        const int clipY1 = paint_state().abs_clipping_rect.y1;
+        const int clipX2 = paint_state().abs_clipping_rect.x2;
+        const int clipY2 = paint_state().abs_clipping_rect.y2;
 
-        const int x1 = esp::iclamp(rect.X1 + origX, clipX1, clipX2);
-        const int y1 = esp::iclamp(rect.Y1 + origY, clipY1, clipY2);
-        const int x2 = esp::iclamp(rect.X2 + origX, clipX1, clipX2);
-        const int y2 = esp::iclamp(rect.Y2 + origY, clipY1, clipY2);
+        const int x1 = esp::iclamp(rect.x1 + orig_x, clipX1, clipX2);
+        const int y1 = esp::iclamp(rect.y1 + orig_y, clipY1, clipY2);
+        const int x2 = esp::iclamp(rect.x2 + orig_x, clipX1, clipX2);
+        const int y2 = esp::iclamp(rect.y2 + orig_y, clipY1, clipY2);
 
-        updateRect = updateRect.merge(Rect(x1, y1, x2, y2));
-        hideSprites(updateRect);
+        update_rect = update_rect.merge(esp::gfx::rect(x1, y1, x2, y2));
+        hide_sprites(update_rect);
 
         for (int y = y1; y <= y2; ++y)
-            rawInvertRow(y, x1, x2);
+            raw_invert_row(y, x1, x2);
     }
 
 
     template<typename TPreparePixel, typename TRawGetRow, typename TRawGetPixelInRow,
              typename TRawSetPixelInRow>
-    void genericSwapFGBG(Rect const &rect, Rect &updateRect, TPreparePixel preparePixel,
-                         TRawGetRow rawGetRow, TRawGetPixelInRow rawGetPixelInRow,
-                         TRawSetPixelInRow rawSetPixelInRow)
+    void generic_swap_fgbg(rect const &rect, esp::gfx::rect &update_rect,
+                           TPreparePixel prepare_pixel, TRawGetRow raw_get_row,
+                           TRawGetPixelInRow raw_get_pixel_in_row,
+                           TRawSetPixelInRow raw_set_pixel_in_row)
     {
-        auto penPattern = preparePixel(paintState().penColor);
-        auto brushPattern = preparePixel(paintState().brushColor);
+        auto pen_pattern = prepare_pixel(paint_state().pen_color);
+        auto brush_pattern = prepare_pixel(paint_state().brush_color);
 
-        int origX = paintState().origin.X;
-        int origY = paintState().origin.Y;
+        int orig_x = paint_state().origin.x;
+        int orig_y = paint_state().origin.y;
 
-        const int clipX1 = paintState().absClippingRect.X1;
-        const int clipY1 = paintState().absClippingRect.Y1;
-        const int clipX2 = paintState().absClippingRect.X2;
-        const int clipY2 = paintState().absClippingRect.Y2;
+        const int clipX1 = paint_state().abs_clipping_rect.x1;
+        const int clipY1 = paint_state().abs_clipping_rect.y1;
+        const int clipX2 = paint_state().abs_clipping_rect.x2;
+        const int clipY2 = paint_state().abs_clipping_rect.y2;
 
-        const int x1 = esp::iclamp(rect.X1 + origX, clipX1, clipX2);
-        const int y1 = esp::iclamp(rect.Y1 + origY, clipY1, clipY2);
-        const int x2 = esp::iclamp(rect.X2 + origX, clipX1, clipX2);
-        const int y2 = esp::iclamp(rect.Y2 + origY, clipY1, clipY2);
+        const int x1 = esp::iclamp(rect.x1 + orig_x, clipX1, clipX2);
+        const int y1 = esp::iclamp(rect.y1 + orig_y, clipY1, clipY2);
+        const int x2 = esp::iclamp(rect.x2 + orig_x, clipX1, clipX2);
+        const int y2 = esp::iclamp(rect.y2 + orig_y, clipY1, clipY2);
 
-        updateRect = updateRect.merge(Rect(x1, y1, x2, y2));
-        hideSprites(updateRect);
+        update_rect = update_rect.merge(esp::gfx::rect(x1, y1, x2, y2));
+        hide_sprites(update_rect);
 
         for (int y = y1; y <= y2; ++y)
         {
-            auto row = rawGetRow(y);
+            auto row = raw_get_row(y);
             for (int x = x1; x <= x2; ++x)
             {
-                auto px = rawGetPixelInRow(row, x);
-                if (px == penPattern)
-                    rawSetPixelInRow(row, x, brushPattern);
-                else if (px == brushPattern)
-                    rawSetPixelInRow(row, x, penPattern);
+                auto px = raw_get_pixel_in_row(row, x);
+                if (px == pen_pattern)
+                    raw_set_pixel_in_row(row, x, brush_pattern);
+                else if (px == brush_pattern)
+                    raw_set_pixel_in_row(row, x, pen_pattern);
             }
         }
     }
 
 
     template<typename TRawGetRow, typename TRawGetPixelInRow, typename TRawSetPixelInRow>
-    void genericCopyRect(Rect const &source, Rect &updateRect, TRawGetRow rawGetRow,
-                         TRawGetPixelInRow rawGetPixelInRow, TRawSetPixelInRow rawSetPixelInRow)
+    void generic_copy_rect(rect const &source, esp::gfx::rect &update_rect, TRawGetRow raw_get_row,
+                           TRawGetPixelInRow raw_get_pixel_in_row,
+                           TRawSetPixelInRow raw_set_pixel_in_row)
     {
-        const int clipX1 = paintState().absClippingRect.X1;
-        const int clipY1 = paintState().absClippingRect.Y1;
-        const int clipX2 = paintState().absClippingRect.X2;
-        const int clipY2 = paintState().absClippingRect.Y2;
+        const int clipX1 = paint_state().abs_clipping_rect.x1;
+        const int clipY1 = paint_state().abs_clipping_rect.y1;
+        const int clipX2 = paint_state().abs_clipping_rect.x2;
+        const int clipY2 = paint_state().abs_clipping_rect.y2;
 
-        int origX = paintState().origin.X;
-        int origY = paintState().origin.Y;
+        int orig_x = paint_state().origin.x;
+        int orig_y = paint_state().origin.y;
 
-        int srcX = source.X1 + origX;
-        int srcY = source.Y1 + origY;
-        int width = source.X2 - source.X1 + 1;
-        int height = source.Y2 - source.Y1 + 1;
-        int destX = paintState().position.X;
-        int destY = paintState().position.Y;
-        int deltaX = destX - srcX;
-        int deltaY = destY - srcY;
+        int src_x = source.x1 + orig_x;
+        int src_y = source.y1 + orig_y;
+        int width = source.x2 - source.x1 + 1;
+        int height = source.y2 - source.y1 + 1;
+        int dest_x = paint_state().position.x;
+        int dest_y = paint_state().position.y;
+        int delta_x = dest_x - src_x;
+        int delta_y = dest_y - src_y;
 
-        int incX = deltaX < 0 ? 1 : -1;
-        int incY = deltaY < 0 ? 1 : -1;
+        int inc_x = delta_x < 0 ? 1 : -1;
+        int inc_y = delta_y < 0 ? 1 : -1;
 
-        int startX = deltaX < 0 ? destX : destX + width - 1;
-        int startY = deltaY < 0 ? destY : destY + height - 1;
+        int start_x = delta_x < 0 ? dest_x : dest_x + width - 1;
+        int start_y = delta_y < 0 ? dest_y : dest_y + height - 1;
 
-        updateRect = updateRect.merge(Rect(srcX, srcY, srcX + width - 1, srcY + height - 1));
-        updateRect = updateRect.merge(Rect(destX, destY, destX + width - 1, destY + height - 1));
-        hideSprites(updateRect);
+        update_rect = update_rect.merge(rect(src_x, src_y, src_x + width - 1, src_y + height - 1));
+        update_rect =
+            update_rect.merge(rect(dest_x, dest_y, dest_x + width - 1, dest_y + height - 1));
+        hide_sprites(update_rect);
 
-        for (int y = startY, i = 0; i < height; y += incY, ++i)
+        for (int y = start_y, i = 0; i < height; y += inc_y, ++i)
         {
             if (y >= clipY1 && y <= clipY2)
             {
-                auto srcRow = rawGetRow(y - deltaY);
-                auto dstRow = rawGetRow(y);
-                for (int x = startX, j = 0; j < width; x += incX, ++j)
+                auto src_row = raw_get_row(y - delta_y);
+                auto dst_row = raw_get_row(y);
+                for (int x = start_x, j = 0; j < width; x += inc_x, ++j)
                 {
                     if (x >= clipX1 && x <= clipX2)
-                        rawSetPixelInRow(dstRow, x, rawGetPixelInRow(srcRow, x - deltaX));
+                        raw_set_pixel_in_row(dst_row, x,
+                                             raw_get_pixel_in_row(src_row, x - delta_x));
                 }
             }
         }
@@ -1815,50 +1830,50 @@ protected:
 
 
     template<typename TRawGetRow, typename TRawSetPixelInRow, typename TDataType>
-    void genericRawDrawBitmap_Native(int destX, int destY, TDataType *data, int width, int X1,
-                                     int Y1, int XCount, int YCount, TRawGetRow rawGetRow,
-                                     TRawSetPixelInRow rawSetPixelInRow)
+    void generic_raw_draw_bitmap_native(int dest_x, int dest_y, TDataType *data, int width, int x1,
+                                        int y1, int x_count, int y_count, TRawGetRow raw_get_row,
+                                        TRawSetPixelInRow raw_set_pixel_in_row)
     {
-        const int yEnd = Y1 + YCount;
-        const int xEnd = X1 + XCount;
-        for (int y = Y1; y < yEnd; ++y, ++destY)
+        const int yEnd = y1 + y_count;
+        const int xEnd = x1 + x_count;
+        for (int y = y1; y < yEnd; ++y, ++dest_y)
         {
-            auto dstrow = rawGetRow(destY);
-            auto src = data + y * width + X1;
-            for (int x = X1, adestX = destX; x < xEnd; ++x, ++adestX, ++src)
-                rawSetPixelInRow(dstrow, adestX, *src);
+            auto dstrow = raw_get_row(dest_y);
+            auto src = data + y * width + x1;
+            for (int x = x1, adest_x = dest_x; x < xEnd; ++x, ++adest_x, ++src)
+                raw_set_pixel_in_row(dstrow, adest_x, *src);
         }
     }
 
 
     template<typename TRawGetRow, typename TRawGetPixelInRow, typename TRawSetPixelInRow,
              typename TBackground>
-    void genericRawDrawBitmap_Mask(int destX, int destY, Bitmap const *bitmap,
-                                   TBackground *saveBackground, int X1, int Y1, int XCount,
-                                   int YCount, TRawGetRow rawGetRow,
-                                   TRawGetPixelInRow rawGetPixelInRow,
-                                   TRawSetPixelInRow rawSetPixelInRow)
+    void generic_raw_draw_bitmap_mask(int dest_x, int dest_y, bitmap const *bitmap,
+                                      TBackground *save_background, int x1, int y1, int x_count,
+                                      int y_count, TRawGetRow raw_get_row,
+                                      TRawGetPixelInRow raw_get_pixel_in_row,
+                                      TRawSetPixelInRow raw_set_pixel_in_row)
     {
         const int width = bitmap->width;
-        const int yEnd = Y1 + YCount;
-        const int xEnd = X1 + XCount;
+        const int yEnd = y1 + y_count;
+        const int xEnd = x1 + x_count;
         auto data = bitmap->data;
         const int rowlen = (bitmap->width + 7) / 8;
 
-        if (saveBackground)
+        if (save_background)
         {
 
             // save background and draw the bitmap
-            for (int y = Y1; y < yEnd; ++y, ++destY)
+            for (int y = y1; y < yEnd; ++y, ++dest_y)
             {
-                auto dstrow = rawGetRow(destY);
-                auto savePx = saveBackground + y * width + X1;
+                auto dstrow = raw_get_row(dest_y);
+                auto save_px = save_background + y * width + x1;
                 auto src = data + y * rowlen;
-                for (int x = X1, adestX = destX; x < xEnd; ++x, ++adestX, ++savePx)
+                for (int x = x1, adest_x = dest_x; x < xEnd; ++x, ++adest_x, ++save_px)
                 {
-                    *savePx = rawGetPixelInRow(dstrow, adestX);
+                    *save_px = raw_get_pixel_in_row(dstrow, adest_x);
                     if ((src[x >> 3] << (x & 7)) & 0x80)
-                        rawSetPixelInRow(dstrow, adestX);
+                        raw_set_pixel_in_row(dstrow, adest_x);
                 }
             }
         }
@@ -1866,14 +1881,14 @@ protected:
         {
 
             // just draw the bitmap
-            for (int y = Y1; y < yEnd; ++y, ++destY)
+            for (int y = y1; y < yEnd; ++y, ++dest_y)
             {
-                auto dstrow = rawGetRow(destY);
+                auto dstrow = raw_get_row(dest_y);
                 auto src = data + y * rowlen;
-                for (int x = X1, adestX = destX; x < xEnd; ++x, ++adestX)
+                for (int x = x1, adest_x = dest_x; x < xEnd; ++x, ++adest_x)
                 {
                     if ((src[x >> 3] << (x & 7)) & 0x80)
-                        rawSetPixelInRow(dstrow, adestX);
+                        raw_set_pixel_in_row(dstrow, adest_x);
                 }
             }
         }
@@ -1882,31 +1897,31 @@ protected:
 
     template<typename TRawGetRow, typename TRawGetPixelInRow, typename TRawSetPixelInRow,
              typename TBackground>
-    void genericRawDrawBitmap_RGBA2222(int destX, int destY, Bitmap const *bitmap,
-                                       TBackground *saveBackground, int X1, int Y1, int XCount,
-                                       int YCount, TRawGetRow rawGetRow,
-                                       TRawGetPixelInRow rawGetPixelInRow,
-                                       TRawSetPixelInRow rawSetPixelInRow)
+    void generic_raw_draw_bitmap_rgba2222(int dest_x, int dest_y, bitmap const *bitmap,
+                                          TBackground *save_background, int x1, int y1, int x_count,
+                                          int y_count, TRawGetRow raw_get_row,
+                                          TRawGetPixelInRow raw_get_pixel_in_row,
+                                          TRawSetPixelInRow raw_set_pixel_in_row)
     {
         const int width = bitmap->width;
-        const int yEnd = Y1 + YCount;
-        const int xEnd = X1 + XCount;
+        const int yEnd = y1 + y_count;
+        const int xEnd = x1 + x_count;
         auto data = bitmap->data;
 
-        if (saveBackground)
+        if (save_background)
         {
 
             // save background and draw the bitmap
-            for (int y = Y1; y < yEnd; ++y, ++destY)
+            for (int y = y1; y < yEnd; ++y, ++dest_y)
             {
-                auto dstrow = rawGetRow(destY);
-                auto savePx = saveBackground + y * width + X1;
-                auto src = data + y * width + X1;
-                for (int x = X1, adestX = destX; x < xEnd; ++x, ++adestX, ++savePx, ++src)
+                auto dstrow = raw_get_row(dest_y);
+                auto save_px = save_background + y * width + x1;
+                auto src = data + y * width + x1;
+                for (int x = x1, adest_x = dest_x; x < xEnd; ++x, ++adest_x, ++save_px, ++src)
                 {
-                    *savePx = rawGetPixelInRow(dstrow, adestX);
+                    *save_px = raw_get_pixel_in_row(dstrow, adest_x);
                     if (*src & 0xc0) // alpha > 0 ?
-                        rawSetPixelInRow(dstrow, adestX, *src);
+                        raw_set_pixel_in_row(dstrow, adest_x, *src);
                 }
             }
         }
@@ -1914,14 +1929,14 @@ protected:
         {
 
             // just draw the bitmap
-            for (int y = Y1; y < yEnd; ++y, ++destY)
+            for (int y = y1; y < yEnd; ++y, ++dest_y)
             {
-                auto dstrow = rawGetRow(destY);
-                auto src = data + y * width + X1;
-                for (int x = X1, adestX = destX; x < xEnd; ++x, ++adestX, ++src)
+                auto dstrow = raw_get_row(dest_y);
+                auto src = data + y * width + x1;
+                for (int x = x1, adest_x = dest_x; x < xEnd; ++x, ++adest_x, ++src)
                 {
                     if (*src & 0xc0) // alpha > 0 ?
-                        rawSetPixelInRow(dstrow, adestX, *src);
+                        raw_set_pixel_in_row(dstrow, adest_x, *src);
                 }
             }
         }
@@ -1930,31 +1945,31 @@ protected:
 
     template<typename TRawGetRow, typename TRawGetPixelInRow, typename TRawSetPixelInRow,
              typename TBackground>
-    void genericRawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const *bitmap,
-                                       TBackground *saveBackground, int X1, int Y1, int XCount,
-                                       int YCount, TRawGetRow rawGetRow,
-                                       TRawGetPixelInRow rawGetPixelInRow,
-                                       TRawSetPixelInRow rawSetPixelInRow)
+    void generic_raw_draw_bitmap_rgba8888(int dest_x, int dest_y, bitmap const *bitmap,
+                                          TBackground *save_background, int x1, int y1, int x_count,
+                                          int y_count, TRawGetRow raw_get_row,
+                                          TRawGetPixelInRow raw_get_pixel_in_row,
+                                          TRawSetPixelInRow raw_set_pixel_in_row)
     {
         const int width = bitmap->width;
-        const int yEnd = Y1 + YCount;
-        const int xEnd = X1 + XCount;
-        auto data = (RGBA8888 const *)bitmap->data;
+        const int yEnd = y1 + y_count;
+        const int xEnd = x1 + x_count;
+        auto data = (rgba8888 const *)bitmap->data;
 
-        if (saveBackground)
+        if (save_background)
         {
 
             // save background and draw the bitmap
-            for (int y = Y1; y < yEnd; ++y, ++destY)
+            for (int y = y1; y < yEnd; ++y, ++dest_y)
             {
-                auto dstrow = rawGetRow(destY);
-                auto savePx = saveBackground + y * width + X1;
-                auto src = data + y * width + X1;
-                for (int x = X1, adestX = destX; x < xEnd; ++x, ++adestX, ++savePx, ++src)
+                auto dstrow = raw_get_row(dest_y);
+                auto save_px = save_background + y * width + x1;
+                auto src = data + y * width + x1;
+                for (int x = x1, adest_x = dest_x; x < xEnd; ++x, ++adest_x, ++save_px, ++src)
                 {
-                    *savePx = rawGetPixelInRow(dstrow, adestX);
-                    if (src->A)
-                        rawSetPixelInRow(dstrow, adestX, *src);
+                    *save_px = raw_get_pixel_in_row(dstrow, adest_x);
+                    if (src->a)
+                        raw_set_pixel_in_row(dstrow, adest_x, *src);
                 }
             }
         }
@@ -1962,14 +1977,14 @@ protected:
         {
 
             // just draw the bitmap
-            for (int y = Y1; y < yEnd; ++y, ++destY)
+            for (int y = y1; y < yEnd; ++y, ++dest_y)
             {
-                auto dstrow = rawGetRow(destY);
-                auto src = data + y * width + X1;
-                for (int x = X1, adestX = destX; x < xEnd; ++x, ++adestX, ++src)
+                auto dstrow = raw_get_row(dest_y);
+                auto src = data + y * width + x1;
+                for (int x = x1, adest_x = dest_x; x < xEnd; ++x, ++adest_x, ++src)
                 {
-                    if (src->A)
-                        rawSetPixelInRow(dstrow, adestX, *src);
+                    if (src->a)
+                        raw_set_pixel_in_row(dstrow, adest_x, *src);
                 }
             }
         }
@@ -1980,16 +1995,16 @@ protected:
     // scroll < 0 -> scroll UP
     // scroll > 0 -> scroll DOWN
     template<typename TRawCopyRow, typename TRawFillRow>
-    void genericVScroll(int scroll, Rect &updateRect, TRawCopyRow rawCopyRow,
-                        TRawFillRow rawFillRow)
+    void generic_v_scroll(int scroll, esp::gfx::rect &update_rect, TRawCopyRow raw_copy_row,
+                          TRawFillRow raw_fill_row)
     {
-        hideSprites(updateRect);
-        RGB888 color = getActualBrushColor();
-        int Y1 = paintState().scrollingRegion.Y1;
-        int Y2 = paintState().scrollingRegion.Y2;
-        int X1 = paintState().scrollingRegion.X1;
-        int X2 = paintState().scrollingRegion.X2;
-        int height = Y2 - Y1 + 1;
+        hide_sprites(update_rect);
+        rgb888 color = actual_brush_color();
+        int y1 = paint_state().scrolling_region.y1;
+        int y2 = paint_state().scrolling_region.y2;
+        int x1 = paint_state().scrolling_region.x1;
+        int x2 = paint_state().scrolling_region.x2;
+        int height = y2 - y1 + 1;
 
         if (scroll < 0)
         {
@@ -1999,11 +2014,11 @@ protected:
             for (int i = 0; i < height + scroll; ++i)
             {
                 // copy X1..X2 of (Y1 + i - scroll) to (Y1 + i)
-                rawCopyRow(X1, X2, (Y1 + i - scroll), (Y1 + i));
+                raw_copy_row(x1, x2, (y1 + i - scroll), (y1 + i));
             }
             // fill lower area with brush color
             for (int i = height + scroll; i < height; ++i)
-                rawFillRow(Y1 + i, X1, X2, color);
+                raw_fill_row(y1 + i, x1, x2, color);
         }
         else if (scroll > 0)
         {
@@ -2012,12 +2027,12 @@ protected:
             for (int i = height - scroll - 1; i >= 0; --i)
             {
                 // copy X1..X2 of (Y1 + i) to (Y1 + i + scroll)
-                rawCopyRow(X1, X2, (Y1 + i), (Y1 + i + scroll));
+                raw_copy_row(x1, x2, (y1 + i), (y1 + i + scroll));
             }
 
             // fill upper area with brush color
             for (int i = 0; i < scroll; ++i)
-                rawFillRow(Y1 + i, X1, X2, color);
+                raw_fill_row(y1 + i, x1, x2, color);
         }
     }
 
@@ -2026,18 +2041,19 @@ protected:
     // scroll < 0 -> scroll UP
     // scroll > 0 -> scroll DOWN
     template<typename TSwapRowsCopying, typename TSwapRowsPointers, typename TRawFillRow>
-    void genericVScroll(int scroll, Rect &updateRect, TSwapRowsCopying swapRowsCopying,
-                        TSwapRowsPointers swapRowsPointers, TRawFillRow rawFillRow)
+    void generic_v_scroll(int scroll, esp::gfx::rect &update_rect,
+                          TSwapRowsCopying swap_rows_copying, TSwapRowsPointers swap_rows_pointers,
+                          TRawFillRow raw_fill_row)
     {
-        hideSprites(updateRect);
-        RGB888 color = getActualBrushColor();
-        const int Y1 = paintState().scrollingRegion.Y1;
-        const int Y2 = paintState().scrollingRegion.Y2;
-        const int X1 = paintState().scrollingRegion.X1;
-        const int X2 = paintState().scrollingRegion.X2;
-        const int height = Y2 - Y1 + 1;
+        hide_sprites(update_rect);
+        rgb888 color = actual_brush_color();
+        const int y1 = paint_state().scrolling_region.y1;
+        const int y2 = paint_state().scrolling_region.y2;
+        const int x1 = paint_state().scrolling_region.x1;
+        const int x2 = paint_state().scrolling_region.x2;
+        const int height = y2 - y1 + 1;
 
-        const int viewPortWidth = getViewPortWidth();
+        const int view_port_width = this->view_port_width();
 
         if (scroll < 0)
         {
@@ -2048,18 +2064,18 @@ protected:
             {
 
                 // these are necessary to maintain invariate out of scrolling regions
-                if (X1 > 0)
-                    swapRowsCopying(Y1 + i, Y1 + i - scroll, 0, X1 - 1);
-                if (X2 < viewPortWidth - 1)
-                    swapRowsCopying(Y1 + i, Y1 + i - scroll, X2 + 1, viewPortWidth - 1);
+                if (x1 > 0)
+                    swap_rows_copying(y1 + i, y1 + i - scroll, 0, x1 - 1);
+                if (x2 < view_port_width - 1)
+                    swap_rows_copying(y1 + i, y1 + i - scroll, x2 + 1, view_port_width - 1);
 
                 // swap scan lines
-                swapRowsPointers(Y1 + i, Y1 + i - scroll);
+                swap_rows_pointers(y1 + i, y1 + i - scroll);
             }
 
             // fill lower area with brush color
             for (int i = height + scroll; i < height; ++i)
-                rawFillRow(Y1 + i, X1, X2, color);
+                raw_fill_row(y1 + i, x1, x2, color);
         }
         else if (scroll > 0)
         {
@@ -2069,18 +2085,18 @@ protected:
             {
 
                 // these are necessary to maintain invariate out of scrolling regions
-                if (X1 > 0)
-                    swapRowsCopying(Y1 + i, Y1 + i + scroll, 0, X1 - 1);
-                if (X2 < viewPortWidth - 1)
-                    swapRowsCopying(Y1 + i, Y1 + i + scroll, X2 + 1, viewPortWidth - 1);
+                if (x1 > 0)
+                    swap_rows_copying(y1 + i, y1 + i + scroll, 0, x1 - 1);
+                if (x2 < view_port_width - 1)
+                    swap_rows_copying(y1 + i, y1 + i + scroll, x2 + 1, view_port_width - 1);
 
                 // swap scan lines
-                swapRowsPointers(Y1 + i, Y1 + i + scroll);
+                swap_rows_pointers(y1 + i, y1 + i + scroll);
             }
 
             // fill upper area with brush color
             for (int i = 0; i < scroll; ++i)
-                rawFillRow(Y1 + i, X1, X2, color);
+                raw_fill_row(y1 + i, x1, x2, color);
         }
     }
 
@@ -2090,48 +2106,48 @@ protected:
     // scroll > 0 -> scroll RIGHT
     template<typename TPreparePixel, typename TRawGetRow, typename TRawGetPixelInRow,
              typename TRawSetPixelInRow>
-    void genericHScroll(int scroll, Rect &updateRect, TPreparePixel preparePixel,
-                        TRawGetRow rawGetRow, TRawGetPixelInRow rawGetPixelInRow,
-                        TRawSetPixelInRow rawSetPixelInRow)
+    void generic_h_scroll(int scroll, esp::gfx::rect &update_rect, TPreparePixel prepare_pixel,
+                          TRawGetRow raw_get_row, TRawGetPixelInRow raw_get_pixel_in_row,
+                          TRawSetPixelInRow raw_set_pixel_in_row)
     {
-        hideSprites(updateRect);
-        auto pattern = preparePixel(getActualBrushColor());
+        hide_sprites(update_rect);
+        auto pattern = prepare_pixel(actual_brush_color());
 
-        int Y1 = paintState().scrollingRegion.Y1;
-        int Y2 = paintState().scrollingRegion.Y2;
-        int X1 = paintState().scrollingRegion.X1;
-        int X2 = paintState().scrollingRegion.X2;
+        int y1 = paint_state().scrolling_region.y1;
+        int y2 = paint_state().scrolling_region.y2;
+        int x1 = paint_state().scrolling_region.x1;
+        int x2 = paint_state().scrolling_region.x2;
 
         if (scroll < 0)
         {
             // scroll left
-            for (int y = Y1; y <= Y2; ++y)
+            for (int y = y1; y <= y2; ++y)
             {
-                auto row = rawGetRow(y);
-                for (int x = X1; x <= X2 + scroll; ++x)
+                auto row = raw_get_row(y);
+                for (int x = x1; x <= x2 + scroll; ++x)
                 {
-                    auto c = rawGetPixelInRow(row, x - scroll);
-                    rawSetPixelInRow(row, x, c);
+                    auto c = raw_get_pixel_in_row(row, x - scroll);
+                    raw_set_pixel_in_row(row, x, c);
                 }
                 // fill right area with brush color
-                for (int x = X2 + 1 + scroll; x <= X2; ++x)
-                    rawSetPixelInRow(row, x, pattern);
+                for (int x = x2 + 1 + scroll; x <= x2; ++x)
+                    raw_set_pixel_in_row(row, x, pattern);
             }
         }
         else if (scroll > 0)
         {
             // scroll right
-            for (int y = Y1; y <= Y2; ++y)
+            for (int y = y1; y <= y2; ++y)
             {
-                auto row = rawGetRow(y);
-                for (int x = X2 - scroll; x >= X1; --x)
+                auto row = raw_get_row(y);
+                for (int x = x2 - scroll; x >= x1; --x)
                 {
-                    auto c = rawGetPixelInRow(row, x);
-                    rawSetPixelInRow(row, x + scroll, c);
+                    auto c = raw_get_pixel_in_row(row, x);
+                    raw_set_pixel_in_row(row, x + scroll, c);
                 }
                 // fill left area with brush color
-                for (int x = X1; x < X1 + scroll; ++x)
-                    rawSetPixelInRow(row, x, pattern);
+                for (int x = x1; x < x1 + scroll; ++x)
+                    raw_set_pixel_in_row(row, x, pattern);
             }
         }
     }

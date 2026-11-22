@@ -36,57 +36,57 @@ namespace esp::gfx
 {
 
 
-#define INVALIDRECT Rect(-32768, -32768, -32768, -32768)
+#define INVALIDRECT esp::gfx::rect(-32768, -32768, -32768, -32768)
 
 
-Canvas::Canvas(BitmappedDisplayController *displayController)
-    : m_displayController(displayController)
-    , m_fontInfo(nullptr)
-    , m_textHorizRate(1)
-    , m_origin(Point(0, 0))
-    , m_clippingRect(INVALIDRECT)
+canvas::canvas(bitmapped_display_controller *display_controller)
+    : _display_controller(display_controller)
+    , _font_info(nullptr)
+    , _text_horiz_rate(1)
+    , _origin(point(0, 0))
+    , _clipping_rect(INVALIDRECT)
 {
 }
 
 
-void Canvas::setOrigin(int X, int Y)
+void canvas::set_origin(int x, int y)
 {
-    setOrigin(Point(X, Y));
+    set_origin(point(x, y));
 }
 
 
-void Canvas::setOrigin(Point const &origin)
+void canvas::set_origin(point const &origin)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SetOrigin;
-    p.position = m_origin = origin;
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::set_origin;
+    p.position = _origin = origin;
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::setClippingRect(Rect const &rect)
+void canvas::set_clipping_rect(rect const &rect)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SetClippingRect;
-    p.rect = m_clippingRect = rect;
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::set_clipping_rect;
+    p.rect = _clipping_rect = rect;
+    _display_controller->add_primitive(p);
 }
 
 
-Rect Canvas::getClippingRect()
+rect canvas::clipping_rect()
 {
-    if (m_clippingRect == INVALIDRECT)
-        m_clippingRect = Rect(0, 0, getWidth() - 1, getHeight() - 1);
-    return m_clippingRect;
+    if (_clipping_rect == INVALIDRECT)
+        _clipping_rect = rect(0, 0, width() - 1, height() - 1);
+    return _clipping_rect;
 }
 
 
-void Canvas::waitCompletion(bool waitVSync)
+void canvas::wait_completion(bool wait_v_sync)
 {
-    if (waitVSync)
-        m_displayController->primitivesExecutionWait(); // wait on VSync normal processing
+    if (wait_v_sync)
+        _display_controller->primitives_execution_wait(); // wait on VSync normal processing
     else
-        m_displayController->processPrimitives(); // process right now!
+        _display_controller->process_primitives(); // process right now!
 }
 
 
@@ -94,391 +94,391 @@ void Canvas::waitCompletion(bool waitVSync)
 // the BitmappedDisplayController primitives queue is not processed, and adding primitives may
 // cause a deadlock. To avoid this a call to "Canvas.waitCompletion(false)"
 // should be performed very often.
-void Canvas::beginUpdate()
+void canvas::begin_update()
 {
-    m_displayController->suspendBackgroundPrimitiveExecution();
+    _display_controller->suspend_background_primitive_execution();
 }
 
 
-void Canvas::endUpdate()
+void canvas::end_update()
 {
-    m_displayController->resumeBackgroundPrimitiveExecution();
+    _display_controller->resume_background_primitive_execution();
 }
 
 
-void Canvas::clear()
+void canvas::clear()
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::Clear;
+    primitive p;
+    p.cmd = primitive_cmd::clear;
     p.ivalue = 0;
-    m_displayController->addPrimitive(p);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::reset()
+void canvas::reset()
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::Reset;
-    m_displayController->addPrimitive(p);
-    m_origin = Point(0, 0);
-    m_clippingRect = INVALIDRECT;
-    m_textHorizRate = 1;
+    primitive p;
+    p.cmd = primitive_cmd::reset;
+    _display_controller->add_primitive(p);
+    _origin = point(0, 0);
+    _clipping_rect = INVALIDRECT;
+    _text_horiz_rate = 1;
 }
 
 
-void Canvas::scroll(int offsetX, int offsetY)
+void canvas::scroll(int offset_x, int offset_y)
 {
-    Primitive p;
-    if (offsetY != 0)
+    primitive p;
+    if (offset_y != 0)
     {
-        p.cmd = PrimitiveCmd::VScroll;
-        p.ivalue = offsetY;
-        m_displayController->addPrimitive(p);
+        p.cmd = primitive_cmd::v_scroll;
+        p.ivalue = offset_y;
+        _display_controller->add_primitive(p);
     }
-    if (offsetX != 0)
+    if (offset_x != 0)
     {
-        p.cmd = PrimitiveCmd::HScroll;
-        p.ivalue = offsetX;
-        m_displayController->addPrimitive(p);
+        p.cmd = primitive_cmd::h_scroll;
+        p.ivalue = offset_x;
+        _display_controller->add_primitive(p);
     }
 }
 
 
-void Canvas::setScrollingRegion(int X1, int Y1, int X2, int Y2)
+void canvas::set_scrolling_region(int x1, int y1, int x2, int y2)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SetScrollingRegion;
-    p.rect = Rect(X1, Y1, X2, Y2);
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::set_scrolling_region;
+    p.rect = rect(x1, y1, x2, y2);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::setPixel(int X, int Y)
+void canvas::set_pixel(int x, int y)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SetPixel;
-    p.position = Point(X, Y);
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::set_pixel;
+    p.position = point(x, y);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::setPixel(int X, int Y, RGB888 const &color)
+void canvas::set_pixel(int x, int y, rgb888 const &color)
 {
-    setPixel(Point(X, Y), color);
+    set_pixel(point(x, y), color);
 }
 
 
-void Canvas::setPixel(Point const &pos, RGB888 const &color)
+void canvas::set_pixel(point const &pos, rgb888 const &color)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SetPixelAt;
-    p.pixelDesc = {pos, color};
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::set_pixel_at;
+    p.pixel_desc = {pos, color};
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::moveTo(int X, int Y)
+void canvas::move_to(int x, int y)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::MoveTo;
-    p.position = Point(X, Y);
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::move_to;
+    p.position = point(x, y);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::setPenColor(Color color)
+void canvas::set_pen_color(color color)
 {
-    setPenColor(RGB888(color));
+    set_pen_color(rgb888(color));
 }
 
 
-void Canvas::setPenColor(uint8_t red, uint8_t green, uint8_t blue)
+void canvas::set_pen_color(uint8_t red, uint8_t green, uint8_t blue)
 {
-    setPenColor(RGB888(red, green, blue));
+    set_pen_color(rgb888(red, green, blue));
 }
 
 
-void Canvas::setPenColor(RGB888 const &color)
+void canvas::set_pen_color(rgb888 const &color)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SetPenColor;
+    primitive p;
+    p.cmd = primitive_cmd::set_pen_color;
     p.color = color;
-    m_displayController->addPrimitive(p);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::setBrushColor(Color color)
+void canvas::set_brush_color(color color)
 {
-    setBrushColor(RGB888(color));
+    set_brush_color(rgb888(color));
 }
 
 
-void Canvas::setBrushColor(uint8_t red, uint8_t green, uint8_t blue)
+void canvas::set_brush_color(uint8_t red, uint8_t green, uint8_t blue)
 {
-    setBrushColor(RGB888(red, green, blue));
+    set_brush_color(rgb888(red, green, blue));
 }
 
 
-void Canvas::setPenWidth(int value)
+void canvas::set_pen_width(int value)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SetPenWidth;
+    primitive p;
+    p.cmd = primitive_cmd::set_pen_width;
     p.ivalue = value;
-    m_displayController->addPrimitive(p);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::setLineEnds(LineEnds value)
+void canvas::set_line_ends(line_ends value)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SetLineEnds;
-    p.lineEnds = value;
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::set_line_ends;
+    p.line_ends = value;
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::setBrushColor(RGB888 const &color)
+void canvas::set_brush_color(rgb888 const &color)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SetBrushColor;
+    primitive p;
+    p.cmd = primitive_cmd::set_brush_color;
     p.color = color;
-    m_displayController->addPrimitive(p);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::lineTo(int X, int Y)
+void canvas::line_to(int x, int y)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::LineTo;
-    p.position = Point(X, Y);
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::line_to;
+    p.position = point(x, y);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::drawLine(int X1, int Y1, int X2, int Y2)
+void canvas::draw_line(int x1, int y1, int x2, int y2)
 {
-    moveTo(X1, Y1);
-    lineTo(X2, Y2);
+    move_to(x1, y1);
+    line_to(x2, y2);
 }
 
 
-void Canvas::drawRectangle(int X1, int Y1, int X2, int Y2)
+void canvas::draw_rectangle(int x1, int y1, int x2, int y2)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::DrawRect;
-    p.rect = Rect(X1, Y1, X2, Y2);
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::draw_rect;
+    p.rect = rect(x1, y1, x2, y2);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::drawRectangle(Rect const &rect)
+void canvas::draw_rectangle(rect const &rect)
 {
-    drawRectangle(rect.X1, rect.Y1, rect.X2, rect.Y2);
+    draw_rectangle(rect.x1, rect.y1, rect.x2, rect.y2);
 }
 
 
-void Canvas::fillRectangle(int X1, int Y1, int X2, int Y2)
+void canvas::fill_rectangle(int x1, int y1, int x2, int y2)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::FillRect;
-    p.rect = Rect(X1, Y1, X2, Y2);
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::fill_rect;
+    p.rect = rect(x1, y1, x2, y2);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::fillRectangle(Rect const &rect)
+void canvas::fill_rectangle(rect const &rect)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::FillRect;
+    primitive p;
+    p.cmd = primitive_cmd::fill_rect;
     p.rect = rect;
-    m_displayController->addPrimitive(p);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::invertRectangle(int X1, int Y1, int X2, int Y2)
+void canvas::invert_rectangle(int x1, int y1, int x2, int y2)
 {
-    invertRectangle(Rect(X1, Y1, X2, Y2));
+    invert_rectangle(rect(x1, y1, x2, y2));
 }
 
 
-void Canvas::invertRectangle(Rect const &rect)
+void canvas::invert_rectangle(rect const &rect)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::InvertRect;
+    primitive p;
+    p.cmd = primitive_cmd::invert_rect;
     p.rect = rect;
-    m_displayController->addPrimitive(p);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::swapRectangle(int X1, int Y1, int X2, int Y2)
+void canvas::swap_rectangle(int x1, int y1, int x2, int y2)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SwapFGBG;
-    p.rect = Rect(X1, Y1, X2, Y2);
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::swap_fgbg;
+    p.rect = rect(x1, y1, x2, y2);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::fillEllipse(int X, int Y, int width, int height)
+void canvas::fill_ellipse(int x, int y, int width, int height)
 {
-    moveTo(X, Y);
-    Primitive p;
-    p.cmd = PrimitiveCmd::FillEllipse;
-    p.size = Size(width, height);
-    m_displayController->addPrimitive(p);
+    move_to(x, y);
+    primitive p;
+    p.cmd = primitive_cmd::fill_ellipse;
+    p.size = size(width, height);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::drawEllipse(int X, int Y, int width, int height)
+void canvas::draw_ellipse(int x, int y, int width, int height)
 {
-    moveTo(X, Y);
-    Primitive p;
-    p.cmd = PrimitiveCmd::DrawEllipse;
-    p.size = Size(width, height);
-    m_displayController->addPrimitive(p);
+    move_to(x, y);
+    primitive p;
+    p.cmd = primitive_cmd::draw_ellipse;
+    p.size = size(width, height);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::drawGlyph(int X, int Y, int width, int height, uint8_t const *data, int index)
+void canvas::draw_glyph(int x, int y, int width, int height, uint8_t const *data, int index)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::DrawGlyph;
-    p.glyph = Glyph(X, Y, width, height, data + index * height * ((width + 7) / 8));
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::draw_glyph;
+    p.glyph = glyph(x, y, width, height, data + index * height * ((width + 7) / 8));
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::setGlyphOptions(GlyphOptions options)
+void canvas::set_glyph_options(glyph_options options)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SetGlyphOptions;
-    p.glyphOptions = options;
-    m_displayController->addPrimitive(p);
-    m_textHorizRate = options.doubleWidth > 0 ? 2 : 1;
+    primitive p;
+    p.cmd = primitive_cmd::set_glyph_options;
+    p.glyph_options = options;
+    _display_controller->add_primitive(p);
+    _text_horiz_rate = options.double_width > 0 ? 2 : 1;
 }
 
 
-void Canvas::resetGlyphOptions()
+void canvas::reset_glyph_options()
 {
-    setGlyphOptions(GlyphOptions());
+    set_glyph_options(glyph_options());
 }
 
 
-void Canvas::setPaintOptions(PaintOptions options)
+void canvas::set_paint_options(paint_options options)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SetPaintOptions;
-    p.paintOptions = options;
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::set_paint_options;
+    p.paint_options = options;
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::resetPaintOptions()
+void canvas::reset_paint_options()
 {
-    setPaintOptions(PaintOptions());
+    set_paint_options(paint_options());
 }
 
 
-void Canvas::selectFont(FontInfo const *fontInfo)
+void canvas::select_font(font_info const *font_info)
 {
-    m_fontInfo = fontInfo;
+    _font_info = font_info;
 }
 
 
-void Canvas::drawChar(int X, int Y, char c)
+void canvas::draw_char(int x, int y, char c)
 {
-    drawGlyph(X, Y, m_fontInfo->width, m_fontInfo->height, m_fontInfo->data, c);
+    draw_glyph(x, y, _font_info->width, _font_info->height, _font_info->data, c);
 }
 
 
-void Canvas::drawText(int X, int Y, char const *text, bool wrap)
+void canvas::draw_text(int x, int y, char const *text, bool wrap)
 {
     // no built-in fonts: without selectFont() there is nothing to draw with
-    if (m_fontInfo == nullptr)
+    if (_font_info == nullptr)
         return;
-    drawText(m_fontInfo, X, Y, text, wrap);
+    draw_text(_font_info, x, y, text, wrap);
 }
 
 
-void Canvas::drawText(FontInfo const *fontInfo, int X, int Y, char const *text, bool wrap)
+void canvas::draw_text(font_info const *font_info, int x, int y, char const *text, bool wrap)
 {
-    int fontWidth = fontInfo->width;
-    for (; *text; ++text, X += fontWidth * m_textHorizRate)
+    int font_width = font_info->width;
+    for (; *text; ++text, x += font_width * _text_horiz_rate)
     {
-        if (wrap && X >= getWidth())
+        if (wrap && x >= width())
         { // TODO: clipX2 instead of getWidth()?
-            X = 0;
-            Y += fontInfo->height;
+            x = 0;
+            y += font_info->height;
         }
-        if (fontInfo->chptr)
+        if (font_info->chptr)
         {
             // variable width
-            uint8_t const *chptr = fontInfo->data + fontInfo->chptr[(int)(*text)];
-            fontWidth = *chptr++;
-            drawGlyph(X, Y, fontWidth, fontInfo->height, chptr, 0);
+            uint8_t const *chptr = font_info->data + font_info->chptr[(int)(*text)];
+            font_width = *chptr++;
+            draw_glyph(x, y, font_width, font_info->height, chptr, 0);
         }
         else
         {
             // fixed width
-            drawGlyph(X, Y, fontInfo->width, fontInfo->height, fontInfo->data, *text);
+            draw_glyph(x, y, font_info->width, font_info->height, font_info->data, *text);
         }
     }
 }
 
 
-void Canvas::drawTextWithEllipsis(FontInfo const *fontInfo, int X, int Y, char const *text,
-                                  int maxX)
+void canvas::draw_text_with_ellipsis(font_info const *font_info, int x, int y, char const *text,
+                                     int max_x)
 {
-    int fontWidth = fontInfo->width;
-    int fontHeight = fontInfo->height;
-    for (; *text; ++text, X += fontWidth)
+    int font_width = font_info->width;
+    int font_height = font_info->height;
+    for (; *text; ++text, x += font_width)
     {
-        if (X >= maxX - fontHeight)
+        if (x >= max_x - font_height)
         {
             // draw ellipsis and exit
-            drawText(fontInfo, X, Y, "...");
+            draw_text(font_info, x, y, "...");
             break;
         }
-        if (fontInfo->chptr)
+        if (font_info->chptr)
         {
             // variable width
-            uint8_t const *chptr = fontInfo->data + fontInfo->chptr[(int)(*text)];
-            fontWidth = *chptr++;
-            drawGlyph(X, Y, fontWidth, fontInfo->height, chptr, 0);
+            uint8_t const *chptr = font_info->data + font_info->chptr[(int)(*text)];
+            font_width = *chptr++;
+            draw_glyph(x, y, font_width, font_info->height, chptr, 0);
         }
         else
         {
             // fixed width
-            drawGlyph(X, Y, fontInfo->width, fontInfo->height, fontInfo->data, *text);
+            draw_glyph(x, y, font_info->width, font_info->height, font_info->data, *text);
         }
     }
 }
 
 
-int Canvas::textExtent(FontInfo const *fontInfo, char const *text)
+int canvas::text_extent(font_info const *font_info, char const *text)
 {
-    int fontWidth = fontInfo->width;
+    int font_width = font_info->width;
     int extent = 0;
-    for (; *text; ++text, extent += fontWidth)
+    for (; *text; ++text, extent += font_width)
     {
-        if (fontInfo->chptr)
+        if (font_info->chptr)
         {
             // variable width
-            uint8_t const *chptr = fontInfo->data + fontInfo->chptr[(int)(*text)];
-            fontWidth = *chptr;
+            uint8_t const *chptr = font_info->data + font_info->chptr[(int)(*text)];
+            font_width = *chptr;
         }
     }
     return extent;
 }
 
 
-int Canvas::textExtent(char const *text)
+int canvas::text_extent(char const *text)
 {
-    return textExtent(m_fontInfo, text);
+    return text_extent(_font_info, text);
 }
 
 
-void Canvas::drawTextFmt(int X, int Y, const char *format, ...)
+void canvas::draw_text_fmt(int x, int y, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -489,69 +489,69 @@ void Canvas::drawTextFmt(int X, int Y, const char *format, ...)
         va_start(ap, format);
         char buf[size + 1];
         vsnprintf(buf, size, format, ap);
-        drawText(X, Y, buf, false);
+        draw_text(x, y, buf, false);
     }
     va_end(ap);
 }
 
 
-void Canvas::copyRect(int sourceX, int sourceY, int destX, int destY, int width, int height)
+void canvas::copy_rect(int source_x, int source_y, int dest_x, int dest_y, int width, int height)
 {
-    moveTo(destX, destY);
-    int sourceX2 = sourceX + width - 1;
-    int sourceY2 = sourceY + height - 1;
-    Primitive p;
-    p.cmd = PrimitiveCmd::CopyRect;
-    p.rect = Rect(sourceX, sourceY, sourceX2, sourceY2);
-    m_displayController->addPrimitive(p);
+    move_to(dest_x, dest_y);
+    int source_x2 = source_x + width - 1;
+    int source_y2 = source_y + height - 1;
+    primitive p;
+    p.cmd = primitive_cmd::copy_rect;
+    p.rect = rect(source_x, source_y, source_x2, source_y2);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::drawBitmap(int X, int Y, Bitmap const *bitmap)
+void canvas::draw_bitmap(int x, int y, bitmap const *bitmap)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::DrawBitmap;
-    p.bitmapDrawingInfo = BitmapDrawingInfo(X, Y, bitmap);
-    m_displayController->addPrimitive(p);
+    primitive p;
+    p.cmd = primitive_cmd::draw_bitmap;
+    p.bitmap_drawing_info = bitmap_drawing_info(x, y, bitmap);
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::swapBuffers()
+void canvas::swap_buffers()
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::SwapBuffers;
-    p.notifyTask = xTaskGetCurrentTaskHandle();
-    m_displayController->addPrimitive(p);
-    m_displayController->primitivesExecutionWait();
+    primitive p;
+    p.cmd = primitive_cmd::swap_buffers;
+    p.notify_task = xTaskGetCurrentTaskHandle();
+    _display_controller->add_primitive(p);
+    _display_controller->primitives_execution_wait();
 }
 
 
-void Canvas::drawPath(Point const *points, int pointsCount)
+void canvas::draw_path(point const *points, int points_count)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::DrawPath;
+    primitive p;
+    p.cmd = primitive_cmd::draw_path;
     p.path.points = points;
-    p.path.pointsCount = pointsCount;
-    p.path.freePoints = false;
-    m_displayController->addPrimitive(p);
+    p.path.points_count = points_count;
+    p.path.free_points = false;
+    _display_controller->add_primitive(p);
 }
 
 
-void Canvas::fillPath(Point const *points, int pointsCount)
+void canvas::fill_path(point const *points, int points_count)
 {
-    Primitive p;
-    p.cmd = PrimitiveCmd::FillPath;
+    primitive p;
+    p.cmd = primitive_cmd::fill_path;
     p.path.points = points;
-    p.path.pointsCount = pointsCount;
-    p.path.freePoints = false;
-    m_displayController->addPrimitive(p);
+    p.path.points_count = points_count;
+    p.path.free_points = false;
+    _display_controller->add_primitive(p);
 }
 
 
-RGB888 Canvas::getPixel(int X, int Y)
+rgb888 canvas::pixel(int x, int y)
 {
-    RGB888 rgb;
-    m_displayController->readScreen(Rect(X, Y, X, Y), &rgb);
+    rgb888 rgb;
+    _display_controller->read_screen(rect(x, y, x, y), &rgb);
     return rgb;
 }
 

@@ -66,12 +66,12 @@ namespace esp::gfx
 *     cv.drawRectangle(0, 0, cv.getWidth() - 1, cv.getHeight() - 1);
 *
 */
-class Canvas
+class canvas
 {
 
 public:
 
-    Canvas(BitmappedDisplayController *displayController);
+    canvas(bitmapped_display_controller *display_controller);
 
     /**
    * @brief Determines the canvas width in pixels.
@@ -80,9 +80,9 @@ public:
    *
    * @return The canvas width in pixels.
    */
-    int getWidth()
+    int width()
     {
-        return m_displayController->getViewPortWidth();
+        return _display_controller->view_port_width();
     }
 
     /**
@@ -92,9 +92,9 @@ public:
    *
    * @return The canvas height in pixels.
    */
-    int getHeight()
+    int height()
     {
-        return m_displayController->getViewPortHeight();
+        return _display_controller->view_port_height();
     }
 
     /**
@@ -102,7 +102,7 @@ public:
    *
    * @param waitVSync If true drawings are done on vertical retracing (slow), if false drawings are perfomed immediately (fast with flickering).
    */
-    void waitCompletion(bool waitVSync = true);
+    void wait_completion(bool wait_v_sync = true);
 
     /**
    * @brief Suspends drawings.
@@ -110,12 +110,12 @@ public:
    * After call to beginUpdate() adding new primitives may cause a deadlock.<br>
    * To avoid this a call to "Canvas.waitCompletion(false)" should be performed very often.
    */
-    void beginUpdate();
+    void begin_update();
 
     /**
    * @brief Resumes drawings after beginUpdate().
    */
-    void endUpdate();
+    void end_update();
 
     /**
    * @brief Swaps screen buffer when double buffering is enabled.
@@ -123,7 +123,7 @@ public:
    * Double buffering is enabled calling VGAController.setResolution() with doubleBuffered = true.<br>
    * Buffers swap is always executed in vertical retracing (at VSync pulse).
    */
-    void swapBuffers();
+    void swap_buffers();
 
     /**
    * @brief Sets the axes origin.
@@ -133,7 +133,7 @@ public:
    * @param X Horizontal translation (0 = no translation).
    * @param Y Vertical translation (0 = no translation).
    */
-    void setOrigin(int X, int Y);
+    void set_origin(int x, int y);
 
     /**
    * @brief Sets the axes origin.
@@ -142,16 +142,16 @@ public:
    *
    * @param origin Origin coordinates.
    */
-    void setOrigin(Point const &origin);
+    void set_origin(point const &origin);
 
     /**
    * @brief Gets last origin set using setOrigin().
    *
    * @return Last origin set.
    */
-    Point getOrigin()
+    point origin()
     {
-        return m_origin;
+        return _origin;
     }
 
     /**
@@ -161,14 +161,14 @@ public:
    *
    * @param rect Clipping rectangle relative to the origin.
    */
-    void setClippingRect(Rect const &rect);
+    void set_clipping_rect(rect const &rect);
 
     /**
    * @brief Gets last clipping rectangle set using setClippingRect().
    *
    * @return Last clipping rectangle set.
    */
-    Rect getClippingRect();
+    rect clipping_rect();
 
 
     /**
@@ -191,7 +191,7 @@ public:
    * @param X2 Bottom right horizontal coordinate.
    * @param Y2 Bottom right vertical coordiante.
    */
-    void setScrollingRegion(int X1, int Y1, int X2, int Y2);
+    void set_scrolling_region(int x1, int y1, int x2, int y2);
 
     /**
    * @brief Scrolls pixels horizontally and/or vertically.
@@ -203,7 +203,7 @@ public:
    * @param offsetX Number of pixels to scroll left (offsetX < 0) or right (offsetX > 0).
    * @param offsetY Number of pixels to scroll up (offsetY < 0) or down (offsetY > 0).
    */
-    void scroll(int offsetX, int offsetY);
+    void scroll(int offset_x, int offset_y);
 
     /**
    * @brief Moves current pen position to the spcified coordinates.
@@ -220,7 +220,7 @@ public:
    *     Canvas.lineTo(30, 40);
    *     Canvas.lineTo(10, 12);
    */
-    void moveTo(int X, int Y);
+    void move_to(int x, int y);
 
     /**
    * @brief Sets pen (foreground) color specifying color components.
@@ -234,7 +234,7 @@ public:
    *     // Set white pen
    *     Canvas.setPenColor(255, 255, 255);
    */
-    void setPenColor(uint8_t red, uint8_t green, uint8_t blue);
+    void set_pen_color(uint8_t red, uint8_t green, uint8_t blue);
 
     /**
    * @brief Sets pen (foreground) color using a color name.
@@ -246,7 +246,7 @@ public:
    *      // Set white pen
    *      Canvas.setPenColor(Color::BrightWhite);
    */
-    void setPenColor(Color color);
+    void set_pen_color(color color);
 
     /**
    * @brief Sets pen (foreground) color specifying color components.
@@ -258,7 +258,7 @@ public:
    *      // Set white pen
    *      Canvas.setPenColor(Color::BrightWhite);
    */
-    void setPenColor(RGB888 const &color);
+    void set_pen_color(rgb888 const &color);
 
     /**
    * @brief Sets brush (background) color specifying color components.
@@ -275,7 +275,7 @@ public:
    *     // Set blue brush with 64 colors setup
    *     Canvas.setBrushColor(0, 0, 3);
    */
-    void setBrushColor(uint8_t red, uint8_t green, uint8_t blue);
+    void set_brush_color(uint8_t red, uint8_t green, uint8_t blue);
 
     /**
    * @brief Sets brush (background) color using a color name.
@@ -287,7 +287,7 @@ public:
    *      // Set blue brush
    *      Canvas.setBrushColor(Color::BrightBlue);
    */
-    void setBrushColor(Color color);
+    void set_brush_color(color color);
 
     /**
    * @brief Sets brush (background) color specifying color components.
@@ -299,7 +299,7 @@ public:
    *      // Set blue brush
    *      Canvas.setBrushColor(Color::BrightBlue);
    */
-    void setBrushColor(RGB888 const &color);
+    void set_brush_color(rgb888 const &color);
 
     /**
    * @brief Sets pen width for lines, rectangles and paths
@@ -311,7 +311,7 @@ public:
    *     Canvas.setPenWidth(4);
    *     Canvas.drawLine(10, 10, 100, 10);
    */
-    void setPenWidth(int value);
+    void set_pen_width(int value);
 
     /**
    * @brief Sets line ends shape
@@ -324,7 +324,7 @@ public:
    *     Canvas.setLineEnds(LineEnds::Circle);
    *     Canvas.drawLine(10, 10, 100, 10);
    */
-    void setLineEnds(LineEnds value);
+    void set_line_ends(line_ends value);
 
     /**
    * @brief Fills a single pixel with the pen color.
@@ -332,7 +332,7 @@ public:
    * @param X Horizontal pixel position.
    * @param Y Vertical pixel position.
    */
-    void setPixel(int X, int Y);
+    void set_pixel(int x, int y);
 
     /**
    * @brief Fills a single pixel with the specified color.
@@ -341,7 +341,7 @@ public:
    * @param Y Vertical pixel position.
    * @param color Pixe color.
    */
-    void setPixel(int X, int Y, RGB888 const &color);
+    void set_pixel(int x, int y, rgb888 const &color);
 
     /**
    * @brief Fills a single pixel with the specified color.
@@ -349,7 +349,7 @@ public:
    * @param pos Pixel position.
    * @param color Pixe color.
    */
-    void setPixel(Point const &pos, RGB888 const &color);
+    void set_pixel(point const &pos, rgb888 const &color);
 
     /**
    * @brief Draws a line starting from current pen position.
@@ -369,7 +369,7 @@ public:
    *     Canvas.lineTo(30, 40);
    *     Canvas.lineTo(10, 12);
    */
-    void lineTo(int X, int Y);
+    void line_to(int x, int y);
 
     /**
    * @brief Draws a line specifying initial and ending coordinates.
@@ -388,7 +388,7 @@ public:
    *     Canvas.drawLine(0, 0, Canvas.getWidth() - 1, Canvas.getHeight() - 1);
    *     Canvas.drawLine(Canvas.getWidth() - 1, 0, 0, Canvas.getHeight() - 1);
    */
-    void drawLine(int X1, int Y1, int X2, int Y2);
+    void draw_line(int x1, int y1, int x2, int y2);
 
     /**
    * @brief Draws a rectangle using the current pen color.
@@ -404,14 +404,14 @@ public:
    *     Canvas.setPenColor(Color::BrightYellow);
    *     Canvas.drawRectangle(10, 10, 100, 100);
    */
-    void drawRectangle(int X1, int Y1, int X2, int Y2);
+    void draw_rectangle(int x1, int y1, int x2, int y2);
 
     /**
    * @brief Draws a rectangle using the current pen color.
    *
    * @param rect Rectangle coordinates.
    */
-    void drawRectangle(Rect const &rect);
+    void draw_rectangle(rect const &rect);
 
     /**
    * @brief Fills a rectangle using the current brush color.
@@ -433,7 +433,7 @@ public:
    *     Canvas.fillRectangle(10, 10, 100, 100);
    *     Canvas.drawRectangle(10, 10, 100, 100);
    */
-    void fillRectangle(int X1, int Y1, int X2, int Y2);
+    void fill_rectangle(int x1, int y1, int x2, int y2);
 
     /**
    * @brief Fills a rectangle using the current brush color.
@@ -446,7 +446,7 @@ public:
    *     Canvas.setBrushColor(Color::BrightYellow);
    *     Canvas.fillRectangle(Rect(10, 10, 100, 100));
    */
-    void fillRectangle(Rect const &rect);
+    void fill_rectangle(rect const &rect);
 
     /**
    * @brief Inverts a rectangle.
@@ -458,7 +458,7 @@ public:
    * @param X2 Bottom right horizontal coordinate.
    * @param Y2 Bottom right vertical coordiante.
    */
-    void invertRectangle(int X1, int Y1, int X2, int Y2);
+    void invert_rectangle(int x1, int y1, int x2, int y2);
 
     /**
    * @brief Inverts a rectangle.
@@ -467,7 +467,7 @@ public:
    *
    * @param rect Rectangle coordinates.
    */
-    void invertRectangle(Rect const &rect);
+    void invert_rectangle(rect const &rect);
 
     /**
    * @brief Swaps pen and brush colors of the specified rectangle.
@@ -477,7 +477,7 @@ public:
    * @param X2 Bottom right horizontal coordinate.
    * @param Y2 Bottom right vertical coordiante.
    */
-    void swapRectangle(int X1, int Y1, int X2, int Y2);
+    void swap_rectangle(int x1, int y1, int x2, int y2);
 
     /**
    * @brief Draws an ellipse specifying center and size, using current pen color.
@@ -493,7 +493,7 @@ public:
    *     Canvas.setPenColor(Color::BrightYellow);
    *     Canvas.drawEllipse(100, 100, 40, 40);
    */
-    void drawEllipse(int X, int Y, int width, int height);
+    void draw_ellipse(int x, int y, int width, int height);
 
     /**
    * @brief Fills an ellipse specifying center and size, using current brush color.
@@ -515,7 +515,7 @@ public:
    *     Canvas.fillEllipse(100, 100, 40, 40);
    *     Canvas.drawEllipse(100, 100, 40, 40);
    */
-    void fillEllipse(int X, int Y, int width, int height);
+    void fill_ellipse(int x, int y, int width, int height);
 
     /**
    * @brief Draws a glyph at specified position.
@@ -547,7 +547,7 @@ public:
    *     Canvas.drawGlyph(50, 80, 12, 8, enemy);
    *
    */
-    void drawGlyph(int X, int Y, int width, int height, uint8_t const *data, int index = 0);
+    void draw_glyph(int x, int y, int width, int height, uint8_t const *data, int index = 0);
 
     /**
    * @brief Sets drawing options for the next glyphs.
@@ -565,31 +565,31 @@ public:
    *     Canvas.setGlyphOptions(GlyphOptions().FillBackground(true).DoubleWidth(1));
    *     Canvas.drawText(20, 20, "Hello World!");
    */
-    void setGlyphOptions(GlyphOptions options);
+    void set_glyph_options(glyph_options options);
 
     /**
    * @brief Resets glyph options.
    */
-    void resetGlyphOptions();
+    void reset_glyph_options();
 
     /**
    * @brief Sets paint options.
    */
-    void setPaintOptions(PaintOptions options);
+    void set_paint_options(paint_options options);
 
     /**
    * @brief Resets paint options.
    */
-    void resetPaintOptions();
+    void reset_paint_options();
 
     /**
    * @brief Gets info about currently selected font.
    *
    * @return FontInfo structure representing font info and data.
    */
-    FontInfo const *getFontInfo()
+    font_info const *get_font_info()
     {
-        return m_fontInfo;
+        return _font_info;
     }
 
     /**
@@ -605,7 +605,7 @@ public:
    *     // Set the 8x8 predefined font
    *     Canvas.selectFont(&fabgl::FONT_8x8);
    */
-    void selectFont(FontInfo const *fontInfo);
+    void select_font(font_info const *font_info);
 
     /**
    * @brief Draws a character at specified position.
@@ -621,7 +621,7 @@ public:
    *     // Draw a 'C' at position 100, 100
    *     Canvas.drawChar(100, 100, 'C');
    */
-    void drawChar(int X, int Y, char c);
+    void draw_char(int x, int y, char c);
 
     /**
    * @brief Draws a string at specified position.
@@ -638,7 +638,7 @@ public:
    *     // Draw a 'Hello World!' at position 100, 100
    *     Canvas.drawText(100, 100, "Hellow World!");
    */
-    void drawText(int X, int Y, char const *text, bool wrap = false);
+    void draw_text(int x, int y, char const *text, bool wrap = false);
 
     /**
    * @brief Draws a string at specified position.
@@ -656,7 +656,7 @@ public:
    *     // Draw a 'Hello World!' at position 100, 100
    *     Canvas.drawText(&fabgl::FONT_8x8, 100, 100, "Hellow World!");
    */
-    void drawText(FontInfo const *fontInfo, int X, int Y, char const *text, bool wrap = false);
+    void draw_text(font_info const *font_info, int x, int y, char const *text, bool wrap = false);
 
     /**
    * @brief Draws a string at specified position. Add ellipses before truncation.
@@ -667,7 +667,8 @@ public:
    * @param text String to draw (indexes in the character font glyphs set).
    * @param maxX Maximum horizontal coordinate allowed.
    */
-    void drawTextWithEllipsis(FontInfo const *fontInfo, int X, int Y, char const *text, int maxX);
+    void draw_text_with_ellipsis(font_info const *font_info, int x, int y, char const *text,
+                                 int max_x);
 
     /**
    * @brief Calculates text extension in pixels.
@@ -675,14 +676,14 @@ public:
    * @param fontInfo Pointer to font structure containing font info and glyphs data.
    * @param text String to calculate length (indexes in the character font glyphs set).
    */
-    int textExtent(FontInfo const *fontInfo, char const *text);
+    int text_extent(font_info const *font_info, char const *text);
 
     /**
    * @brief Calculates text extension in pixels.
    *
    * @param text String to calculate length (indexes in the character font glyphs set).
    */
-    int textExtent(char const *text);
+    int text_extent(char const *text);
 
     /**
    * @brief Draws formatted text at specified position.
@@ -697,7 +698,7 @@ public:
    *
    *     Canvas.drawTextFmt(100, 100, "Free DMA memory: %d", heap_caps_get_free_size(MALLOC_CAP_DMA));
    */
-    void drawTextFmt(int X, int Y, const char *format, ...);
+    void draw_text_fmt(int x, int y, const char *format, ...);
 
     /**
    * @brief Copies a screen rectangle to the specified position.
@@ -711,7 +712,7 @@ public:
    * @param width Rectangle horizontal size.
    * @param height Rectangle vertical size.
    */
-    void copyRect(int sourceX, int sourceY, int destX, int destY, int width, int height);
+    void copy_rect(int source_x, int source_y, int dest_x, int dest_y, int width, int height);
 
     /**
    * @brief Draws a bitmap at specified position.
@@ -724,7 +725,7 @@ public:
    * @param Y Vertical position of bitmap top side.
    * @param bitmap Pointer to bitmap structure.
    */
-    void drawBitmap(int X, int Y, Bitmap const *bitmap);
+    void draw_bitmap(int x, int y, bitmap const *bitmap);
 
     /**
    * @brief Draws a sequence of lines.
@@ -738,7 +739,7 @@ public:
    *     Canvas.setPenColor(Color::Red);
    *     Canvas.drawPath(points, 3);
    */
-    void drawPath(Point const *points, int pointsCount);
+    void draw_path(point const *points, int points_count);
 
     /**
    * @brief Fills the polygon enclosed in a sequence of lines.
@@ -752,7 +753,7 @@ public:
    *     Canvas.setBrushColor(Color::Red);
    *     Canvas.fillPath(points, 3);
    */
-    void fillPath(Point const *points, int pointsCount);
+    void fill_path(point const *points, int points_count);
 
     /**
    * @brief Reads the pixel at specified position.
@@ -765,18 +766,18 @@ public:
    *
    * @return Pixel color as RGB888 structure.
    */
-    RGB888 getPixel(int X, int Y);
+    rgb888 pixel(int x, int y);
 
 private:
 
-    BitmappedDisplayController *m_displayController;
+    bitmapped_display_controller *_display_controller;
 
-    FontInfo const *m_fontInfo;
+    font_info const *_font_info;
     uint8_t
-        m_textHorizRate; // specify character size: 1 = m_fontInfo.width, 2 = m_fontInfo.width * 2, etc...
+        _text_horiz_rate; // specify character size: 1 = m_fontInfo.width, 2 = m_fontInfo.width * 2, etc...
 
-    Point m_origin;
-    Rect m_clippingRect;
+    point _origin;
+    rect _clipping_rect;
 };
 
 

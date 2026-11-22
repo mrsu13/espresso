@@ -44,37 +44,37 @@ namespace esp::ps2
 
 
 // associates virtual key to ASCII code
-struct VirtualKeyToASCII
+struct virtual_key_ascii
 {
-    VirtualKey vk;
-    uint8_t ASCII;
+    virtual_key vk;
+    uint8_t ascii;
 };
 
 
-struct CodePage
+struct code_page
 {
     uint16_t codepage;
-    const VirtualKeyToASCII *convTable; // last item has vk = VK_NONE (ending marker)
+    const virtual_key_ascii *conv_table; // last item has vk = VK_NONE (ending marker)
 };
 
 
-extern const CodePage CodePage437;
-extern const CodePage CodePage1252;
+extern const code_page CODE_PAGE_437;
+extern const code_page CODE_PAGE_1252;
 
 
-struct CodePages
+struct code_pages
 {
     static int count()
     {
         return 2;
     }
-    static CodePage const *get(uint16_t codepage, CodePage const *defaultValue = &CodePage437)
+    static code_page const *get(uint16_t codepage, code_page const *default_value = &CODE_PAGE_437)
     {
-        static const CodePage *codepages[] = {&CodePage437, &CodePage1252};
-        for (int i = 0; i < sizeof(CodePage) / sizeof(CodePage *); ++i)
+        static const code_page *codepages[] = {&CODE_PAGE_437, &CODE_PAGE_1252};
+        for (int i = 0; i < sizeof(code_page) / sizeof(code_page *); ++i)
             if (codepages[i]->codepage == codepage)
                 return codepages[i];
-        return defaultValue;
+        return default_value;
     }
 };
 
@@ -93,7 +93,7 @@ struct CodePages
  *
  * @return The ASCII code of virtual key or -1 if virtual key cannot be translated to ASCII.
  */
-int virtualKeyToASCII(VirtualKeyItem const &item, CodePage const *codepage);
+int virtual_key_to_ascii(virtual_key_item const &item, code_page const *codepage);
 
 
 } // end of namespace

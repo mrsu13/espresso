@@ -31,7 +31,7 @@ The whole program is one ESP-IDF component, `src` (see `src/CMakeLists.txt`):
 The graphics, VGA, PS/2 and sound classes and the shared helpers in `src/tools/esp_tools.*` are
 derived from [FabGL](http://www.fabgl.com) 1.0.9 by Fabrizio Di Vittorio (GPL-3.0), taken from
 its ESP-IDF 6 port (https://github.com/shaeberling/FabGL, branch idf6-port, commit 3f21e97).
-`Sprite::nextFrame()` includes a fix by Dean Belfield from vdp-gl
+`sprite::next_frame()` includes a fix by Dean Belfield from vdp-gl
 (https://github.com/AgonConsole8/vdp-gl). `src/ps2/esp_ps2_ulp_macro_ex.cpp` is based on
 `ulp_macro.c` from ESP-IDF (Espressif, Apache-2.0).
 

@@ -45,7 +45,7 @@ namespace esp::gfx
 
 
 // Array to convert Color enum to RGB888 struct
-const RGB888 COLOR2RGB888[16] = {
+const rgb888 COLOR2RGB888[16] = {
     {0, 0, 0}, // Black
     {128, 0, 0}, // Red
     {0, 128, 0}, // Green
@@ -69,26 +69,26 @@ const RGB888 COLOR2RGB888[16] = {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // RGB222 implementation
 
-bool RGB222::lowBitOnly = false;
+bool rgb222::low_bit_only = false;
 
 
 //   0 ..  63 => 0
 //  64 .. 127 => 1
 // 128 .. 191 => 2
 // 192 .. 255 => 3
-RGB222::RGB222(RGB888 const &value)
+rgb222::rgb222(rgb888 const &value)
 {
-    if (lowBitOnly)
+    if (low_bit_only)
     {
-        R = value.R ? 3 : 0;
-        G = value.G ? 3 : 0;
-        B = value.B ? 3 : 0;
+        r = value.r ? 3 : 0;
+        g = value.g ? 3 : 0;
+        b = value.b ? 3 : 0;
     }
     else
     {
-        R = value.R >> 6;
-        G = value.G >> 6;
-        B = value.B >> 6;
+        r = value.r >> 6;
+        g = value.g >> 6;
+        b = value.b >> 6;
     }
 }
 
@@ -98,7 +98,7 @@ RGB222::RGB222(RGB888 const &value)
 // RGB888 implementation
 
 
-RGB888::RGB888(Color color)
+rgb888::rgb888(color color)
 {
     *this = COLOR2RGB888[(int)color];
 }
@@ -108,7 +108,7 @@ RGB888::RGB888(Color color)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // RGB888toPackedRGB222()
 
-uint8_t RGB888toPackedRGB222(RGB888 const &rgb)
+uint8_t rgb888_to_packed_rgb222(rgb888 const &rgb)
 {
     // 64 colors
     static const int CONVR64[4] = {
@@ -149,10 +149,10 @@ uint8_t RGB888toPackedRGB222(RGB888 const &rgb)
         3 << 4,
     }; // 11XXXXXX (192..255)
 
-    if (RGB222::lowBitOnly)
-        return (CONVR8[rgb.R >> 6]) | (CONVG8[rgb.G >> 6]) | (CONVB8[rgb.B >> 6]);
+    if (rgb222::low_bit_only)
+        return (CONVR8[rgb.r >> 6]) | (CONVG8[rgb.g >> 6]) | (CONVB8[rgb.b >> 6]);
     else
-        return (CONVR64[rgb.R >> 6]) | (CONVG64[rgb.G >> 6]) | (CONVB64[rgb.B >> 6]);
+        return (CONVR64[rgb.r >> 6]) | (CONVG64[rgb.g >> 6]) | (CONVB64[rgb.b >> 6]);
 }
 
 
@@ -161,83 +161,84 @@ uint8_t RGB888toPackedRGB222(RGB888 const &rgb)
 // Sprite implementation
 
 
-Sprite::Sprite()
+sprite::sprite()
 {
     x = 0;
     y = 0;
-    currentFrame = 0;
+    current_frame = 0;
     frames = nullptr;
-    framesCount = 0;
-    savedBackgroundWidth = 0;
-    savedBackgroundHeight = 0;
-    savedBackground = nullptr; // allocated or reallocated when bitmaps are added
-    savedX = 0;
-    savedY = 0;
+    frames_count = 0;
+    saved_background_width = 0;
+    saved_background_height = 0;
+    saved_background = nullptr; // allocated or reallocated when bitmaps are added
+    saved_x = 0;
+    saved_y = 0;
     visible = true;
-    isStatic = false;
-    allowDraw = true;
+    is_static = false;
+    allow_draw = true;
 }
 
 
-Sprite::~Sprite()
+sprite::~sprite()
 {
     free(frames);
-    free(savedBackground);
+    free(saved_background);
 }
 
 
-void Sprite::clearBitmaps()
+void sprite::clear_bitmaps()
 {
     free(frames);
     frames = nullptr;
-    framesCount = 0;
+    frames_count = 0;
 }
 
 
-Sprite *Sprite::addBitmap(Bitmap *bitmap)
+sprite *sprite::add_bitmap(bitmap *bitmap)
 {
-    ++framesCount;
-    frames = (Bitmap **)realloc(frames, sizeof(Bitmap *) * framesCount);
-    frames[framesCount - 1] = bitmap;
+    ++frames_count;
+    frames = (esp::gfx::bitmap **)realloc(frames, sizeof(esp::gfx::bitmap *) * frames_count);
+    frames[frames_count - 1] = bitmap;
     return this;
 }
 
 
-Sprite *Sprite::addBitmap(Bitmap *bitmap[], int count)
+sprite *sprite::add_bitmap(bitmap *bitmap[], int count)
 {
-    frames = (Bitmap **)realloc(frames, sizeof(Bitmap *) * (framesCount + count));
+    frames =
+        (esp::gfx::bitmap **)realloc(frames, sizeof(esp::gfx::bitmap *) * (frames_count + count));
     for (int i = 0; i < count; ++i)
-        frames[framesCount + i] = bitmap[i];
-    framesCount += count;
+        frames[frames_count + i] = bitmap[i];
+    frames_count += count;
     return this;
 }
 
 
-Sprite *Sprite::moveBy(int offsetX, int offsetY)
+sprite *sprite::move_by(int offset_x, int offset_y)
 {
-    x += offsetX;
-    y += offsetY;
+    x += offset_x;
+    y += offset_y;
     return this;
 }
 
 
-Sprite *Sprite::moveBy(int offsetX, int offsetY, int wrapAroundWidth, int wrapAroundHeight)
+sprite *sprite::move_by(int offset_x, int offset_y, int wrap_around_width, int wrap_around_height)
 {
-    x += offsetX;
-    y += offsetY;
-    if (x > wrapAroundWidth)
-        x = -(int)getWidth();
-    if (x < -(int)getWidth())
-        x = wrapAroundWidth;
-    if (y > wrapAroundHeight)
-        y = -(int)getHeight();
-    if (y < -(int)getHeight())
-        y = wrapAroundHeight;
+    x += offset_x;
+    y += offset_y;
+    if (x > wrap_around_width)
+        x = -(int)width();
+    if (x < -(int)width())
+        x = wrap_around_width;
+    if (y > wrap_around_height)
+        y = -(int)height();
+    if (y < -(int)height())
+        y = wrap_around_height;
     return this;
 }
 
 
-Sprite *Sprite::moveTo(int x, int y)
+sprite *sprite::move_to(int x, int y)
 {
     this->x = x;
     this->y = y;
@@ -250,51 +251,51 @@ Sprite *Sprite::moveTo(int x, int y)
 // Bitmap implementation
 
 
-Bitmap::Bitmap(int width_, int height_, void const *data_, PixelFormat format_,
-               RGB888 foregroundColor_, bool copy)
+bitmap::bitmap(int width_, int height_, void const *data_, pixel_format format_,
+               rgb888 foreground_color_, bool copy)
     : width(width_)
     , height(height_)
     , format(format_)
-    , foregroundColor(foregroundColor_)
+    , foreground_color(foreground_color_)
     , data((uint8_t *)data_)
-    , dataAllocated(false)
+    , data_allocated(false)
 {
     if (copy)
     {
         allocate();
-        copyFrom(data_);
+        copy_from(data_);
     }
 }
 
 
-Bitmap::Bitmap(int width_, int height_, void const *data_, PixelFormat format_, bool copy)
-    : Bitmap(width_, height_, data_, format_, RGB888(255, 255, 255), copy)
+bitmap::bitmap(int width_, int height_, void const *data_, pixel_format format_, bool copy)
+    : bitmap(width_, height_, data_, format_, rgb888(255, 255, 255), copy)
 {
 }
 
 
-void Bitmap::allocate()
+void bitmap::allocate()
 {
-    if (dataAllocated)
+    if (data_allocated)
     {
         free((void *)data);
         data = nullptr;
     }
-    dataAllocated = true;
+    data_allocated = true;
     switch (format)
     {
-        case PixelFormat::Undefined:
-        case PixelFormat::Native:
+        case pixel_format::undefined:
+        case pixel_format::native:
             break;
-        case PixelFormat::Mask:
+        case pixel_format::mask:
             data = (uint8_t *)heap_caps_malloc((width + 7) / 8 * height,
                                                MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
             break;
-        case PixelFormat::RGBA2222:
+        case pixel_format::rgba2222:
             data =
                 (uint8_t *)heap_caps_malloc(width * height, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
             break;
-        case PixelFormat::RGBA8888:
+        case pixel_format::rgba8888:
             data = (uint8_t *)heap_caps_malloc(width * height * 4,
                                                MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
             break;
@@ -303,27 +304,27 @@ void Bitmap::allocate()
 
 
 // data must have the same pixel format
-void Bitmap::copyFrom(void const *srcData)
+void bitmap::copy_from(void const *src_data)
 {
     switch (format)
     {
-        case PixelFormat::Undefined:
-        case PixelFormat::Native:
+        case pixel_format::undefined:
+        case pixel_format::native:
             break;
-        case PixelFormat::Mask:
-            memcpy(data, srcData, (width + 7) / 8 * height);
+        case pixel_format::mask:
+            memcpy(data, src_data, (width + 7) / 8 * height);
             break;
-        case PixelFormat::RGBA2222:
-            memcpy(data, srcData, width * height);
+        case pixel_format::rgba2222:
+            memcpy(data, src_data, width * height);
             break;
-        case PixelFormat::RGBA8888:
-            memcpy(data, srcData, width * height * 4);
+        case pixel_format::rgba8888:
+            memcpy(data, src_data, width * height * 4);
             break;
     }
 }
 
 
-void Bitmap::setPixel(int x, int y, int value)
+void bitmap::set_pixel(int x, int y, int value)
 {
     int rowlen = (width + 7) / 8;
     uint8_t *rowptr = data + y * rowlen;
@@ -334,49 +335,49 @@ void Bitmap::setPixel(int x, int y, int value)
 }
 
 
-void Bitmap::setPixel(int x, int y, RGBA2222 value)
+void bitmap::set_pixel(int x, int y, rgba2222 value)
 {
-    ((RGBA2222 *)data)[y * width + x] = value;
+    ((rgba2222 *)data)[y * width + x] = value;
 }
 
 
-void Bitmap::setPixel(int x, int y, RGBA8888 value)
+void bitmap::set_pixel(int x, int y, rgba8888 value)
 {
-    ((RGBA8888 *)data)[y * width + x] = value;
+    ((rgba8888 *)data)[y * width + x] = value;
 }
 
 
-int Bitmap::getAlpha(int x, int y)
+int bitmap::alpha(int x, int y)
 {
     int r = 0;
     switch (format)
     {
-        case PixelFormat::Undefined:
+        case pixel_format::undefined:
             break;
-        case PixelFormat::Native:
+        case pixel_format::native:
             r = 0xff;
             break;
-        case PixelFormat::Mask:
+        case pixel_format::mask:
         {
             int rowlen = (width + 7) / 8;
             uint8_t *rowptr = data + y * rowlen;
             r = (rowptr[x >> 3] >> (7 - (x & 7))) & 1;
             break;
         }
-        case PixelFormat::RGBA2222:
-            r = ((RGBA2222 *)data)[y * height + x].A;
+        case pixel_format::rgba2222:
+            r = ((rgba2222 *)data)[y * height + x].a;
             break;
-        case PixelFormat::RGBA8888:
-            r = ((RGBA8888 *)data)[y * height + x].A;
+        case pixel_format::rgba8888:
+            r = ((rgba8888 *)data)[y * height + x].a;
             break;
     }
     return r;
 }
 
 
-Bitmap::~Bitmap()
+bitmap::~bitmap()
 {
-    if (dataAllocated)
+    if (data_allocated)
         heap_caps_free((void *)data);
 }
 
@@ -386,89 +387,90 @@ Bitmap::~Bitmap()
 // BitmappedDisplayController implementation
 
 
-int BitmappedDisplayController::queueSize = FABGLIB_DEFAULT_DISPLAYCONTROLLER_QUEUE_SIZE;
+int bitmapped_display_controller::queue_size = FABGLIB_DEFAULT_DISPLAYCONTROLLER_QUEUE_SIZE;
 
 
-BitmappedDisplayController::BitmappedDisplayController()
-    : m_primDynMemPool(FABGLIB_PRIMITIVES_DYNBUFFERS_SIZE)
+bitmapped_display_controller::bitmapped_display_controller()
+    : _prim_dyn_mem_pool(FABGLIB_PRIMITIVES_DYNBUFFERS_SIZE)
 {
-    m_execQueue = nullptr;
-    m_execQueueAlt = nullptr;
-    m_backgroundPrimitiveExecutionEnabled = true;
-    m_sprites = nullptr;
-    m_spritesCount = 0;
-    m_doubleBufferedSetup = false;
-    m_doubleBufferedEnabled = false;
-    m_mouseCursor.visible = false;
-    m_backgroundPrimitiveTimeoutEnabled = true;
-    m_spritesHidden = true;
+    _exec_queue = nullptr;
+    _exec_queue_alt = nullptr;
+    _background_primitive_execution_enabled = true;
+    _sprites = nullptr;
+    _sprites_count = 0;
+    _double_buffered_setup = false;
+    _double_buffered_enabled = false;
+    _mouse_cursor.visible = false;
+    _background_primitive_timeout_enabled = true;
+    _sprites_hidden = true;
 }
 
 
-BitmappedDisplayController::~BitmappedDisplayController()
+bitmapped_display_controller::~bitmapped_display_controller()
 {
-    vQueueDelete(m_execQueue);
-    if (m_execQueueAlt)
-        vQueueDelete(m_execQueueAlt);
+    vQueueDelete(_exec_queue);
+    if (_exec_queue_alt)
+        vQueueDelete(_exec_queue_alt);
 }
 
 
-void BitmappedDisplayController::setDoubleBuffered(bool value)
+void bitmapped_display_controller::set_double_buffered(bool value)
 {
-    m_doubleBufferedSetup = value;
-    m_doubleBufferedEnabled = value;
-    if (m_execQueue)
-        vQueueDelete(m_execQueue);
+    _double_buffered_setup = value;
+    _double_buffered_enabled = value;
+    if (_exec_queue)
+        vQueueDelete(_exec_queue);
     // on double buffering a queue of single element is enough and necessary (see addPrimitive() for details)
-    m_execQueue =
-        xQueueCreate(value ? 1 : BitmappedDisplayController::queueSize, sizeof(Primitive));
+    _exec_queue =
+        xQueueCreate(value ? 1 : bitmapped_display_controller::queue_size, sizeof(primitive));
 }
 
 
 // return previous value
-bool BitmappedDisplayController::suspendDoubleBuffering(bool value)
+bool bitmapped_display_controller::suspend_double_buffering(bool value)
 {
-    auto ret = !m_doubleBufferedEnabled;
-    if (m_doubleBufferedSetup && m_doubleBufferedEnabled == value)
+    auto ret = !_double_buffered_enabled;
+    if (_double_buffered_setup && _double_buffered_enabled == value)
     {
-        processPrimitives();
-        if (value && !m_execQueueAlt)
+        process_primitives();
+        if (value && !_exec_queue_alt)
         {
             // need to create alternate primitives queue
-            m_execQueueAlt = xQueueCreate(BitmappedDisplayController::queueSize, sizeof(Primitive));
+            _exec_queue_alt =
+                xQueueCreate(bitmapped_display_controller::queue_size, sizeof(primitive));
         }
-        esp::tswap(m_execQueueAlt, m_execQueue);
-        m_doubleBufferedEnabled = !value;
+        esp::tswap(_exec_queue_alt, _exec_queue);
+        _double_buffered_enabled = !value;
     }
     return ret;
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::resetPaintState()
+void IRAM_ATTR bitmapped_display_controller::reset_paint_state()
 {
-    m_paintState.penColor = RGB888(255, 255, 255);
-    m_paintState.brushColor = RGB888(0, 0, 0);
-    m_paintState.position = Point(0, 0);
-    m_paintState.glyphOptions.value = 0; // all options: 0
-    m_paintState.paintOptions = PaintOptions();
-    m_paintState.scrollingRegion = Rect(0, 0, getViewPortWidth() - 1, getViewPortHeight() - 1);
-    m_paintState.origin = Point(0, 0);
-    m_paintState.clippingRect = Rect(0, 0, getViewPortWidth() - 1, getViewPortHeight() - 1);
-    m_paintState.absClippingRect = m_paintState.clippingRect;
-    m_paintState.penWidth = 1;
-    m_paintState.lineEnds = LineEnds::None;
+    _paint_state.pen_color = rgb888(255, 255, 255);
+    _paint_state.brush_color = rgb888(0, 0, 0);
+    _paint_state.position = point(0, 0);
+    _paint_state.glyph_options.value = 0; // all options: 0
+    _paint_state.paint_options = paint_options();
+    _paint_state.scrolling_region = rect(0, 0, view_port_width() - 1, view_port_height() - 1);
+    _paint_state.origin = point(0, 0);
+    _paint_state.clipping_rect = rect(0, 0, view_port_width() - 1, view_port_height() - 1);
+    _paint_state.abs_clipping_rect = _paint_state.clipping_rect;
+    _paint_state.pen_width = 1;
+    _paint_state.line_ends = line_ends::none;
 }
 
 
-void BitmappedDisplayController::addPrimitive(Primitive &primitive)
+void bitmapped_display_controller::add_primitive(primitive &primitive)
 {
-    if ((m_backgroundPrimitiveExecutionEnabled && m_doubleBufferedEnabled == false)
-        || primitive.cmd == PrimitiveCmd::SwapBuffers)
+    if ((_background_primitive_execution_enabled && _double_buffered_enabled == false)
+        || primitive.cmd == primitive_cmd::swap_buffers)
     {
-        primitiveReplaceDynamicBuffers(primitive);
-        xQueueSendToBack(m_execQueue, &primitive, portMAX_DELAY);
+        primitive_replace_dynamic_buffers(primitive);
+        xQueueSendToBack(_exec_queue, &primitive, portMAX_DELAY);
 
-        if (m_doubleBufferedEnabled)
+        if (_double_buffered_enabled)
         {
             // wait notify from PrimitiveCmd::SwapBuffers executor
             ulTaskNotifyTake(true, portMAX_DELAY);
@@ -476,9 +478,9 @@ void BitmappedDisplayController::addPrimitive(Primitive &primitive)
     }
     else
     {
-        Rect updateRect = Rect(SHRT_MAX, SHRT_MAX, SHRT_MIN, SHRT_MIN);
-        execPrimitive(primitive, updateRect, false);
-        showSprites(updateRect);
+        rect update_rect = rect(SHRT_MAX, SHRT_MAX, SHRT_MIN, SHRT_MIN);
+        exec_primitive(primitive, update_rect, false);
+        show_sprites(update_rect);
     }
 }
 
@@ -486,23 +488,23 @@ void BitmappedDisplayController::addPrimitive(Primitive &primitive)
 // some primitives require additional buffers (like drawPath and fillPath).
 // this function copies primitive data into an allocated buffer (using LightMemoryPool allocator) that
 // will be released inside primitive drawing code.
-void BitmappedDisplayController::primitiveReplaceDynamicBuffers(Primitive &primitive)
+void bitmapped_display_controller::primitive_replace_dynamic_buffers(primitive &primitive)
 {
     switch (primitive.cmd)
     {
-        case PrimitiveCmd::DrawPath:
-        case PrimitiveCmd::FillPath:
+        case primitive_cmd::draw_path:
+        case primitive_cmd::fill_path:
         {
-            int sz = primitive.path.pointsCount * sizeof(Point);
+            int sz = primitive.path.points_count * sizeof(point);
             if (sz < FABGLIB_PRIMITIVES_DYNBUFFERS_SIZE)
             {
                 void *newbuf = nullptr;
                 // wait until we have enough free space
-                while ((newbuf = m_primDynMemPool.alloc(sz)) == nullptr)
+                while ((newbuf = _prim_dyn_mem_pool.alloc(sz)) == nullptr)
                     taskYIELD();
                 memcpy(newbuf, primitive.path.points, sz);
-                primitive.path.points = (Point *)newbuf;
-                primitive.path.freePoints = true;
+                primitive.path.points = (point *)newbuf;
+                primitive.path.free_points = true;
             }
             break;
         }
@@ -514,31 +516,31 @@ void BitmappedDisplayController::primitiveReplaceDynamicBuffers(Primitive &primi
 
 
 // call this only inside an ISR
-bool IRAM_ATTR BitmappedDisplayController::getPrimitiveISR(Primitive *primitive)
+bool IRAM_ATTR bitmapped_display_controller::get_primitive_isr(primitive *primitive)
 {
-    return xQueueReceiveFromISR(m_execQueue, primitive, nullptr);
+    return xQueueReceiveFromISR(_exec_queue, primitive, nullptr);
 }
 
 
-bool BitmappedDisplayController::getPrimitive(Primitive *primitive, int timeOutMS)
+bool bitmapped_display_controller::get_primitive(primitive *primitive, int time_out_ms)
 {
-    return xQueueReceive(m_execQueue, primitive, esp::msToTicks(timeOutMS));
+    return xQueueReceive(_exec_queue, primitive, esp::ms_to_ticks(time_out_ms));
 }
 
 
 // cannot be called inside an ISR
-void BitmappedDisplayController::waitForPrimitives()
+void bitmapped_display_controller::wait_for_primitives()
 {
-    Primitive p;
-    xQueuePeek(m_execQueue, &p, portMAX_DELAY);
+    primitive p;
+    xQueuePeek(_exec_queue, &p, portMAX_DELAY);
 }
 
 
-void BitmappedDisplayController::primitivesExecutionWait()
+void bitmapped_display_controller::primitives_execution_wait()
 {
-    if (m_backgroundPrimitiveExecutionEnabled)
+    if (_background_primitive_execution_enabled)
     {
-        while (uxQueueMessagesWaiting(m_execQueue) > 0)
+        while (uxQueueMessagesWaiting(_exec_queue) > 0)
             ;
     }
 }
@@ -547,432 +549,437 @@ void BitmappedDisplayController::primitivesExecutionWait()
 // When false primitives are executed immediately, otherwise they are added to the primitive queue
 // When set to false the queue is emptied executing all pending primitives
 // Cannot be nested
-void BitmappedDisplayController::enableBackgroundPrimitiveExecution(bool value)
+void bitmapped_display_controller::enable_background_primitive_execution(bool value)
 {
-    if (value != m_backgroundPrimitiveExecutionEnabled)
+    if (value != _background_primitive_execution_enabled)
     {
         if (value)
         {
-            resumeBackgroundPrimitiveExecution();
+            resume_background_primitive_execution();
         }
         else
         {
-            suspendBackgroundPrimitiveExecution();
-            processPrimitives();
+            suspend_background_primitive_execution();
+            process_primitives();
         }
-        m_backgroundPrimitiveExecutionEnabled = value;
+        _background_primitive_execution_enabled = value;
     }
 }
 
 
 // Use for fast queue processing. Warning, may generate flickering because don't care of vertical sync
 // Do not call inside ISR
-void IRAM_ATTR BitmappedDisplayController::processPrimitives()
+void IRAM_ATTR bitmapped_display_controller::process_primitives()
 {
-    suspendBackgroundPrimitiveExecution();
-    Rect updateRect = Rect(SHRT_MAX, SHRT_MAX, SHRT_MIN, SHRT_MIN);
-    Primitive prim;
-    while (xQueueReceive(m_execQueue, &prim, 0) == pdTRUE)
-        execPrimitive(prim, updateRect, false);
-    showSprites(updateRect);
-    resumeBackgroundPrimitiveExecution();
-    Primitive p(PrimitiveCmd::Refresh, updateRect);
-    addPrimitive(p);
+    suspend_background_primitive_execution();
+    rect update_rect = rect(SHRT_MAX, SHRT_MAX, SHRT_MIN, SHRT_MIN);
+    primitive prim;
+    while (xQueueReceive(_exec_queue, &prim, 0) == pdTRUE)
+        exec_primitive(prim, update_rect, false);
+    show_sprites(update_rect);
+    resume_background_primitive_execution();
+    primitive p(primitive_cmd::refresh, update_rect);
+    add_primitive(p);
 }
 
 
-void BitmappedDisplayController::setSprites(Sprite *sprites, int count, int spriteSize)
+void bitmapped_display_controller::set_sprites(sprite *sprites, int count, int sprite_size)
 {
-    processPrimitives();
-    primitivesExecutionWait();
-    m_sprites = sprites;
-    m_spriteSize = spriteSize;
-    m_spritesCount = count;
+    process_primitives();
+    primitives_execution_wait();
+    _sprites = sprites;
+    _sprite_size = sprite_size;
+    _sprites_count = count;
 
     // allocates background buffer
-    if (!isDoubleBufferedEnabled())
+    if (!is_double_buffered_enabled())
     {
-        uint8_t *spritePtr = (uint8_t *)m_sprites;
-        for (int i = 0; i < m_spritesCount; ++i, spritePtr += m_spriteSize)
+        uint8_t *sprite_ptr = (uint8_t *)_sprites;
+        for (int i = 0; i < _sprites_count; ++i, sprite_ptr += _sprite_size)
         {
-            Sprite *sprite = (Sprite *)spritePtr;
-            int reqBackBufferSize = 0;
-            for (int i = 0; i < sprite->framesCount; ++i)
-                reqBackBufferSize = esp::tmax(reqBackBufferSize,
-                                              sprite->frames[i]->width * getBitmapSavePixelSize()
-                                                  * sprite->frames[i]->height);
-            if (reqBackBufferSize > 0)
-                sprite->savedBackground =
-                    (uint8_t *)realloc(sprite->savedBackground, reqBackBufferSize);
+            sprite *sprite = (esp::gfx::sprite *)sprite_ptr;
+            int req_back_buffer_size = 0;
+            for (int i = 0; i < sprite->frames_count; ++i)
+                req_back_buffer_size = esp::tmax(req_back_buffer_size,
+                                                 sprite->frames[i]->width * bitmap_save_pixel_size()
+                                                     * sprite->frames[i]->height);
+            if (req_back_buffer_size > 0)
+                sprite->saved_background =
+                    (uint8_t *)realloc(sprite->saved_background, req_back_buffer_size);
         }
     }
 }
 
 
-Sprite *IRAM_ATTR BitmappedDisplayController::getSprite(int index)
+sprite *IRAM_ATTR bitmapped_display_controller::get_sprite(int index)
 {
-    return (Sprite *)((uint8_t *)m_sprites + index * m_spriteSize);
+    return (sprite *)((uint8_t *)_sprites + index * _sprite_size);
 }
 
 
-void BitmappedDisplayController::refreshSprites()
+void bitmapped_display_controller::refresh_sprites()
 {
-    Primitive p(PrimitiveCmd::RefreshSprites);
-    addPrimitive(p);
+    primitive p(primitive_cmd::refresh_sprites);
+    add_primitive(p);
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::hideSprites(Rect &updateRect)
+void IRAM_ATTR bitmapped_display_controller::hide_sprites(esp::gfx::rect &update_rect)
 {
-    if (!m_spritesHidden)
+    if (!_sprites_hidden)
     {
-        m_spritesHidden = true;
+        _sprites_hidden = true;
 
         // normal sprites
-        if (spritesCount() > 0 && !isDoubleBufferedEnabled())
+        if (sprites_count() > 0 && !is_double_buffered_enabled())
         {
             // restore saved backgrounds
-            for (int i = spritesCount() - 1; i >= 0; --i)
+            for (int i = sprites_count() - 1; i >= 0; --i)
             {
-                Sprite *sprite = getSprite(i);
-                if (sprite->allowDraw && sprite->savedBackgroundWidth > 0)
+                sprite *sprite = get_sprite(i);
+                if (sprite->allow_draw && sprite->saved_background_width > 0)
                 {
-                    int savedX = sprite->savedX;
-                    int savedY = sprite->savedY;
-                    int savedWidth = sprite->savedBackgroundWidth;
-                    int savedHeight = sprite->savedBackgroundHeight;
-                    Bitmap bitmap(savedWidth, savedHeight, sprite->savedBackground,
-                                  PixelFormat::Native);
-                    absDrawBitmap(savedX, savedY, &bitmap, nullptr, true);
-                    updateRect = updateRect.merge(
-                        Rect(savedX, savedY, savedX + savedWidth - 1, savedY + savedHeight - 1));
-                    sprite->savedBackgroundWidth = sprite->savedBackgroundHeight = 0;
+                    int saved_x = sprite->saved_x;
+                    int saved_y = sprite->saved_y;
+                    int saved_width = sprite->saved_background_width;
+                    int saved_height = sprite->saved_background_height;
+                    bitmap bitmap(saved_width, saved_height, sprite->saved_background,
+                                  pixel_format::native);
+                    abs_draw_bitmap(saved_x, saved_y, &bitmap, nullptr, true);
+                    update_rect = update_rect.merge(rect(
+                        saved_x, saved_y, saved_x + saved_width - 1, saved_y + saved_height - 1));
+                    sprite->saved_background_width = sprite->saved_background_height = 0;
                 }
             }
         }
 
         // mouse cursor sprite
-        Sprite *mouseSprite = mouseCursor();
-        if (mouseSprite->savedBackgroundWidth > 0)
+        sprite *mouse_sprite = mouse_cursor();
+        if (mouse_sprite->saved_background_width > 0)
         {
-            int savedX = mouseSprite->savedX;
-            int savedY = mouseSprite->savedY;
-            int savedWidth = mouseSprite->savedBackgroundWidth;
-            int savedHeight = mouseSprite->savedBackgroundHeight;
-            Bitmap bitmap(savedWidth, savedHeight, mouseSprite->savedBackground,
-                          PixelFormat::Native);
-            absDrawBitmap(savedX, savedY, &bitmap, nullptr, true);
-            updateRect = updateRect.merge(
-                Rect(savedX, savedY, savedX + savedWidth - 1, savedY + savedHeight - 1));
-            mouseSprite->savedBackgroundWidth = mouseSprite->savedBackgroundHeight = 0;
+            int saved_x = mouse_sprite->saved_x;
+            int saved_y = mouse_sprite->saved_y;
+            int saved_width = mouse_sprite->saved_background_width;
+            int saved_height = mouse_sprite->saved_background_height;
+            bitmap bitmap(saved_width, saved_height, mouse_sprite->saved_background,
+                          pixel_format::native);
+            abs_draw_bitmap(saved_x, saved_y, &bitmap, nullptr, true);
+            update_rect = update_rect.merge(
+                rect(saved_x, saved_y, saved_x + saved_width - 1, saved_y + saved_height - 1));
+            mouse_sprite->saved_background_width = mouse_sprite->saved_background_height = 0;
         }
     }
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::showSprites(Rect &updateRect)
+void IRAM_ATTR bitmapped_display_controller::show_sprites(esp::gfx::rect &update_rect)
 {
-    if (m_spritesHidden)
+    if (_sprites_hidden)
     {
-        m_spritesHidden = false;
+        _sprites_hidden = false;
 
         // normal sprites
         // save backgrounds and draw sprites
-        for (int i = 0; i < spritesCount(); ++i)
+        for (int i = 0; i < sprites_count(); ++i)
         {
-            Sprite *sprite = getSprite(i);
-            if (sprite->visible && sprite->allowDraw && sprite->getFrame())
+            sprite *sprite = get_sprite(i);
+            if (sprite->visible && sprite->allow_draw && sprite->frame())
             {
                 // save sprite X and Y so other threads can change them without interferring
-                int spriteX = sprite->x;
-                int spriteY = sprite->y;
-                Bitmap const *bitmap = sprite->getFrame();
-                int bitmapWidth = bitmap->width;
-                int bitmapHeight = bitmap->height;
-                absDrawBitmap(spriteX, spriteY, bitmap, sprite->savedBackground, true);
-                sprite->savedX = spriteX;
-                sprite->savedY = spriteY;
-                sprite->savedBackgroundWidth = bitmapWidth;
-                sprite->savedBackgroundHeight = bitmapHeight;
-                if (sprite->isStatic)
-                    sprite->allowDraw = false;
-                updateRect = updateRect.merge(
-                    Rect(spriteX, spriteY, spriteX + bitmapWidth - 1, spriteY + bitmapHeight - 1));
+                int sprite_x = sprite->x;
+                int sprite_y = sprite->y;
+                bitmap const *bitmap = sprite->frame();
+                int bitmap_width = bitmap->width;
+                int bitmap_height = bitmap->height;
+                abs_draw_bitmap(sprite_x, sprite_y, bitmap, sprite->saved_background, true);
+                sprite->saved_x = sprite_x;
+                sprite->saved_y = sprite_y;
+                sprite->saved_background_width = bitmap_width;
+                sprite->saved_background_height = bitmap_height;
+                if (sprite->is_static)
+                    sprite->allow_draw = false;
+                update_rect = update_rect.merge(rect(
+                    sprite_x, sprite_y, sprite_x + bitmap_width - 1, sprite_y + bitmap_height - 1));
             }
         }
 
         // mouse cursor sprite
         // save backgrounds and draw mouse cursor
-        Sprite *mouseSprite = mouseCursor();
-        if (mouseSprite->visible && mouseSprite->getFrame())
+        sprite *mouse_sprite = mouse_cursor();
+        if (mouse_sprite->visible && mouse_sprite->frame())
         {
             // save sprite X and Y so other threads can change them without interferring
-            int spriteX = mouseSprite->x;
-            int spriteY = mouseSprite->y;
-            Bitmap const *bitmap = mouseSprite->getFrame();
-            int bitmapWidth = bitmap->width;
-            int bitmapHeight = bitmap->height;
-            absDrawBitmap(spriteX, spriteY, bitmap, mouseSprite->savedBackground, true);
-            mouseSprite->savedX = spriteX;
-            mouseSprite->savedY = spriteY;
-            mouseSprite->savedBackgroundWidth = bitmapWidth;
-            mouseSprite->savedBackgroundHeight = bitmapHeight;
-            updateRect = updateRect.merge(
-                Rect(spriteX, spriteY, spriteX + bitmapWidth - 1, spriteY + bitmapHeight - 1));
+            int sprite_x = mouse_sprite->x;
+            int sprite_y = mouse_sprite->y;
+            bitmap const *bitmap = mouse_sprite->frame();
+            int bitmap_width = bitmap->width;
+            int bitmap_height = bitmap->height;
+            abs_draw_bitmap(sprite_x, sprite_y, bitmap, mouse_sprite->saved_background, true);
+            mouse_sprite->saved_x = sprite_x;
+            mouse_sprite->saved_y = sprite_y;
+            mouse_sprite->saved_background_width = bitmap_width;
+            mouse_sprite->saved_background_height = bitmap_height;
+            update_rect = update_rect.merge(rect(sprite_x, sprite_y, sprite_x + bitmap_width - 1,
+                                                 sprite_y + bitmap_height - 1));
         }
     }
 }
 
 
 // cursor = nullptr -> disable mouse
-void BitmappedDisplayController::setMouseCursor(Cursor *cursor)
+void bitmapped_display_controller::set_mouse_cursor(cursor *cursor)
 {
-    if (cursor == nullptr || &cursor->bitmap != m_mouseCursor.getFrame())
+    if (cursor == nullptr || &cursor->bitmap != _mouse_cursor.frame())
     {
-        m_mouseCursor.visible = false;
-        m_mouseCursor.clearBitmaps();
+        _mouse_cursor.visible = false;
+        _mouse_cursor.clear_bitmaps();
 
-        refreshSprites();
-        processPrimitives();
-        primitivesExecutionWait();
+        refresh_sprites();
+        process_primitives();
+        primitives_execution_wait();
 
         if (cursor)
         {
-            m_mouseCursor.moveBy(+m_mouseHotspotX, +m_mouseHotspotY);
-            m_mouseHotspotX = cursor->hotspotX;
-            m_mouseHotspotY = cursor->hotspotY;
-            m_mouseCursor.addBitmap(&cursor->bitmap);
-            m_mouseCursor.visible = true;
-            m_mouseCursor.moveBy(-m_mouseHotspotX, -m_mouseHotspotY);
-            if (!isDoubleBufferedEnabled())
-                m_mouseCursor.savedBackground = (uint8_t *)realloc(
-                    m_mouseCursor.savedBackground,
-                    cursor->bitmap.width * getBitmapSavePixelSize() * cursor->bitmap.height);
+            _mouse_cursor.move_by(+_mouse_hotspot_x, +_mouse_hotspot_y);
+            _mouse_hotspot_x = cursor->hotspot_x;
+            _mouse_hotspot_y = cursor->hotspot_y;
+            _mouse_cursor.add_bitmap(&cursor->bitmap);
+            _mouse_cursor.visible = true;
+            _mouse_cursor.move_by(-_mouse_hotspot_x, -_mouse_hotspot_y);
+            if (!is_double_buffered_enabled())
+                _mouse_cursor.saved_background = (uint8_t *)realloc(
+                    _mouse_cursor.saved_background,
+                    cursor->bitmap.width * bitmap_save_pixel_size() * cursor->bitmap.height);
         }
-        refreshSprites();
+        refresh_sprites();
     }
 }
 
 
-void BitmappedDisplayController::setMouseCursor(CursorName cursorName)
+void bitmapped_display_controller::set_mouse_cursor(cursor_name cursor_name)
 {
-    setMouseCursor(&CURSORS[(int)cursorName]);
+    set_mouse_cursor(&CURSORS[(int)cursor_name]);
 }
 
 
-void BitmappedDisplayController::setMouseCursorPos(int X, int Y)
+void bitmapped_display_controller::set_mouse_cursor_pos(int x, int y)
 {
-    m_mouseCursor.moveTo(X - m_mouseHotspotX, Y - m_mouseHotspotY);
-    refreshSprites();
+    _mouse_cursor.move_to(x - _mouse_hotspot_x, y - _mouse_hotspot_y);
+    refresh_sprites();
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::execPrimitive(Primitive const &prim, Rect &updateRect,
-                                                         bool insideISR)
+void IRAM_ATTR bitmapped_display_controller::exec_primitive(primitive const &prim,
+                                                            esp::gfx::rect &update_rect,
+                                                            bool inside_isr)
 {
     switch (prim.cmd)
     {
-        case PrimitiveCmd::Flush:
+        case primitive_cmd::flush:
             break;
-        case PrimitiveCmd::Refresh:
-            updateRect = updateRect.merge(prim.rect);
+        case primitive_cmd::refresh:
+            update_rect = update_rect.merge(prim.rect);
             break;
-        case PrimitiveCmd::Reset:
-            resetPaintState();
+        case primitive_cmd::reset:
+            reset_paint_state();
             break;
-        case PrimitiveCmd::SetPenColor:
-            paintState().penColor = prim.color;
+        case primitive_cmd::set_pen_color:
+            paint_state().pen_color = prim.color;
             break;
-        case PrimitiveCmd::SetBrushColor:
-            paintState().brushColor = prim.color;
+        case primitive_cmd::set_brush_color:
+            paint_state().brush_color = prim.color;
             break;
-        case PrimitiveCmd::SetPixel:
-            setPixelAt((PixelDesc){prim.position, getActualPenColor()}, updateRect);
+        case primitive_cmd::set_pixel:
+            set_pixel_at((pixel_desc){prim.position, actual_pen_color()}, update_rect);
             break;
-        case PrimitiveCmd::SetPixelAt:
-            setPixelAt(prim.pixelDesc, updateRect);
+        case primitive_cmd::set_pixel_at:
+            set_pixel_at(prim.pixel_desc, update_rect);
             break;
-        case PrimitiveCmd::MoveTo:
-            paintState().position = Point(prim.position.X + paintState().origin.X,
-                                          prim.position.Y + paintState().origin.Y);
+        case primitive_cmd::move_to:
+            paint_state().position = point(prim.position.x + paint_state().origin.x,
+                                           prim.position.y + paint_state().origin.y);
             break;
-        case PrimitiveCmd::LineTo:
-            lineTo(prim.position, updateRect);
+        case primitive_cmd::line_to:
+            line_to(prim.position, update_rect);
             break;
-        case PrimitiveCmd::FillRect:
-            fillRect(prim.rect, getActualBrushColor(), updateRect);
+        case primitive_cmd::fill_rect:
+            fill_rect(prim.rect, actual_brush_color(), update_rect);
             break;
-        case PrimitiveCmd::DrawRect:
-            drawRect(prim.rect, updateRect);
+        case primitive_cmd::draw_rect:
+            draw_rect(prim.rect, update_rect);
             break;
-        case PrimitiveCmd::FillEllipse:
-            fillEllipse(paintState().position.X, paintState().position.Y, prim.size,
-                        getActualBrushColor(), updateRect);
+        case primitive_cmd::fill_ellipse:
+            fill_ellipse(paint_state().position.x, paint_state().position.y, prim.size,
+                         actual_brush_color(), update_rect);
             break;
-        case PrimitiveCmd::DrawEllipse:
-            drawEllipse(prim.size, updateRect);
+        case primitive_cmd::draw_ellipse:
+            draw_ellipse(prim.size, update_rect);
             break;
-        case PrimitiveCmd::Clear:
-            updateRect =
-                updateRect.merge(Rect(0, 0, getViewPortWidth() - 1, getViewPortHeight() - 1));
-            clear(updateRect);
+        case primitive_cmd::clear:
+            update_rect =
+                update_rect.merge(rect(0, 0, view_port_width() - 1, view_port_height() - 1));
+            clear(update_rect);
             break;
-        case PrimitiveCmd::VScroll:
-            updateRect = updateRect.merge(
-                Rect(paintState().scrollingRegion.X1, paintState().scrollingRegion.Y1,
-                     paintState().scrollingRegion.X2, paintState().scrollingRegion.Y2));
-            VScroll(prim.ivalue, updateRect);
+        case primitive_cmd::v_scroll:
+            update_rect = update_rect.merge(
+                rect(paint_state().scrolling_region.x1, paint_state().scrolling_region.y1,
+                     paint_state().scrolling_region.x2, paint_state().scrolling_region.y2));
+            v_scroll(prim.ivalue, update_rect);
             break;
-        case PrimitiveCmd::HScroll:
-            updateRect = updateRect.merge(
-                Rect(paintState().scrollingRegion.X1, paintState().scrollingRegion.Y1,
-                     paintState().scrollingRegion.X2, paintState().scrollingRegion.Y2));
-            HScroll(prim.ivalue, updateRect);
+        case primitive_cmd::h_scroll:
+            update_rect = update_rect.merge(
+                rect(paint_state().scrolling_region.x1, paint_state().scrolling_region.y1,
+                     paint_state().scrolling_region.x2, paint_state().scrolling_region.y2));
+            h_scroll(prim.ivalue, update_rect);
             break;
-        case PrimitiveCmd::DrawGlyph:
-            drawGlyph(prim.glyph, paintState().glyphOptions, paintState().penColor,
-                      paintState().brushColor, updateRect);
+        case primitive_cmd::draw_glyph:
+            draw_glyph(prim.glyph, paint_state().glyph_options, paint_state().pen_color,
+                       paint_state().brush_color, update_rect);
             break;
-        case PrimitiveCmd::SetGlyphOptions:
-            paintState().glyphOptions = prim.glyphOptions;
+        case primitive_cmd::set_glyph_options:
+            paint_state().glyph_options = prim.glyph_options;
             break;
-        case PrimitiveCmd::SetPaintOptions:
-            paintState().paintOptions = prim.paintOptions;
+        case primitive_cmd::set_paint_options:
+            paint_state().paint_options = prim.paint_options;
             break;
-        case PrimitiveCmd::InvertRect:
-            invertRect(prim.rect, updateRect);
+        case primitive_cmd::invert_rect:
+            invert_rect(prim.rect, update_rect);
             break;
-        case PrimitiveCmd::CopyRect:
-            copyRect(prim.rect, updateRect);
+        case primitive_cmd::copy_rect:
+            copy_rect(prim.rect, update_rect);
             break;
-        case PrimitiveCmd::SetScrollingRegion:
-            paintState().scrollingRegion = prim.rect;
+        case primitive_cmd::set_scrolling_region:
+            paint_state().scrolling_region = prim.rect;
             break;
-        case PrimitiveCmd::SwapFGBG:
-            swapFGBG(prim.rect, updateRect);
+        case primitive_cmd::swap_fgbg:
+            swap_fgbg(prim.rect, update_rect);
             break;
-        case PrimitiveCmd::DrawBitmap:
-            drawBitmap(prim.bitmapDrawingInfo, updateRect);
+        case primitive_cmd::draw_bitmap:
+            draw_bitmap(prim.bitmap_drawing_info, update_rect);
             break;
-        case PrimitiveCmd::RefreshSprites:
-            hideSprites(updateRect);
-            showSprites(updateRect);
+        case primitive_cmd::refresh_sprites:
+            hide_sprites(update_rect);
+            show_sprites(update_rect);
             break;
-        case PrimitiveCmd::SwapBuffers:
-            swapBuffers();
-            updateRect =
-                updateRect.merge(Rect(0, 0, getViewPortWidth() - 1, getViewPortHeight() - 1));
-            if (insideISR)
+        case primitive_cmd::swap_buffers:
+            swap_buffers();
+            update_rect =
+                update_rect.merge(rect(0, 0, view_port_width() - 1, view_port_height() - 1));
+            if (inside_isr)
             {
-                vTaskNotifyGiveFromISR(prim.notifyTask, nullptr);
+                vTaskNotifyGiveFromISR(prim.notify_task, nullptr);
             }
             else
             {
-                xTaskNotifyGive(prim.notifyTask);
+                xTaskNotifyGive(prim.notify_task);
             }
             break;
-        case PrimitiveCmd::DrawPath:
-            drawPath(prim.path, updateRect);
+        case primitive_cmd::draw_path:
+            draw_path(prim.path, update_rect);
             break;
-        case PrimitiveCmd::FillPath:
-            fillPath(prim.path, getActualBrushColor(), updateRect);
+        case primitive_cmd::fill_path:
+            fill_path(prim.path, actual_brush_color(), update_rect);
             break;
-        case PrimitiveCmd::SetOrigin:
-            paintState().origin = prim.position;
-            updateAbsoluteClippingRect();
+        case primitive_cmd::set_origin:
+            paint_state().origin = prim.position;
+            update_absolute_clipping_rect();
             break;
-        case PrimitiveCmd::SetClippingRect:
-            paintState().clippingRect = prim.rect;
-            updateAbsoluteClippingRect();
+        case primitive_cmd::set_clipping_rect:
+            paint_state().clipping_rect = prim.rect;
+            update_absolute_clipping_rect();
             break;
-        case PrimitiveCmd::SetPenWidth:
-            paintState().penWidth = esp::imax(1, prim.ivalue);
+        case primitive_cmd::set_pen_width:
+            paint_state().pen_width = esp::imax(1, prim.ivalue);
             break;
-        case PrimitiveCmd::SetLineEnds:
-            paintState().lineEnds = prim.lineEnds;
+        case primitive_cmd::set_line_ends:
+            paint_state().line_ends = prim.line_ends;
             break;
     }
 }
 
 
-RGB888 IRAM_ATTR BitmappedDisplayController::getActualBrushColor()
+rgb888 IRAM_ATTR bitmapped_display_controller::actual_brush_color()
 {
-    return paintState().paintOptions.swapFGBG ? paintState().penColor : paintState().brushColor;
+    return paint_state().paint_options.swap_fgbg ? paint_state().pen_color
+                                                 : paint_state().brush_color;
 }
 
 
-RGB888 IRAM_ATTR BitmappedDisplayController::getActualPenColor()
+rgb888 IRAM_ATTR bitmapped_display_controller::actual_pen_color()
 {
-    return paintState().paintOptions.swapFGBG ? paintState().brushColor : paintState().penColor;
+    return paint_state().paint_options.swap_fgbg ? paint_state().brush_color
+                                                 : paint_state().pen_color;
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::lineTo(Point const &position, Rect &updateRect)
+void IRAM_ATTR bitmapped_display_controller::line_to(point const &position,
+                                                     esp::gfx::rect &update_rect)
 {
-    RGB888 color = getActualPenColor();
+    rgb888 color = actual_pen_color();
 
-    int origX = paintState().origin.X;
-    int origY = paintState().origin.Y;
-    int x1 = paintState().position.X;
-    int y1 = paintState().position.Y;
-    int x2 = position.X + origX;
-    int y2 = position.Y + origY;
+    int orig_x = paint_state().origin.x;
+    int orig_y = paint_state().origin.y;
+    int x1 = paint_state().position.x;
+    int y1 = paint_state().position.y;
+    int x2 = position.x + orig_x;
+    int y2 = position.y + orig_y;
 
-    int hw = paintState().penWidth / 2;
-    updateRect = updateRect.merge(Rect(esp::imin(x1, x2) - hw, esp::imin(y1, y2) - hw,
-                                       esp::imax(x1, x2) + hw, esp::imax(y1, y2) + hw));
-    hideSprites(updateRect);
-    absDrawLine(x1, y1, x2, y2, color);
+    int hw = paint_state().pen_width / 2;
+    update_rect = update_rect.merge(rect(esp::imin(x1, x2) - hw, esp::imin(y1, y2) - hw,
+                                         esp::imax(x1, x2) + hw, esp::imax(y1, y2) + hw));
+    hide_sprites(update_rect);
+    abs_draw_line(x1, y1, x2, y2, color);
 
-    paintState().position = Point(x2, y2);
+    paint_state().position = point(x2, y2);
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::updateAbsoluteClippingRect()
+void IRAM_ATTR bitmapped_display_controller::update_absolute_clipping_rect()
 {
-    int X1 = esp::iclamp(paintState().origin.X + paintState().clippingRect.X1, 0,
-                         getViewPortWidth() - 1);
-    int Y1 = esp::iclamp(paintState().origin.Y + paintState().clippingRect.Y1, 0,
-                         getViewPortHeight() - 1);
-    int X2 = esp::iclamp(paintState().origin.X + paintState().clippingRect.X2, 0,
-                         getViewPortWidth() - 1);
-    int Y2 = esp::iclamp(paintState().origin.Y + paintState().clippingRect.Y2, 0,
-                         getViewPortHeight() - 1);
-    paintState().absClippingRect = Rect(X1, Y1, X2, Y2);
+    int x1 = esp::iclamp(paint_state().origin.x + paint_state().clipping_rect.x1, 0,
+                         view_port_width() - 1);
+    int y1 = esp::iclamp(paint_state().origin.y + paint_state().clipping_rect.y1, 0,
+                         view_port_height() - 1);
+    int x2 = esp::iclamp(paint_state().origin.x + paint_state().clipping_rect.x2, 0,
+                         view_port_width() - 1);
+    int y2 = esp::iclamp(paint_state().origin.y + paint_state().clipping_rect.y2, 0,
+                         view_port_height() - 1);
+    paint_state().abs_clipping_rect = rect(x1, y1, x2, y2);
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::drawRect(Rect const &rect, Rect &updateRect)
+void IRAM_ATTR bitmapped_display_controller::draw_rect(rect const &rect,
+                                                       esp::gfx::rect &update_rect)
 {
-    int x1 = (rect.X1 < rect.X2 ? rect.X1 : rect.X2) + paintState().origin.X;
-    int y1 = (rect.Y1 < rect.Y2 ? rect.Y1 : rect.Y2) + paintState().origin.Y;
-    int x2 = (rect.X1 < rect.X2 ? rect.X2 : rect.X1) + paintState().origin.X;
-    int y2 = (rect.Y1 < rect.Y2 ? rect.Y2 : rect.Y1) + paintState().origin.Y;
+    int x1 = (rect.x1 < rect.x2 ? rect.x1 : rect.x2) + paint_state().origin.x;
+    int y1 = (rect.y1 < rect.y2 ? rect.y1 : rect.y2) + paint_state().origin.y;
+    int x2 = (rect.x1 < rect.x2 ? rect.x2 : rect.x1) + paint_state().origin.x;
+    int y2 = (rect.y1 < rect.y2 ? rect.y2 : rect.y1) + paint_state().origin.y;
 
-    int hw = paintState().penWidth / 2;
-    updateRect = updateRect.merge(Rect(x1 - hw, y1 - hw, x2 + hw, y2 + hw));
-    hideSprites(updateRect);
-    RGB888 color = getActualPenColor();
+    int hw = paint_state().pen_width / 2;
+    update_rect = update_rect.merge(esp::gfx::rect(x1 - hw, y1 - hw, x2 + hw, y2 + hw));
+    hide_sprites(update_rect);
+    rgb888 color = actual_pen_color();
 
-    absDrawLine(x1 + 1, y1, x2, y1, color);
-    absDrawLine(x2, y1 + 1, x2, y2, color);
-    absDrawLine(x2 - 1, y2, x1, y2, color);
-    absDrawLine(x1, y2 - 1, x1, y1, color);
+    abs_draw_line(x1 + 1, y1, x2, y1, color);
+    abs_draw_line(x2, y1 + 1, x2, y2, color);
+    abs_draw_line(x2 - 1, y2, x1, y2, color);
+    abs_draw_line(x1, y2 - 1, x1, y1, color);
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::fillRect(Rect const &rect, RGB888 const &color,
-                                                    Rect &updateRect)
+void IRAM_ATTR bitmapped_display_controller::fill_rect(rect const &rect, rgb888 const &color,
+                                                       esp::gfx::rect &update_rect)
 {
-    int x1 = (rect.X1 < rect.X2 ? rect.X1 : rect.X2) + paintState().origin.X;
-    int y1 = (rect.Y1 < rect.Y2 ? rect.Y1 : rect.Y2) + paintState().origin.Y;
-    int x2 = (rect.X1 < rect.X2 ? rect.X2 : rect.X1) + paintState().origin.X;
-    int y2 = (rect.Y1 < rect.Y2 ? rect.Y2 : rect.Y1) + paintState().origin.Y;
+    int x1 = (rect.x1 < rect.x2 ? rect.x1 : rect.x2) + paint_state().origin.x;
+    int y1 = (rect.y1 < rect.y2 ? rect.y1 : rect.y2) + paint_state().origin.y;
+    int x2 = (rect.x1 < rect.x2 ? rect.x2 : rect.x1) + paint_state().origin.x;
+    int y2 = (rect.y1 < rect.y2 ? rect.y2 : rect.y1) + paint_state().origin.y;
 
-    const int clipX1 = paintState().absClippingRect.X1;
-    const int clipY1 = paintState().absClippingRect.Y1;
-    const int clipX2 = paintState().absClippingRect.X2;
-    const int clipY2 = paintState().absClippingRect.Y2;
+    const int clipX1 = paint_state().abs_clipping_rect.x1;
+    const int clipY1 = paint_state().abs_clipping_rect.y1;
+    const int clipX2 = paint_state().abs_clipping_rect.x2;
+    const int clipY2 = paint_state().abs_clipping_rect.y2;
 
     if (x1 > clipX2 || x2 < clipX1 || y1 > clipY2 || y2 < clipY1)
         return;
@@ -982,29 +989,30 @@ void IRAM_ATTR BitmappedDisplayController::fillRect(Rect const &rect, RGB888 con
     x2 = esp::iclamp(x2, clipX1, clipX2);
     y2 = esp::iclamp(y2, clipY1, clipY2);
 
-    updateRect = updateRect.merge(Rect(x1, y1, x2, y2));
-    hideSprites(updateRect);
+    update_rect = update_rect.merge(esp::gfx::rect(x1, y1, x2, y2));
+    hide_sprites(update_rect);
 
     for (int y = y1; y <= y2; ++y)
-        rawFillRow(y, x1, x2, color);
+        raw_fill_row(y, x1, x2, color);
 }
 
 
 // McIlroy's algorithm
-void IRAM_ATTR BitmappedDisplayController::fillEllipse(int centerX, int centerY, Size const &size,
-                                                       RGB888 const &color, Rect &updateRect)
+void IRAM_ATTR bitmapped_display_controller::fill_ellipse(int center_x, int center_y,
+                                                          size const &size, rgb888 const &color,
+                                                          esp::gfx::rect &update_rect)
 {
-    const int clipX1 = paintState().absClippingRect.X1;
-    const int clipY1 = paintState().absClippingRect.Y1;
-    const int clipX2 = paintState().absClippingRect.X2;
-    const int clipY2 = paintState().absClippingRect.Y2;
+    const int clipX1 = paint_state().abs_clipping_rect.x1;
+    const int clipY1 = paint_state().abs_clipping_rect.y1;
+    const int clipX2 = paint_state().abs_clipping_rect.x2;
+    const int clipY2 = paint_state().abs_clipping_rect.y2;
 
     const int halfWidth = size.width / 2;
     const int halfHeight = size.height / 2;
 
-    updateRect = updateRect.merge(
-        Rect(centerX - halfWidth, centerY - halfHeight, centerX + halfWidth, centerY + halfHeight));
-    hideSprites(updateRect);
+    update_rect = update_rect.merge(rect(center_x - halfWidth, center_y - halfHeight,
+                                         center_x + halfWidth, center_y + halfHeight));
+    hide_sprites(update_rect);
 
     const int a2 = halfWidth * halfWidth;
     const int b2 = halfHeight * halfHeight;
@@ -1031,18 +1039,18 @@ void IRAM_ATTR BitmappedDisplayController::fillEllipse(int centerX, int centerY,
         }
         else
         {
-            int col1 = centerX - x;
-            int col2 = centerX - x + width - 1;
+            int col1 = center_x - x;
+            int col2 = center_x - x + width - 1;
             if (col1 <= clipX2 && col2 >= clipX1)
             {
                 col1 = esp::iclamp(col1, clipX1, clipX2);
                 col2 = esp::iclamp(col2, clipX1, clipX2);
-                int row1 = centerY - y;
-                int row2 = centerY + y;
+                int row1 = center_y - y;
+                int row2 = center_y + y;
                 if (row1 >= clipY1 && row1 <= clipY2)
-                    rawFillRow(row1, col1, col2, color);
+                    raw_fill_row(row1, col1, col2, color);
                 if (y != 0 && row2 >= clipY1 && row2 <= clipY2)
-                    rawFillRow(row2, col1, col2, color);
+                    raw_fill_row(row2, col1, col2, color);
             }
             if (t - a2 * y <= crit2)
             {
@@ -1057,110 +1065,111 @@ void IRAM_ATTR BitmappedDisplayController::fillEllipse(int centerX, int centerY,
         }
     }
     // one line horizontal ellipse case
-    if (halfHeight == 0 && centerY >= clipY1 && centerY <= clipY2)
-        rawFillRow(centerY, esp::iclamp(centerX - halfWidth, clipX1, clipX2),
-                   esp::iclamp(centerX - halfWidth + 2 * halfWidth + 1, clipX1, clipX2), color);
+    if (halfHeight == 0 && center_y >= clipY1 && center_y <= clipY2)
+        raw_fill_row(center_y, esp::iclamp(center_x - halfWidth, clipX1, clipX2),
+                     esp::iclamp(center_x - halfWidth + 2 * halfWidth + 1, clipX1, clipX2), color);
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::drawPath(Path const &path, Rect &updateRect)
+void IRAM_ATTR bitmapped_display_controller::draw_path(path const &path,
+                                                       esp::gfx::rect &update_rect)
 {
-    RGB888 color = getActualPenColor();
+    rgb888 color = actual_pen_color();
 
-    const int clipX1 = paintState().absClippingRect.X1;
-    const int clipY1 = paintState().absClippingRect.Y1;
-    const int clipX2 = paintState().absClippingRect.X2;
-    const int clipY2 = paintState().absClippingRect.Y2;
+    const int clipX1 = paint_state().abs_clipping_rect.x1;
+    const int clipY1 = paint_state().abs_clipping_rect.y1;
+    const int clipX2 = paint_state().abs_clipping_rect.x2;
+    const int clipY2 = paint_state().abs_clipping_rect.y2;
 
-    int origX = paintState().origin.X;
-    int origY = paintState().origin.Y;
+    int orig_x = paint_state().origin.x;
+    int orig_y = paint_state().origin.y;
 
-    int minX = clipX1;
-    int maxX = clipX2 + 1;
-    int minY = INT_MAX;
-    int maxY = 0;
-    for (int i = 0; i < path.pointsCount; ++i)
+    int min_x = clipX1;
+    int max_x = clipX2 + 1;
+    int min_y = INT_MAX;
+    int max_y = 0;
+    for (int i = 0; i < path.points_count; ++i)
     {
-        int py = path.points[i].Y + origY;
-        if (py < minY)
-            minY = py;
-        if (py > maxY)
-            maxY = py;
+        int py = path.points[i].y + orig_y;
+        if (py < min_y)
+            min_y = py;
+        if (py > max_y)
+            max_y = py;
     }
-    minY = esp::tmax(clipY1, minY);
-    maxY = esp::tmin(clipY2, maxY);
+    min_y = esp::tmax(clipY1, min_y);
+    max_y = esp::tmin(clipY2, max_y);
 
-    int hw = paintState().penWidth / 2;
-    updateRect = updateRect.merge(Rect(minX - hw, minY - hw, maxX + hw, maxY + hw));
-    hideSprites(updateRect);
+    int hw = paint_state().pen_width / 2;
+    update_rect = update_rect.merge(rect(min_x - hw, min_y - hw, max_x + hw, max_y + hw));
+    hide_sprites(update_rect);
 
     int i = 0;
-    for (; i < path.pointsCount - 1; ++i)
+    for (; i < path.points_count - 1; ++i)
     {
-        const int x1 = path.points[i].X + origX;
-        const int y1 = path.points[i].Y + origY;
-        const int x2 = path.points[i + 1].X + origX;
-        const int y2 = path.points[i + 1].Y + origY;
-        absDrawLine(x1, y1, x2, y2, color);
+        const int x1 = path.points[i].x + orig_x;
+        const int y1 = path.points[i].y + orig_y;
+        const int x2 = path.points[i + 1].x + orig_x;
+        const int y2 = path.points[i + 1].y + orig_y;
+        abs_draw_line(x1, y1, x2, y2, color);
     }
-    const int x1 = path.points[i].X + origX;
-    const int y1 = path.points[i].Y + origY;
-    const int x2 = path.points[0].X + origX;
-    const int y2 = path.points[0].Y + origY;
-    absDrawLine(x1, y1, x2, y2, color);
+    const int x1 = path.points[i].x + orig_x;
+    const int y1 = path.points[i].y + orig_y;
+    const int x2 = path.points[0].x + orig_x;
+    const int y2 = path.points[0].y + orig_y;
+    abs_draw_line(x1, y1, x2, y2, color);
 
-    if (path.freePoints)
-        m_primDynMemPool.free((void *)path.points);
+    if (path.free_points)
+        _prim_dyn_mem_pool.free((void *)path.points);
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::fillPath(Path const &path, RGB888 const &color,
-                                                    Rect &updateRect)
+void IRAM_ATTR bitmapped_display_controller::fill_path(path const &path, rgb888 const &color,
+                                                       esp::gfx::rect &update_rect)
 {
-    const int clipX1 = paintState().absClippingRect.X1;
-    const int clipY1 = paintState().absClippingRect.Y1;
-    const int clipX2 = paintState().absClippingRect.X2;
-    const int clipY2 = paintState().absClippingRect.Y2;
+    const int clipX1 = paint_state().abs_clipping_rect.x1;
+    const int clipY1 = paint_state().abs_clipping_rect.y1;
+    const int clipX2 = paint_state().abs_clipping_rect.x2;
+    const int clipY2 = paint_state().abs_clipping_rect.y2;
 
-    const int origX = paintState().origin.X;
-    const int origY = paintState().origin.Y;
+    const int orig_x = paint_state().origin.x;
+    const int orig_y = paint_state().origin.y;
 
-    int minX = clipX1;
-    int maxX = clipX2 + 1;
-    int minY = INT_MAX;
-    int maxY = 0;
-    for (int i = 0; i < path.pointsCount; ++i)
+    int min_x = clipX1;
+    int max_x = clipX2 + 1;
+    int min_y = INT_MAX;
+    int max_y = 0;
+    for (int i = 0; i < path.points_count; ++i)
     {
-        int py = path.points[i].Y + origY;
-        if (py < minY)
-            minY = py;
-        if (py > maxY)
-            maxY = py;
+        int py = path.points[i].y + orig_y;
+        if (py < min_y)
+            min_y = py;
+        if (py > max_y)
+            max_y = py;
     }
-    minY = esp::tmax(clipY1, minY);
-    maxY = esp::tmin(clipY2, maxY);
+    min_y = esp::tmax(clipY1, min_y);
+    max_y = esp::tmin(clipY2, max_y);
 
-    updateRect = updateRect.merge(Rect(minX, minY, maxX, maxY));
-    hideSprites(updateRect);
+    update_rect = update_rect.merge(rect(min_x, min_y, max_x, max_y));
+    hide_sprites(update_rect);
 
-    int16_t nodeX[path.pointsCount];
+    int16_t node_x[path.points_count];
 
-    for (int pixelY = minY; pixelY <= maxY; ++pixelY)
+    for (int pixel_y = min_y; pixel_y <= max_y; ++pixel_y)
     {
 
         int nodes = 0;
-        int j = path.pointsCount - 1;
-        for (int i = 0; i < path.pointsCount; ++i)
+        int j = path.points_count - 1;
+        for (int i = 0; i < path.points_count; ++i)
         {
-            int piy = path.points[i].Y + origY;
-            int pjy = path.points[j].Y + origY;
-            if ((piy < pixelY && pjy >= pixelY) || (pjy < pixelY && piy >= pixelY))
+            int piy = path.points[i].y + orig_y;
+            int pjy = path.points[j].y + orig_y;
+            if ((piy < pixel_y && pjy >= pixel_y) || (pjy < pixel_y && piy >= pixel_y))
             {
-                int pjx = path.points[j].X + origX;
-                int pix = path.points[i].X + origX;
-                int a = (pixelY - piy) * (pjx - pix);
+                int pjx = path.points[j].x + orig_x;
+                int pix = path.points[i].x + orig_x;
+                int a = (pixel_y - piy) * (pjx - pix);
                 int b = (pjy - piy);
-                nodeX[nodes++] = pix + a / b + (((a < 0) ^ (b > 0)) && (a % b));
+                node_x[nodes++] = pix + a / b + (((a < 0) ^ (b > 0)) && (a % b));
             }
             j = i;
         }
@@ -1168,9 +1177,9 @@ void IRAM_ATTR BitmappedDisplayController::fillPath(Path const &path, RGB888 con
         int i = 0;
         while (i < nodes - 1)
         {
-            if (nodeX[i] > nodeX[i + 1])
+            if (node_x[i] > node_x[i + 1])
             {
-                esp::tswap(nodeX[i], nodeX[i + 1]);
+                esp::tswap(node_x[i], node_x[i + 1]);
                 if (i)
                     --i;
             }
@@ -1180,63 +1189,63 @@ void IRAM_ATTR BitmappedDisplayController::fillPath(Path const &path, RGB888 con
 
         for (int i = 0; i < nodes; i += 2)
         {
-            if (nodeX[i] >= maxX)
+            if (node_x[i] >= max_x)
                 break;
-            if (nodeX[i + 1] > minX)
+            if (node_x[i + 1] > min_x)
             {
-                if (nodeX[i] < minX)
-                    nodeX[i] = minX;
-                if (nodeX[i + 1] > maxX)
-                    nodeX[i + 1] = maxX;
-                rawFillRow(pixelY, nodeX[i], nodeX[i + 1] - 1, color);
+                if (node_x[i] < min_x)
+                    node_x[i] = min_x;
+                if (node_x[i + 1] > max_x)
+                    node_x[i + 1] = max_x;
+                raw_fill_row(pixel_y, node_x[i], node_x[i + 1] - 1, color);
             }
         }
     }
 
-    if (path.freePoints)
-        m_primDynMemPool.free((void *)path.points);
+    if (path.free_points)
+        _prim_dyn_mem_pool.free((void *)path.points);
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::absDrawThickLine(int X1, int Y1, int X2, int Y2,
-                                                            int penWidth, RGB888 const &color)
+void IRAM_ATTR bitmapped_display_controller::abs_draw_thick_line(int x1, int y1, int x2, int y2,
+                                                                 int pen_width, rgb888 const &color)
 {
     // just to "de-absolutize"
-    const int origX = paintState().origin.X;
-    const int origY = paintState().origin.Y;
-    X1 -= origX;
-    Y1 -= origY;
-    X2 -= origX;
-    Y2 -= origY;
+    const int orig_x = paint_state().origin.x;
+    const int orig_y = paint_state().origin.y;
+    x1 -= orig_x;
+    y1 -= orig_y;
+    x2 -= orig_x;
+    y2 -= orig_y;
 
-    Point pts[4];
+    point pts[4];
 
-    const double angle = atan2(Y2 - Y1, X2 - X1);
-    const double pw = (double)penWidth / 2.0;
+    const double angle = atan2(y2 - y1, x2 - x1);
+    const double pw = (double)pen_width / 2.0;
     const int ofs1 = (int)lround(pw * cos(angle + M_PI_2));
     const int ofs2 = (int)lround(pw * sin(angle + M_PI_2));
     const int ofs3 = (int)lround(pw * cos(angle - M_PI_2));
     const int ofs4 = (int)lround(pw * sin(angle - M_PI_2));
-    pts[0].X = X1 + ofs1;
-    pts[0].Y = Y1 + ofs2;
-    pts[1].X = X1 + ofs3;
-    pts[1].Y = Y1 + ofs4;
-    pts[2].X = X2 + ofs3;
-    pts[2].Y = Y2 + ofs4;
-    pts[3].X = X2 + ofs1;
-    pts[3].Y = Y2 + ofs2;
+    pts[0].x = x1 + ofs1;
+    pts[0].y = y1 + ofs2;
+    pts[1].x = x1 + ofs3;
+    pts[1].y = y1 + ofs4;
+    pts[2].x = x2 + ofs3;
+    pts[2].y = y2 + ofs4;
+    pts[3].x = x2 + ofs1;
+    pts[3].y = y2 + ofs2;
 
-    Rect updateRect;
-    Path path = {pts, 4, false};
-    fillPath(path, color, updateRect);
+    rect update_rect;
+    path path = {pts, 4, false};
+    fill_path(path, color, update_rect);
 
-    switch (paintState().lineEnds)
+    switch (paint_state().line_ends)
     {
-        case LineEnds::Circle:
-            if ((penWidth & 1) == 0)
-                --penWidth;
-            fillEllipse(X1, Y1, Size(penWidth, penWidth), color, updateRect);
-            fillEllipse(X2, Y2, Size(penWidth, penWidth), color, updateRect);
+        case line_ends::circle:
+            if ((pen_width & 1) == 0)
+                --pen_width;
+            fill_ellipse(x1, y1, size(pen_width, pen_width), color, update_rect);
+            fill_ellipse(x2, y2, size(pen_width, pen_width), color, update_rect);
             break;
         default:
             break;
@@ -1244,87 +1253,90 @@ void IRAM_ATTR BitmappedDisplayController::absDrawThickLine(int X1, int Y1, int 
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::drawBitmap(BitmapDrawingInfo const &bitmapDrawingInfo,
-                                                      Rect &updateRect)
+void IRAM_ATTR bitmapped_display_controller::draw_bitmap(
+    bitmap_drawing_info const &bitmap_drawing_info, esp::gfx::rect &update_rect)
 {
-    int x = bitmapDrawingInfo.X + paintState().origin.X;
-    int y = bitmapDrawingInfo.Y + paintState().origin.Y;
-    updateRect = updateRect.merge(Rect(x, y, x + bitmapDrawingInfo.bitmap->width - 1,
-                                       y + bitmapDrawingInfo.bitmap->height - 1));
-    hideSprites(updateRect);
-    absDrawBitmap(x, y, bitmapDrawingInfo.bitmap, nullptr, false);
+    int x = bitmap_drawing_info.x + paint_state().origin.x;
+    int y = bitmap_drawing_info.y + paint_state().origin.y;
+    update_rect = update_rect.merge(rect(x, y, x + bitmap_drawing_info.bitmap->width - 1,
+                                         y + bitmap_drawing_info.bitmap->height - 1));
+    hide_sprites(update_rect);
+    abs_draw_bitmap(x, y, bitmap_drawing_info.bitmap, nullptr, false);
 }
 
 
-void IRAM_ATTR BitmappedDisplayController::absDrawBitmap(int destX, int destY, Bitmap const *bitmap,
-                                                         void *saveBackground,
-                                                         bool ignoreClippingRect)
+void IRAM_ATTR bitmapped_display_controller::abs_draw_bitmap(int dest_x, int dest_y,
+                                                             bitmap const *bitmap,
+                                                             void *save_background,
+                                                             bool ignore_clipping_rect)
 {
-    const int clipX1 = ignoreClippingRect ? 0 : paintState().absClippingRect.X1;
-    const int clipY1 = ignoreClippingRect ? 0 : paintState().absClippingRect.Y1;
+    const int clipX1 = ignore_clipping_rect ? 0 : paint_state().abs_clipping_rect.x1;
+    const int clipY1 = ignore_clipping_rect ? 0 : paint_state().abs_clipping_rect.y1;
     const int clipX2 =
-        ignoreClippingRect ? getViewPortWidth() - 1 : paintState().absClippingRect.X2;
+        ignore_clipping_rect ? view_port_width() - 1 : paint_state().abs_clipping_rect.x2;
     const int clipY2 =
-        ignoreClippingRect ? getViewPortHeight() - 1 : paintState().absClippingRect.Y2;
+        ignore_clipping_rect ? view_port_height() - 1 : paint_state().abs_clipping_rect.y2;
 
-    if (destX > clipX2 || destY > clipY2)
+    if (dest_x > clipX2 || dest_y > clipY2)
         return;
 
     int width = bitmap->width;
     int height = bitmap->height;
 
-    int X1 = 0;
-    int XCount = width;
+    int x1 = 0;
+    int x_count = width;
 
-    if (destX < clipX1)
+    if (dest_x < clipX1)
     {
-        X1 = clipX1 - destX;
-        destX = clipX1;
+        x1 = clipX1 - dest_x;
+        dest_x = clipX1;
     }
-    if (X1 >= width)
+    if (x1 >= width)
         return;
 
-    if (destX + XCount > clipX2 + 1)
-        XCount = clipX2 + 1 - destX;
-    if (X1 + XCount > width)
-        XCount = width - X1;
+    if (dest_x + x_count > clipX2 + 1)
+        x_count = clipX2 + 1 - dest_x;
+    if (x1 + x_count > width)
+        x_count = width - x1;
 
-    int Y1 = 0;
-    int YCount = height;
+    int y1 = 0;
+    int y_count = height;
 
-    if (destY < clipY1)
+    if (dest_y < clipY1)
     {
-        Y1 = clipY1 - destY;
-        destY = clipY1;
+        y1 = clipY1 - dest_y;
+        dest_y = clipY1;
     }
-    if (Y1 >= height)
+    if (y1 >= height)
         return;
 
-    if (destY + YCount > clipY2 + 1)
-        YCount = clipY2 + 1 - destY;
-    if (Y1 + YCount > height)
-        YCount = height - Y1;
+    if (dest_y + y_count > clipY2 + 1)
+        y_count = clipY2 + 1 - dest_y;
+    if (y1 + y_count > height)
+        y_count = height - y1;
 
     switch (bitmap->format)
     {
 
-        case PixelFormat::Undefined:
+        case pixel_format::undefined:
             break;
 
-        case PixelFormat::Native:
-            rawDrawBitmap_Native(destX, destY, bitmap, X1, Y1, XCount, YCount);
+        case pixel_format::native:
+            raw_draw_bitmap_native(dest_x, dest_y, bitmap, x1, y1, x_count, y_count);
             break;
 
-        case PixelFormat::Mask:
-            rawDrawBitmap_Mask(destX, destY, bitmap, saveBackground, X1, Y1, XCount, YCount);
+        case pixel_format::mask:
+            raw_draw_bitmap_mask(dest_x, dest_y, bitmap, save_background, x1, y1, x_count, y_count);
             break;
 
-        case PixelFormat::RGBA2222:
-            rawDrawBitmap_RGBA2222(destX, destY, bitmap, saveBackground, X1, Y1, XCount, YCount);
+        case pixel_format::rgba2222:
+            raw_draw_bitmap_rgba2222(dest_x, dest_y, bitmap, save_background, x1, y1, x_count,
+                                     y_count);
             break;
 
-        case PixelFormat::RGBA8888:
-            rawDrawBitmap_RGBA8888(destX, destY, bitmap, saveBackground, X1, Y1, XCount, YCount);
+        case pixel_format::rgba8888:
+            raw_draw_bitmap_rgba8888(dest_x, dest_y, bitmap, save_background, x1, y1, x_count,
+                                     y_count);
             break;
     }
 }

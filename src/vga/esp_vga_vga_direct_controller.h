@@ -60,7 +60,7 @@ namespace esp::vga
  * @param dest Buffer to fill with raw pixels
  * @param scanLine Line index (0 to screen height - 1)
  */
-typedef void (*DrawScanlineCallback)(void *arg, uint8_t *dest, int scanLine);
+typedef void (*draw_scanline_callback)(void *arg, uint8_t *dest, int scan_line);
 
 
 /**
@@ -71,7 +71,7 @@ typedef void (*DrawScanlineCallback)(void *arg, uint8_t *dest, int scanLine);
  *
  * See DirectVGA.ino example.
  */
-class VGADirectController : public VGABaseController
+class vga_direct_controller : public vga_base_controller
 {
 
 public:
@@ -81,11 +81,11 @@ public:
    *
    * @param autoRun If True display is active after setResolution() has been called. If False you need to call VGADirectController.run() to start the display.
    */
-    VGADirectController(bool autoRun = true);
+    vga_direct_controller(bool auto_run = true);
 
     // unwanted methods
-    VGADirectController(VGADirectController const &) = delete;
-    void operator=(VGADirectController const &) = delete;
+    vga_direct_controller(vga_direct_controller const &) = delete;
+    void operator=(vga_direct_controller const &) = delete;
 
 
     /**
@@ -93,24 +93,24 @@ public:
    *
    * @return A pointer to VGADirectController singleton object
    */
-    static VGADirectController *instance()
+    static vga_direct_controller *instance()
     {
-        return s_instance;
+        return _instance;
     }
 
     // abstract method of BitmappedDisplayController
-    esp::gfx::NativePixelFormat nativePixelFormat()
+    esp::gfx::native_pixel_format native_pixel_format()
     {
-        return esp::gfx::NativePixelFormat::SBGR2222;
+        return esp::gfx::native_pixel_format::sbgr2222;
     }
 
     // import "modeline" version of setResolution
-    using VGABaseController::setResolution;
+    using vga_base_controller::set_resolution;
 
-    void setResolution(VGATimings const &timings, int viewPortWidth = -1, int viewPortHeight = -1,
-                       bool doubleBuffered = false);
+    void set_resolution(vga_timings const &timings, int view_port_width = -1,
+                        int view_port_height = -1, bool double_buffered = false);
 
-    void readScreen(esp::gfx::Rect const &rect, esp::gfx::RGB888 *destBuf);
+    void read_screen(esp::gfx::rect const &rect, esp::gfx::rgb888 *dest_buf);
 
     /**
    * @brief Sets the callback used when VGADirectController needs to prepare a new scanline to be sent to the VGA output.
@@ -118,10 +118,11 @@ public:
    * @param drawScanlineCallback The callback to call
    * @param arg Argument to pass to the callback
    */
-    void setDrawScanlineCallback(DrawScanlineCallback drawScanlineCallback, void *arg = nullptr)
+    void set_draw_scanline_callback(draw_scanline_callback draw_scanline_callback,
+                                    void *arg = nullptr)
     {
-        m_drawScanlineCallback = drawScanlineCallback;
-        m_drawScanlineArg = arg;
+        _draw_scanline_callback = draw_scanline_callback;
+        _draw_scanline_arg = arg;
     }
 
     /**
@@ -138,9 +139,9 @@ public:
    *
    * @param value Number of scanlines to fill in DrawScanlineCallback callback
    */
-    void setScanlinesPerCallBack(int value)
+    void set_scanlines_per_call_back(int value)
     {
-        m_linesCount = value * 2;
+        _lines_count = value * 2;
     }
 
     /**
@@ -149,14 +150,14 @@ public:
    * @param scanline Scanline index (0 up to screen height minus one)
    * @param lineBuffer Scanline buffer (must be DMA memory)
    */
-    void setScanlineBuffer(int scanline, uint8_t volatile *lineBuffer);
+    void set_scanline_buffer(int scanline, uint8_t volatile *line_buffer);
 
     /**
    * @brief Gets current scanline buffer
    *
    * @param scanline Scanline index (0 up to screen height minus one)
    */
-    uint8_t volatile *getScanlineBuffer(int scanline);
+    uint8_t volatile *scanline_buffer(int scanline);
 
     /**
    * @brief Gets default scanline buffer
@@ -166,111 +167,111 @@ public:
    *
    * @param scanline Scanline index (0 up to screen height minus one)
    */
-    uint8_t volatile *getDefaultScanlineBuffer(int scanline);
+    uint8_t volatile *default_scanline_buffer(int scanline);
 
     /**
    * @brief Determines if retracing is in progress
    *
    * @return True when retracing (vertical sync) is active
    */
-    static bool VSync()
+    static bool v_sync()
     {
-        return s_VSync;
+        return _v_sync;
     }
 
 private:
 
     void init();
 
-    void onSetupDMABuffer(lldesc_t volatile *buffer, bool isStartOfVertFrontPorch, int scan,
-                          bool isVisible, int visibleRow);
-    void allocateViewPort();
-    void freeViewPort();
+    void on_setup_dma_buffer(lldesc_t volatile *buffer, bool is_start_of_vert_front_porch, int scan,
+                             bool is_visible, int visible_row);
+    void allocate_view_port();
+    void free_view_port();
 
 
     // abstract method of BitmappedDisplayController
-    void setPixelAt(esp::gfx::PixelDesc const &pixelDesc, esp::gfx::Rect &updateRect);
+    void set_pixel_at(esp::gfx::pixel_desc const &pixel_desc, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void drawEllipse(esp::gfx::Size const &size, esp::gfx::Rect &updateRect);
+    void draw_ellipse(esp::gfx::size const &size, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void clear(esp::gfx::Rect &updateRect);
+    void clear(esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void VScroll(int scroll, esp::gfx::Rect &updateRect);
+    void v_scroll(int scroll, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void HScroll(int scroll, esp::gfx::Rect &updateRect);
+    void h_scroll(int scroll, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void drawGlyph(esp::gfx::Glyph const &glyph, esp::gfx::GlyphOptions glyphOptions,
-                   esp::gfx::RGB888 penColor, esp::gfx::RGB888 brushColor,
-                   esp::gfx::Rect &updateRect);
+    void draw_glyph(esp::gfx::glyph const &glyph, esp::gfx::glyph_options glyph_options,
+                    esp::gfx::rgb888 pen_color, esp::gfx::rgb888 brush_color,
+                    esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void invertRect(esp::gfx::Rect const &rect, esp::gfx::Rect &updateRect);
+    void invert_rect(esp::gfx::rect const &rect, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void copyRect(esp::gfx::Rect const &source, esp::gfx::Rect &updateRect);
+    void copy_rect(esp::gfx::rect const &source, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void swapFGBG(esp::gfx::Rect const &rect, esp::gfx::Rect &updateRect);
+    void swap_fgbg(esp::gfx::rect const &rect, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void rawDrawBitmap_Native(int destX, int destY, esp::gfx::Bitmap const *bitmap, int X1, int Y1,
-                              int XCount, int YCount);
+    void raw_draw_bitmap_native(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap, int x1,
+                                int y1, int x_count, int y_count);
 
     // abstract method of BitmappedDisplayController
-    void rawDrawBitmap_Mask(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                            void *saveBackground, int X1, int Y1, int XCount, int YCount);
+    void raw_draw_bitmap_mask(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
+                              void *save_background, int x1, int y1, int x_count, int y_count);
 
     // abstract method of BitmappedDisplayController
-    void rawDrawBitmap_RGBA2222(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                                void *saveBackground, int X1, int Y1, int XCount, int YCount);
+    void raw_draw_bitmap_rgba2222(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
+                                  void *save_background, int x1, int y1, int x_count, int y_count);
 
     // abstract method of BitmappedDisplayController
-    void rawDrawBitmap_RGBA8888(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                                void *saveBackground, int X1, int Y1, int XCount, int YCount);
+    void raw_draw_bitmap_rgba8888(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
+                                  void *save_background, int x1, int y1, int x_count, int y_count);
 
     // abstract method of BitmappedDisplayController
-    void rawFillRow(int y, int x1, int x2, esp::gfx::RGB888 color);
+    void raw_fill_row(int y, int x1, int x2, esp::gfx::rgb888 color);
 
-    void rawFillRow(int y, int x1, int x2, uint8_t colorIndex);
+    void raw_fill_row(int y, int x1, int x2, uint8_t color_index);
 
-    void rawInvertRow(int y, int x1, int x2);
+    void raw_invert_row(int y, int x1, int x2);
 
-    void rawCopyRow(int x1, int x2, int srcY, int dstY);
+    void raw_copy_row(int x1, int x2, int src_y, int dst_y);
 
-    void swapRows(int yA, int yB, int x1, int x2);
-
-    // abstract method of BitmappedDisplayController
-    void absDrawLine(int X1, int Y1, int X2, int Y2, esp::gfx::RGB888 color);
+    void swap_rows(int y_a, int y_b, int x1, int x2);
 
     // abstract method of BitmappedDisplayController
-    int getBitmapSavePixelSize()
+    void abs_draw_line(int x1, int y1, int x2, int y2, esp::gfx::rgb888 color);
+
+    // abstract method of BitmappedDisplayController
+    int bitmap_save_pixel_size()
     {
         return 1;
     }
 
-    static void ISRHandler(void *arg);
+    static void isr_handler(void *arg);
 
 
-    static VGADirectController *s_instance;
-    static volatile int s_scanLine;
-    static lldesc_t volatile *s_frameResetDesc;
-    static bool s_VSync;
-    static lldesc_t volatile **s_DMALines;
+    static vga_direct_controller *_instance;
+    static volatile int _scan_line;
+    static lldesc_t volatile *_frame_reset_desc;
+    static bool _v_sync;
+    static lldesc_t volatile **_dma_lines;
 
-    int32_t m_linesCount;
-    uint8_t **m_lines;
+    int32_t _lines_count;
+    uint8_t **_lines;
 
     // here we use callbacks in place of virtual methods because vtables are stored in Flash and
     // so it would not have been possible to put ISR into IRAM.
-    DrawScanlineCallback m_drawScanlineCallback;
-    void *m_drawScanlineArg;
+    draw_scanline_callback _draw_scanline_callback;
+    void *_draw_scanline_arg;
 
-    bool m_autoRun;
+    bool _auto_run;
 };
 
 

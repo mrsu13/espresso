@@ -48,15 +48,15 @@ namespace esp::ps2
 /** \ingroup Enumerations
  * @brief Represents the type of device attached to PS/2 port.
  */
-enum class PS2DeviceType
+enum class ps2_device_type
 {
-    UnknownPS2Device, /**< Unknown device or unable to connect to the device */
-    OldATKeyboard, /**< Old AT keyboard */
-    MouseStandard, /**< Standard mouse */
-    MouseWithScrollWheel, /**< Mouse with Scroll Wheel */
-    Mouse5Buttons, /**< Mouse with 5 buttons */
-    MF2KeyboardWithTranslation, /**< Standard MF2 keyboard with translation */
-    M2Keyboard, /**< Standard MF2 keyboard. This is the most common value returned by USB/PS2 modern keyboards */
+    unknown_ps2_device, /**< Unknown device or unable to connect to the device */
+    old_at_keyboard, /**< Old AT keyboard */
+    mouse_standard, /**< Standard mouse */
+    mouse_with_scroll_wheel, /**< Mouse with Scroll Wheel */
+    mouse_5_buttons, /**< Mouse with 5 buttons */
+    mf2_keyboard_with_translation, /**< Standard MF2 keyboard with translation */
+    m2_keyboard, /**< Standard MF2 keyboard. This is the most common value returned by USB/PS2 modern keyboards */
 };
 
 
@@ -66,7 +66,7 @@ enum class PS2DeviceType
  * PS2Device connects to one port of the PS2 Controller class (esp::ps2::PS2Controller).<br>
  * The PS2 controller uses ULP coprocessor and RTC slow memory to communicate with the PS2 device.<br>
  */
-class PS2Device
+class ps2_device
 {
 
 public:
@@ -76,10 +76,10 @@ public:
    *
    * @return The identification ID sent by keyboard.
    */
-    PS2DeviceType identify()
+    ps2_device_type identify()
     {
-        PS2DeviceType result;
-        send_cmdIdentify(&result);
+        ps2_device_type result;
+        send_cmd_identify(&result);
         return result;
     };
 
@@ -90,18 +90,18 @@ public:
    *
    * @return True if the device has been locked.
    */
-    bool lock(int timeOutMS);
+    bool lock(int time_out_ms);
 
     /**
    * @brief Releases device from exclusive access.
    */
     void unlock();
 
-    bool parityError();
+    bool parity_error();
 
-    bool syncError();
+    bool sync_error();
 
-    bool CLKTimeOutError();
+    bool clk_time_out_error();
 
     /**
    * @brief Sends a raw command to the PS/2 device and wait for reply
@@ -111,85 +111,85 @@ public:
    *
    * @return True on success
    */
-    bool sendCommand(uint8_t cmd, uint8_t expectedReply);
+    bool send_command(uint8_t cmd, uint8_t expected_reply);
 
     /**
    * @brief Sends a raw command to the PS/2 device
    *
    * @param cmd The command byte
    */
-    void sendCommand(uint8_t cmd);
+    void send_command(uint8_t cmd);
 
     /**
    * @brief Suspends PS/2 port driving the CLK line Low
    *
    * Use resumePort() to release CLK line.
    */
-    void suspendPort();
+    void suspend_port();
 
     /**
    * @brief Resumes PS/2 port releasing CLK line
    *
    * Use suspendPort() to suspend.
    */
-    void resumePort();
+    void resume_port();
 
-    uint16_t deviceID()
+    uint16_t device_id()
     {
-        return m_deviceID;
+        return _device_id;
     }
 
 
 protected:
 
-    PS2Device();
-    ~PS2Device();
+    ps2_device();
+    ~ps2_device();
 
-    void quickCheckHardware();
+    void quick_check_hardware();
 
-    void begin(int PS2Port);
+    void begin(int ps2_port);
 
-    int dataAvailable();
-    int getData(int timeOutMS);
+    int data_available();
+    int get_data(int time_out_ms);
 
-    void requestToResendLastByte();
+    void request_to_resend_last_byte();
 
-    bool send_cmdLEDs(bool numLock, bool capsLock, bool scrollLock);
-    bool send_cmdEcho();
-    bool send_cmdGetScancodeSet(uint8_t *result);
-    bool send_cmdSetScancodeSet(uint8_t scancodeSet);
-    bool send_cmdIdentify(PS2DeviceType *result);
-    bool send_cmdDisableScanning();
-    bool send_cmdEnableScanning();
-    bool send_cmdTypematicRateAndDelay(int repeatRateMS, int repeatDelayMS);
-    bool send_cmdSetSampleRate(int sampleRate);
-    bool send_cmdSetDefaultParams();
-    bool send_cmdReset();
-    bool send_cmdSetResolution(int resolution);
-    bool send_cmdSetScaling(int scaling);
+    bool send_cmd_leds(bool num_lock, bool caps_lock, bool scroll_lock);
+    bool send_cmd_echo();
+    bool send_cmd_get_scancode_set(uint8_t *result);
+    bool send_cmd_set_scancode_set(uint8_t scancode_set);
+    bool send_cmd_identify(ps2_device_type *result);
+    bool send_cmd_disable_scanning();
+    bool send_cmd_enable_scanning();
+    bool send_cmd_typematic_rate_and_delay(int repeat_rate_ms, int repeat_delay_ms);
+    bool send_cmd_set_sample_rate(int sample_rate);
+    bool send_cmd_set_default_params();
+    bool send_cmd_reset();
+    bool send_cmd_set_resolution(int resolution);
+    bool send_cmd_set_scaling(int scaling);
 
 private:
 
-    int16_t m_PS2Port;
-    int16_t m_cmdTimeOut;
-    int16_t m_cmdSubTimeOut;
-    uint16_t m_deviceID; // read by send_cmdIdentify()
+    int16_t _ps2_port;
+    int16_t _cmd_time_out;
+    int16_t _cmd_sub_time_out;
+    uint16_t _device_id; // read by send_cmdIdentify()
 };
 
 
-struct PS2DeviceLock
+struct ps2_device_lock
 {
-    PS2DeviceLock(PS2Device *PS2Device)
-        : m_PS2Device(PS2Device)
+    ps2_device_lock(esp::ps2::ps2_device *ps2_device)
+        : ps2_device(ps2_device)
     {
-        m_PS2Device->lock(-1);
+        ps2_device->lock(-1);
     }
-    ~PS2DeviceLock()
+    ~ps2_device_lock()
     {
-        m_PS2Device->unlock();
+        ps2_device->unlock();
     }
 
-    PS2Device *m_PS2Device;
+    esp::ps2::ps2_device *ps2_device;
 };
 
 

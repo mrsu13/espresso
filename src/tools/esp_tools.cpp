@@ -59,7 +59,7 @@ namespace esp
 ////////////////////////////////////////////////////////////////////////////////////////////
 // msToTicks
 
-uint32_t msToTicks(int ms)
+uint32_t ms_to_ticks(int ms)
 {
     return ms < 0 ? portMAX_DELAY : pdMS_TO_TICKS(ms);
 }
@@ -71,7 +71,7 @@ uint32_t msToTicks(int ms)
 ////////////////////////////////////////////////////////////////////////////////////////////
 // I2SModuleEnable
 
-void I2SModuleEnable(int num, bool enable)
+void i2s_module_enable(int num, bool enable)
 {
 #   ifdef PERIPH_RCC_ATOMIC
     // PERIPH_I2S1_MODULE is no more available, so set bus clock and reset directly
@@ -115,23 +115,23 @@ struct esp_intr_alloc_args
     intr_handler_t handler;
     void *arg;
     intr_handle_t *ret_handle;
-    TaskHandle_t waitingTask;
+    TaskHandle_t waiting_task;
 };
 
 
-void esp_intr_alloc_pinnedToCore_call(void *arg)
+void esp_intr_alloc_pinned_to_core_call(void *arg)
 {
     auto args = (esp_intr_alloc_args *)arg;
     esp_intr_alloc(args->source, args->flags, args->handler, args->arg, args->ret_handle);
 }
 
 
-void esp_intr_alloc_pinnedToCore(int source, int flags, intr_handler_t handler, void *arg,
-                                 intr_handle_t *ret_handle, int core)
+void esp_intr_alloc_pinned_to_core(int source, int flags, intr_handler_t handler, void *arg,
+                                   intr_handle_t *ret_handle, int core)
 {
     esp_intr_alloc_args args = {source, flags,      handler,
                                 arg,    ret_handle, xTaskGetCurrentTaskHandle()};
-    esp_ipc_call_blocking(core, esp_intr_alloc_pinnedToCore_call, &args);
+    esp_ipc_call_blocking(core, esp_intr_alloc_pinned_to_core_call, &args);
 }
 
 #endif
@@ -141,7 +141,7 @@ void esp_intr_alloc_pinnedToCore(int source, int flags, intr_handler_t handler, 
 // CoreUsage
 
 
-int CoreUsage::s_busiestCore = FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE;
+int core_usage::_busiest_core = FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE;
 
 
 // CoreUsage
@@ -152,7 +152,7 @@ int CoreUsage::s_busiestCore = FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE;
 // CurrentVideoMode
 
 
-VideoMode CurrentVideoMode::s_videoMode = VideoMode::None;
+video_mode current_video_mode::_video_mode = video_mode::none;
 
 
 // CurrentVideoMode

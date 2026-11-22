@@ -60,15 +60,15 @@ namespace esp::ps2
 // TimeOut
 
 
-TimeOut::TimeOut()
-    : m_start(esp_timer_get_time())
+time_out::time_out()
+    : _start(esp_timer_get_time())
 {
 }
 
 
-bool TimeOut::expired(int valueMS)
+bool time_out::expired(int value_ms)
 {
-    return valueMS > -1 && ((esp_timer_get_time() - m_start) / 1000) > valueMS;
+    return value_ms > -1 && ((esp_timer_get_time() - _start) / 1000) > value_ms;
 }
 
 
@@ -102,7 +102,7 @@ int isqrt(int x)
 ////////////////////////////////////////////////////////////////////////////////////////////
 // calcParity
 
-bool calcParity(uint8_t v)
+bool calc_parity(uint8_t v)
 {
     v ^= v >> 4;
     v &= 0xf;

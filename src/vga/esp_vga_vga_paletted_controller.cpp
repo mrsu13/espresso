@@ -60,171 +60,173 @@ namespace esp::vga
 /* VGAPalettedController definitions */
 
 
-volatile uint8_t **VGAPalettedController::s_viewPort;
-volatile uint8_t **VGAPalettedController::s_viewPortVisible;
-lldesc_t volatile *VGAPalettedController::s_frameResetDesc;
-volatile int VGAPalettedController::s_scanLine;
+volatile uint8_t **vga_paletted_controller::_isr_view_port;
+volatile uint8_t **vga_paletted_controller::_isr_view_port_visible;
+lldesc_t volatile *vga_paletted_controller::_frame_reset_desc;
+volatile int vga_paletted_controller::_scan_line;
 
 
-VGAPalettedController::VGAPalettedController(int linesCount, int columnsQuantum,
-                                             esp::gfx::NativePixelFormat nativePixelFormat,
-                                             int viewPortRatioDiv, int viewPortRatioMul,
-                                             intr_handler_t isrHandler)
-    : m_linesCount(linesCount)
-    , m_columnsQuantum(columnsQuantum)
-    , m_nativePixelFormat(nativePixelFormat)
-    , m_viewPortRatioDiv(viewPortRatioDiv)
-    , m_viewPortRatioMul(viewPortRatioMul)
-    , m_isrHandler(isrHandler)
+vga_paletted_controller::vga_paletted_controller(int lines_count, int columns_quantum,
+                                                 esp::gfx::native_pixel_format native_pixel_format,
+                                                 int view_port_ratio_div, int view_port_ratio_mul,
+                                                 intr_handler_t isr_handler)
+    : _lines_count(lines_count)
+    , _columns_quantum(columns_quantum)
+    , _native_pixel_format(native_pixel_format)
+    , _view_port_ratio_div(view_port_ratio_div)
+    , _view_port_ratio_mul(view_port_ratio_mul)
+    , _isr_handler(isr_handler)
 {
-    m_lines = (volatile uint8_t **)heap_caps_malloc(sizeof(uint8_t *) * m_linesCount,
-                                                    MALLOC_CAP_32BIT | MALLOC_CAP_INTERNAL);
-    m_palette = (esp::gfx::RGB222 *)heap_caps_malloc(sizeof(esp::gfx::RGB222) * getPaletteSize(),
-                                                     MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
+    _lines = (volatile uint8_t **)heap_caps_malloc(sizeof(uint8_t *) * _lines_count,
+                                                   MALLOC_CAP_32BIT | MALLOC_CAP_INTERNAL);
+    _palette = (esp::gfx::rgb222 *)heap_caps_malloc(sizeof(esp::gfx::rgb222) * palette_size(),
+                                                    MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
 }
 
 
-VGAPalettedController::~VGAPalettedController()
+vga_paletted_controller::~vga_paletted_controller()
 {
-    heap_caps_free(m_palette);
-    heap_caps_free(m_lines);
+    heap_caps_free(_palette);
+    heap_caps_free(_lines);
 }
 
 
-void VGAPalettedController::init()
+void vga_paletted_controller::init()
 {
-    VGABaseController::init();
+    vga_base_controller::init();
 
-    m_doubleBufferOverDMA = false;
-    m_taskProcessingPrimitives = false;
-    m_processPrimitivesOnBlank = false;
-    m_primitiveExecTask = nullptr;
+    _double_buffer_over_dma = false;
+    _task_processing_primitives = false;
+    _process_primitives_on_blank = false;
+    _primitive_exec_task = nullptr;
 }
 
 
-void VGAPalettedController::end()
+void vga_paletted_controller::end()
 {
-    if (m_primitiveExecTask)
+    if (_primitive_exec_task)
     {
-        vTaskDelete(m_primitiveExecTask);
-        m_primitiveExecTask = nullptr;
-        m_taskProcessingPrimitives = false;
+        vTaskDelete(_primitive_exec_task);
+        _primitive_exec_task = nullptr;
+        _task_processing_primitives = false;
     }
-    VGABaseController::end();
+    vga_base_controller::end();
 }
 
 
-void VGAPalettedController::suspendBackgroundPrimitiveExecution()
+void vga_paletted_controller::suspend_background_primitive_execution()
 {
-    VGABaseController::suspendBackgroundPrimitiveExecution();
-    while (m_taskProcessingPrimitives)
+    vga_base_controller::suspend_background_primitive_execution();
+    while (_task_processing_primitives)
         ;
 }
 
 // make sure view port height is divisible by m_linesCount, view port width is divisible by m_columnsQuantum
-void VGAPalettedController::checkViewPortSize()
+void vga_paletted_controller::check_view_port_size()
 {
-    m_viewPortHeight &= ~(m_linesCount - 1);
-    m_viewPortWidth &= ~(m_columnsQuantum - 1);
+    _view_port_height &= ~(_lines_count - 1);
+    _view_port_width &= ~(_columns_quantum - 1);
 }
 
 
-void VGAPalettedController::allocateViewPort()
+void vga_paletted_controller::allocate_view_port()
 {
-    VGABaseController::allocateViewPort(MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL,
-                                        m_viewPortWidth / m_viewPortRatioDiv * m_viewPortRatioMul);
+    vga_base_controller::allocate_view_port(MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL,
+                                            _view_port_width / _view_port_ratio_div
+                                                * _view_port_ratio_mul);
 
-    for (int i = 0; i < m_linesCount; ++i)
-        m_lines[i] = (uint8_t *)heap_caps_malloc(m_viewPortWidth, MALLOC_CAP_DMA);
+    for (int i = 0; i < _lines_count; ++i)
+        _lines[i] = (uint8_t *)heap_caps_malloc(_view_port_width, MALLOC_CAP_DMA);
 }
 
 
-void VGAPalettedController::freeViewPort()
+void vga_paletted_controller::free_view_port()
 {
-    VGABaseController::freeViewPort();
+    vga_base_controller::free_view_port();
 
-    for (int i = 0; i < m_linesCount; ++i)
+    for (int i = 0; i < _lines_count; ++i)
     {
-        heap_caps_free((void *)m_lines[i]);
-        m_lines[i] = nullptr;
+        heap_caps_free((void *)_lines[i]);
+        _lines[i] = nullptr;
     }
 }
 
 
-void VGAPalettedController::setResolution(VGATimings const &timings, int viewPortWidth,
-                                          int viewPortHeight, bool doubleBuffered)
+void vga_paletted_controller::set_resolution(vga_timings const &timings, int view_port_width,
+                                             int view_port_height, bool double_buffered)
 {
-    VGABaseController::setResolution(timings, viewPortWidth, viewPortHeight, doubleBuffered);
+    vga_base_controller::set_resolution(timings, view_port_width, view_port_height,
+                                        double_buffered);
 
-    s_viewPort = m_viewPort;
-    s_viewPortVisible = m_viewPortVisible;
+    _isr_view_port = _view_port;
+    _isr_view_port_visible = _view_port_visible;
 
     // fill view port
-    for (int i = 0; i < m_viewPortHeight; ++i)
-        memset((void *)(m_viewPort[i]), 0,
-               m_viewPortWidth / m_viewPortRatioDiv * m_viewPortRatioMul);
+    for (int i = 0; i < _view_port_height; ++i)
+        memset((void *)(_view_port[i]), 0,
+               _view_port_width / _view_port_ratio_div * _view_port_ratio_mul);
 
-    setupDefaultPalette();
-    updateRGB2PaletteLUT();
+    setup_default_palette();
+    update_rgb2_palette_lut();
 
-    calculateAvailableCyclesForDrawings();
+    calculate_available_cycles_for_drawings();
 
     // must be started before interrupt alloc
-    startGPIOStream();
+    start_gpio_stream();
 
     // ESP_INTR_FLAG_LEVEL1: should be less than PS2Controller interrupt level, necessary when running on the same core
-    if (m_isr_handle == nullptr)
+    if (_isr_handle == nullptr)
     {
-        esp::CoreUsage::setBusiestCore(FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE);
-        esp::esp_intr_alloc_pinnedToCore(
-            ETS_I2S1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM, m_isrHandler, this,
-            &m_isr_handle, FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE);
+        esp::core_usage::set_busiest_core(FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE);
+        esp::esp_intr_alloc_pinned_to_core(
+            ETS_I2S1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM, _isr_handler, this,
+            &_isr_handle, FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE);
         I2S1.int_clr.val = 0xFFFFFFFF;
         I2S1.int_ena.out_eof = 1;
     }
 
-    if (m_primitiveExecTask == nullptr)
+    if (_primitive_exec_task == nullptr)
     {
-        xTaskCreatePinnedToCore(primitiveExecTask, "",
+        xTaskCreatePinnedToCore(primitive_exec_task, "",
                                 FABGLIB_VGAPALETTEDCONTROLLER_PRIMTASK_STACK_SIZE, this,
                                 FABGLIB_VGAPALETTEDCONTROLLER_PRIMTASK_PRIORITY,
-                                &m_primitiveExecTask, esp::CoreUsage::quietCore());
+                                &_primitive_exec_task, esp::core_usage::quiet_core());
     }
 
-    resumeBackgroundPrimitiveExecution();
+    resume_background_primitive_execution();
 }
 
 
-void VGAPalettedController::onSetupDMABuffer(lldesc_t volatile *buffer,
-                                             bool isStartOfVertFrontPorch, int scan, bool isVisible,
-                                             int visibleRow)
+void vga_paletted_controller::on_setup_dma_buffer(lldesc_t volatile *buffer,
+                                                  bool is_start_of_vert_front_porch, int scan,
+                                                  bool is_visible, int visible_row)
 {
-    if (isVisible)
+    if (is_visible)
     {
-        buffer->buf = (uint8_t *)m_lines[visibleRow % m_linesCount];
+        buffer->buf = (uint8_t *)_lines[visible_row % _lines_count];
 
         // generate interrupt every half m_linesCount
-        if ((scan == 0 && (visibleRow % (m_linesCount / 2)) == 0))
+        if ((scan == 0 && (visible_row % (_lines_count / 2)) == 0))
         {
-            if (visibleRow == 0)
-                s_frameResetDesc = buffer;
+            if (visible_row == 0)
+                _frame_reset_desc = buffer;
             buffer->eof = 1;
         }
     }
 }
 
 
-int VGAPalettedController::getPaletteSize()
+int vga_paletted_controller::palette_size()
 {
-    switch (nativePixelFormat())
+    switch (native_pixel_format())
     {
-        case esp::gfx::NativePixelFormat::PALETTE2:
+        case esp::gfx::native_pixel_format::palette2:
             return 2;
-        case esp::gfx::NativePixelFormat::PALETTE4:
+        case esp::gfx::native_pixel_format::palette4:
             return 4;
-        case esp::gfx::NativePixelFormat::PALETTE8:
+        case esp::gfx::native_pixel_format::palette8:
             return 8;
-        case esp::gfx::NativePixelFormat::PALETTE16:
+        case esp::gfx::native_pixel_format::palette16:
             return 16;
         default:
             return 0;
@@ -233,89 +235,89 @@ int VGAPalettedController::getPaletteSize()
 
 
 // rebuild m_packedRGB222_to_PaletteIndex
-void VGAPalettedController::updateRGB2PaletteLUT()
+void vga_paletted_controller::update_rgb2_palette_lut()
 {
-    auto paletteSize = getPaletteSize();
+    auto palette_size = this->palette_size();
     for (int r = 0; r < 4; ++r)
         for (int g = 0; g < 4; ++g)
             for (int b = 0; b < 4; ++b)
             {
-                double H1, S1, V1;
-                rgb222_to_hsv(r, g, b, &H1, &S1, &V1);
-                int bestIdx = 0;
-                int bestDst = 1000000000;
-                for (int i = 0; i < paletteSize; ++i)
+                double h1, s1, v1;
+                rgb222_to_hsv(r, g, b, &h1, &s1, &v1);
+                int best_idx = 0;
+                int best_dst = 1000000000;
+                for (int i = 0; i < palette_size; ++i)
                 {
-                    double H2, S2, V2;
-                    rgb222_to_hsv(m_palette[i].R, m_palette[i].G, m_palette[i].B, &H2, &S2, &V2);
-                    double AH = H1 - H2;
-                    double AS = S1 - S2;
-                    double AV = V1 - V2;
-                    int dst = AH * AH + AS * AS + AV * AV;
-                    if (dst <= bestDst)
+                    double h2, s2, v2;
+                    rgb222_to_hsv(_palette[i].r, _palette[i].g, _palette[i].b, &h2, &s2, &v2);
+                    double ah = h1 - h2;
+                    double as = s1 - s2;
+                    double av = v1 - v2;
+                    int dst = ah * ah + as * as + av * av;
+                    if (dst <= best_dst)
                     { // "<=" to prioritize higher indexes
-                        bestIdx = i;
-                        bestDst = dst;
-                        if (bestDst == 0)
+                        best_idx = i;
+                        best_dst = dst;
+                        if (best_dst == 0)
                             break;
                     }
                 }
-                m_packedRGB222_to_PaletteIndex[r | (g << 2) | (b << 4)] = bestIdx;
+                _packed_rgb222_to_palette_index[r | (g << 2) | (b << 4)] = best_idx;
             }
 }
 
 
 // calculates number of CPU cycles usable to draw primitives
-void VGAPalettedController::calculateAvailableCyclesForDrawings()
+void vga_paletted_controller::calculate_available_cycles_for_drawings()
 {
     int availtime_us;
 
-    if (m_processPrimitivesOnBlank)
+    if (_process_primitives_on_blank)
     {
         // allowed time to process primitives is limited to the vertical blank. Slow, but avoid flickering
-        availtime_us = ceil(1000000.0 / m_timings.frequency * m_timings.scanCount * m_HLineSize
-                            * (m_linesCount / 2 + m_timings.VFrontPorch + m_timings.VSyncPulse
-                               + m_timings.VBackPorch + m_viewPortRow));
+        availtime_us = ceil(1000000.0 / _timings.frequency * _timings.scan_count * _h_line_size
+                            * (_lines_count / 2 + _timings.v_front_porch + _timings.v_sync_pulse
+                               + _timings.v_back_porch + _view_port_row));
     }
     else
     {
         // allowed time is the half of an entire frame. Fast, but may flick
-        availtime_us = ceil(1000000.0 / m_timings.frequency * m_timings.scanCount * m_HLineSize
-                            * (m_timings.VVisibleArea + m_timings.VFrontPorch + m_timings.VSyncPulse
-                               + m_timings.VBackPorch));
+        availtime_us = ceil(1000000.0 / _timings.frequency * _timings.scan_count * _h_line_size
+                            * (_timings.v_visible_area + _timings.v_front_porch
+                               + _timings.v_sync_pulse + _timings.v_back_porch));
         availtime_us /= 2;
     }
 
-    m_primitiveExecTimeoutCycles =
-        getCPUFrequencyMHz() * availtime_us; // at 240Mhz, there are 240 cycles every microsecond
+    _primitive_exec_timeout_cycles =
+        cpu_frequency_mhz() * availtime_us; // at 240Mhz, there are 240 cycles every microsecond
 }
 
 
 // we can use getCycleCount here because primitiveExecTask is pinned to a specific core (so cycle counter is the same)
 // getCycleCount() requires 0.07us, while esp_timer_get_time() requires 0.78us
-void VGAPalettedController::primitiveExecTask(void *arg)
+void vga_paletted_controller::primitive_exec_task(void *arg)
 {
-    auto ctrl = (VGAPalettedController *)arg;
+    auto ctrl = (vga_paletted_controller *)arg;
 
     while (true)
     {
-        if (!ctrl->m_primitiveProcessingSuspended)
+        if (!ctrl->_primitive_processing_suspended)
         {
-            auto startCycle = ctrl->backgroundPrimitiveTimeoutEnabled() ? getCycleCount() : 0;
-            esp::gfx::Rect updateRect = esp::gfx::Rect(SHRT_MAX, SHRT_MAX, SHRT_MIN, SHRT_MIN);
-            ctrl->m_taskProcessingPrimitives = true;
+            auto start_cycle = ctrl->background_primitive_timeout_enabled() ? cycle_count() : 0;
+            esp::gfx::rect update_rect = esp::gfx::rect(SHRT_MAX, SHRT_MAX, SHRT_MIN, SHRT_MIN);
+            ctrl->_task_processing_primitives = true;
             do
             {
-                esp::gfx::Primitive prim;
-                if (ctrl->getPrimitive(&prim, 0) == false)
+                esp::gfx::primitive prim;
+                if (ctrl->get_primitive(&prim, 0) == false)
                     break;
-                ctrl->execPrimitive(prim, updateRect, false);
-                if (ctrl->m_primitiveProcessingSuspended)
+                ctrl->exec_primitive(prim, update_rect, false);
+                if (ctrl->_primitive_processing_suspended)
                     break;
-            } while (!ctrl->backgroundPrimitiveTimeoutEnabled()
-                     || (startCycle + ctrl->m_primitiveExecTimeoutCycles > getCycleCount()));
-            ctrl->showSprites(updateRect);
-            ctrl->m_taskProcessingPrimitives = false;
+            } while (!ctrl->background_primitive_timeout_enabled()
+                     || (start_cycle + ctrl->_primitive_exec_timeout_cycles > cycle_count()));
+            ctrl->show_sprites(update_rect);
+            ctrl->_task_processing_primitives = false;
         }
 
         // wait for vertical sync
@@ -324,23 +326,23 @@ void VGAPalettedController::primitiveExecTask(void *arg)
 }
 
 
-void VGAPalettedController::swapBuffers()
+void vga_paletted_controller::swap_buffers()
 {
-    VGABaseController::swapBuffers();
-    s_viewPort = m_viewPort;
-    s_viewPortVisible = m_viewPortVisible;
+    vga_base_controller::swap_buffers();
+    _isr_view_port = _view_port;
+    _isr_view_port_visible = _view_port_visible;
 }
 
 
-bool VGAPalettedController::suspendDoubleBuffering(bool value)
+bool vga_paletted_controller::suspend_double_buffering(bool value)
 {
-    auto prevValue = VGABaseController::suspendDoubleBuffering(value);
-    if (prevValue != value && isDoubleBuffered())
+    auto prev_value = vga_base_controller::suspend_double_buffering(value);
+    if (prev_value != value && is_double_buffered())
     {
-        s_viewPort = m_viewPort;
-        s_viewPortVisible = m_viewPortVisible;
+        _isr_view_port = _view_port;
+        _isr_view_port_visible = _view_port_visible;
     }
-    return prevValue;
+    return prev_value;
 }
 
 

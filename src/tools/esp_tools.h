@@ -147,15 +147,15 @@ void tswap(T &v1, T &v2)
 
 // milliseconds to FreeRTOS ticks.
 // ms = -1 => maximum delay (portMAX_DELAY)
-uint32_t msToTicks(int ms);
+uint32_t ms_to_ticks(int ms);
 
 
 // enables/disables bus clock of the specified I2S module (0 = I2S0, 1 = I2S1)
-void I2SModuleEnable(int num, bool enable);
+void i2s_module_enable(int num, bool enable);
 
 
-void esp_intr_alloc_pinnedToCore(int source, int flags, intr_handler_t handler, void *arg,
-                                 intr_handle_t *ret_handle, int core);
+void esp_intr_alloc_pinned_to_core(int source, int flags, intr_handler_t handler, void *arg,
+                                   intr_handle_t *ret_handle, int core);
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -164,26 +164,26 @@ void esp_intr_alloc_pinnedToCore(int source, int flags, intr_handler_t handler, 
 /**
  * @brief This class helps to choice a core for intensive processing tasks
  */
-struct CoreUsage
+struct core_usage
 {
 
-    static int busiestCore()
+    static int busiest_core()
     {
-        return s_busiestCore;
+        return _busiest_core;
     }
-    static int quietCore()
+    static int quiet_core()
     {
-        return s_busiestCore != -1 ? s_busiestCore ^ 1 : -1;
+        return _busiest_core != -1 ? _busiest_core ^ 1 : -1;
     }
-    static void setBusiestCore(int core)
+    static void set_busiest_core(int core)
     {
-        s_busiestCore = core;
+        _busiest_core = core;
     }
 
 private:
 
     static int
-        s_busiestCore; // 0 = core 0, 1 = core 1 (default is FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE)
+        _busiest_core; // 0 = core 0, 1 = core 1 (default is FABGLIB_VIDEO_CPUINTENSIVE_TASKS_CORE)
 };
 
 
@@ -193,34 +193,34 @@ private:
 /** \ingroup Enumerations
  * @brief Specifies a video mode
  */
-enum class VideoMode
+enum class video_mode
 {
-    None, /**< Video mode has not been set. */
-    VGA, /**< VGA display. */
-    CVBS, /**< Composite display. */
-    I2C, /**< I2C display. */
-    SPI, /**< SPI display. */
+    none, /**< Video mode has not been set. */
+    vga, /**< VGA display. */
+    cvbs, /**< Composite display. */
+    i2c, /**< I2C display. */
+    spi, /**< SPI display. */
 };
 
 
 /**
  * @brief This class helps to know which is the current video output (VGA or Composite)
  */
-struct CurrentVideoMode
+struct current_video_mode
 {
 
-    static VideoMode get()
+    static video_mode get()
     {
-        return s_videoMode;
+        return _video_mode;
     }
-    static void set(VideoMode value)
+    static void set(video_mode value)
     {
-        s_videoMode = value;
+        _video_mode = value;
     }
 
 private:
 
-    static VideoMode s_videoMode;
+    static video_mode _video_mode;
 };
 
 

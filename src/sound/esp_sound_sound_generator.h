@@ -72,38 +72,38 @@ namespace esp::sound
 
 
 /** @brief Base abstract class for waveform generators. A waveform generator can be seen as an audio channel that will be mixed by SoundGenerator. */
-class WaveformGenerator
+class waveform_generator
 {
 public:
 
-    WaveformGenerator()
+    waveform_generator()
         : next(nullptr)
-        , m_sampleRate(0)
-        , m_volume(100)
-        , m_enabled(false)
-        , m_duration(-1)
-        , m_autoDestroy(false)
-        , m_autoDetach(false)
+        , _sample_rate(0)
+        , _volume(100)
+        , _enabled(false)
+        , _duration(-1)
+        , _auto_destroy(false)
+        , _auto_detach(false)
     {
     }
 
-    virtual ~WaveformGenerator() {}
+    virtual ~waveform_generator() {}
 
     /**
    * @brief Sets output frequency
    *
    * @param value Frequency in Hertz
    */
-    virtual void setFrequency(int value) = 0;
+    virtual void set_frequency(int value) = 0;
 
     /**
    * @brief Sets number of samples to play
    *
    * @param value Number of samples to play. -1 = infinite.
    */
-    void setDuration(uint32_t value)
+    void set_duration(uint32_t value)
     {
-        m_duration = value;
+        _duration = value;
     }
 
     /**
@@ -113,7 +113,7 @@ public:
    */
     uint32_t duration()
     {
-        return m_duration;
+        return _duration;
     }
 
     /**
@@ -121,14 +121,14 @@ public:
    *
    * @param value if true: this object needs to be detached from the sound generator when there are no more samples to play.
    */
-    void setAutoDetach(bool value)
+    void set_auto_detach(bool value)
     {
-        m_autoDetach = value;
+        _auto_detach = value;
     }
 
-    bool autoDetach()
+    bool auto_detach()
     {
-        return m_autoDetach;
+        return _auto_detach;
     }
 
     /**
@@ -136,15 +136,15 @@ public:
    *
    * @param value if true: this object needs to be destroyed by the sound generat or when there are no more samples to play. This will set also setAutoDetach(true).
    */
-    void setAutoDestroy(bool value)
+    void set_auto_destroy(bool value)
     {
-        m_autoDestroy = value;
-        m_autoDetach |= value;
+        _auto_destroy = value;
+        _auto_detach |= value;
     }
 
-    bool autoDestroy()
+    bool auto_destroy()
     {
-        return m_autoDestroy;
+        return _auto_destroy;
     }
 
     /**
@@ -152,16 +152,16 @@ public:
    *
    * @return Sample value as signed 8 bit (-128..127 range)
    */
-    virtual int getSample() = 0;
+    virtual int sample() = 0;
 
     /**
    * @brief Sets volume of this generator
    *
    * @param value Volume value. Minimum is 0, maximum is 127.
    */
-    void setVolume(int value)
+    void set_volume(int value)
     {
-        m_volume = value;
+        _volume = value;
     }
 
     /**
@@ -171,7 +171,7 @@ public:
    */
     int volume()
     {
-        return m_volume;
+        return _volume;
     }
 
     /**
@@ -181,7 +181,7 @@ public:
    */
     bool enabled()
     {
-        return m_enabled;
+        return _enabled;
     }
 
     /**
@@ -193,7 +193,7 @@ public:
    */
     void enable(bool value)
     {
-        m_enabled = value;
+        _enabled = value;
     }
 
     /**
@@ -203,9 +203,9 @@ public:
    *
    * @param value Sample rate in Hertz
    */
-    void setSampleRate(int value)
+    void set_sample_rate(int value)
     {
-        m_sampleRate = value;
+        _sample_rate = value;
     }
 
     /**
@@ -213,137 +213,137 @@ public:
    *
    * @return Current sample rate in Hertz
    */
-    uint16_t sampleRate()
+    uint16_t sample_rate()
     {
-        return m_sampleRate;
+        return _sample_rate;
     }
 
-    WaveformGenerator *next;
+    waveform_generator *next;
 
 protected:
 
-    void decDuration()
+    void dec_duration()
     {
-        --m_duration;
-        if (m_duration == 0)
-            m_enabled = false;
+        --_duration;
+        if (_duration == 0)
+            _enabled = false;
     }
 
 private:
 
-    uint16_t m_sampleRate;
-    int8_t m_volume;
-    int8_t m_enabled; // 0 = disabled, 1 = enabled
-    uint32_t m_duration; // number of samples to play (-1 = infinite)
+    uint16_t _sample_rate;
+    int8_t _volume;
+    int8_t _enabled; // 0 = disabled, 1 = enabled
+    uint32_t _duration; // number of samples to play (-1 = infinite)
     bool
-        m_autoDestroy; // if true: this object needs to be destroyed by the sound generator when there are no more samples to play
+        _auto_destroy; // if true: this object needs to be destroyed by the sound generator when there are no more samples to play
     bool
-        m_autoDetach; // if true: this object needs to be autodetached from the sound generator when there are no more samples to play
+        _auto_detach; // if true: this object needs to be autodetached from the sound generator when there are no more samples to play
 };
 
 
 /** @brief Sine waveform generator */
-class SineWaveformGenerator : public WaveformGenerator
+class sine_waveform_generator : public waveform_generator
 {
 public:
 
-    SineWaveformGenerator();
+    sine_waveform_generator();
 
-    void setFrequency(int value);
+    void set_frequency(int value);
 
-    int getSample();
+    int sample();
 
 private:
 
-    uint32_t m_phaseInc;
-    uint32_t m_phaseAcc;
-    uint16_t m_frequency;
-    int16_t m_lastSample;
+    uint32_t _phase_inc;
+    uint32_t _phase_acc;
+    uint16_t _frequency;
+    int16_t _last_sample;
 };
 
 
 /** @brief Square waveform generator */
-class SquareWaveformGenerator : public WaveformGenerator
+class square_waveform_generator : public waveform_generator
 {
 public:
 
-    SquareWaveformGenerator();
+    square_waveform_generator();
 
-    void setFrequency(int value);
+    void set_frequency(int value);
 
     /**
    * @brief Sets square wave duty cycle
    *
    * @param dutyCycle Duty cycle in 0..255 range. 255 = 100%
    */
-    void setDutyCycle(int dutyCycle);
+    void set_duty_cycle(int duty_cycle);
 
-    int getSample();
+    int sample();
 
 private:
 
-    uint32_t m_phaseInc;
-    uint32_t m_phaseAcc;
-    uint16_t m_frequency;
-    int8_t m_lastSample;
-    uint8_t m_dutyCycle;
+    uint32_t _phase_inc;
+    uint32_t _phase_acc;
+    uint16_t _frequency;
+    int8_t _last_sample;
+    uint8_t _duty_cycle;
 };
 
 
 /** @brief Triangle waveform generator */
-class TriangleWaveformGenerator : public WaveformGenerator
+class triangle_waveform_generator : public waveform_generator
 {
 public:
 
-    TriangleWaveformGenerator();
+    triangle_waveform_generator();
 
-    void setFrequency(int value);
+    void set_frequency(int value);
 
-    int getSample();
+    int sample();
 
 private:
 
-    uint32_t m_phaseInc;
-    uint32_t m_phaseAcc;
-    uint16_t m_frequency;
-    int8_t m_lastSample;
+    uint32_t _phase_inc;
+    uint32_t _phase_acc;
+    uint16_t _frequency;
+    int8_t _last_sample;
 };
 
 
 /** @brief Sawtooth waveform generator */
-class SawtoothWaveformGenerator : public WaveformGenerator
+class sawtooth_waveform_generator : public waveform_generator
 {
 public:
 
-    SawtoothWaveformGenerator();
+    sawtooth_waveform_generator();
 
-    void setFrequency(int value);
+    void set_frequency(int value);
 
-    int getSample();
+    int sample();
 
 private:
 
-    uint32_t m_phaseInc;
-    uint32_t m_phaseAcc;
-    uint16_t m_frequency;
-    int8_t m_lastSample;
+    uint32_t _phase_inc;
+    uint32_t _phase_acc;
+    uint16_t _frequency;
+    int8_t _last_sample;
 };
 
 
 /** @brief Noise generator */
-class NoiseWaveformGenerator : public WaveformGenerator
+class noise_waveform_generator : public waveform_generator
 {
 public:
 
-    NoiseWaveformGenerator();
+    noise_waveform_generator();
 
-    void setFrequency(int value);
+    void set_frequency(int value);
 
-    int getSample();
+    int sample();
 
 private:
 
-    uint16_t m_noise;
+    uint16_t _noise;
 };
 
 
@@ -356,29 +356,29 @@ private:
  *
  * Inspired from a reverse enginnered VHDL code: http://www.denial.shamani.dk/bb/viewtopic.php?t=8733&start=210
  */
-class VICNoiseGenerator : public WaveformGenerator
+class vic_noise_generator : public waveform_generator
 {
 public:
 
-    VICNoiseGenerator();
+    vic_noise_generator();
 
-    void setFrequency(int value);
+    void set_frequency(int value);
     uint16_t frequency()
     {
-        return m_frequency;
+        return _frequency;
     }
 
-    int getSample();
+    int sample();
 
 private:
 
     static const uint16_t LFSRINIT = 0x0202;
     static const int CLK = 4433618;
 
-    uint16_t m_frequency;
-    uint16_t m_counter;
-    uint16_t m_LFSR;
-    uint16_t m_outSR;
+    uint16_t _frequency;
+    uint16_t _counter;
+    uint16_t _lfsr;
+    uint16_t _out_sr;
 };
 
 
@@ -388,31 +388,31 @@ private:
  * Sample data should be sampled at the same samplerate of the sound generator.
  * Only 8 bit (signed - not compressed) depth is supported.
  */
-class SamplesGenerator : public WaveformGenerator
+class samples_generator : public waveform_generator
 {
 public:
 
-    SamplesGenerator(int8_t const *data, int length);
+    samples_generator(int8_t const *data, int length);
 
-    void setFrequency(int value);
+    void set_frequency(int value);
 
-    int getSample();
+    int sample();
 
 private:
 
-    int8_t const *m_data;
-    int m_length;
-    int m_index;
+    int8_t const *_data;
+    int _length;
+    int _index;
 };
 
 
 /** \ingroup Enumerations
  * @brief Specifies sound generation method
  */
-enum class SoundGenMethod
+enum class sound_gen_method
 {
-    DAC, /**< Use DAC. Available on gpio 25 or 26. Very low resources occupation. */
-    SigmaDelta, /**< Use Sigma-Delta. Available on almost all GPIO pins. Requires a lot of CPU power for high sample rates. */
+    dac, /**< Use DAC. Available on gpio 25 or 26. Very low resources occupation. */
+    sigma_delta, /**< Use Sigma-Delta. Available on almost all GPIO pins. Requires a lot of CPU power for high sample rates. */
     Auto, /**< Use DAC when video output is VGA, use SigmaDelta when video output is Composite. */
 };
 
@@ -432,7 +432,7 @@ enum class SoundGenMethod
  * - VICNoiseGenerator
  * - SamplesGenerator
  */
-class SoundGenerator
+class sound_generator
 {
 
 public:
@@ -455,10 +455,11 @@ public:
    *     // creates sound generator using 16Khz sample rate, GPIO 23 in sigma-delta mode
    *     SoundGenerator soundGenerator(16000, GPIO_NUM_23, SoundGenMethod::SigmaDelta);
    */
-    SoundGenerator(int sampleRate = FABGL_SOUNDGEN_DEFAULT_SAMPLE_RATE, gpio_num_t gpio = GPIO_AUTO,
-                   SoundGenMethod genMethod = SoundGenMethod::Auto);
+    sound_generator(int sample_rate = FABGL_SOUNDGEN_DEFAULT_SAMPLE_RATE,
+                    gpio_num_t gpio = GPIO_AUTO,
+                    sound_gen_method gen_method = sound_gen_method::Auto);
 
-    ~SoundGenerator();
+    ~sound_generator();
 
     /**
    * @brief Stops playing and removes all attached waveform generators
@@ -491,8 +492,8 @@ public:
    *
    * @return Pointer to SamplesGenerator object. Lifetime of this object is limited to the duration.
    */
-    SamplesGenerator *playSamples(int8_t const *data, int length, int volume = 100,
-                                  int durationMS = 0);
+    samples_generator *play_samples(int8_t const *data, int length, int volume = 100,
+                                    int duration_ms = 0);
 
     /**
    * @brief Plays the specified waveform
@@ -516,14 +517,14 @@ public:
    *     soundGen.playSound(SineWaveformGenerator(), 392, 1000);  // G
    */
     template<typename T>
-    void playSound(T const &waveform, int frequency, int durationMS, int volume = 100)
+    void play_sound(T const &waveform, int frequency, int duration_ms, int volume = 100)
     {
         auto wf = new T(waveform);
         attach(wf);
-        wf->setFrequency(frequency);
-        wf->setVolume(volume);
-        wf->setAutoDestroy(true);
-        wf->setDuration(m_sampleRate / 1000 * durationMS);
+        wf->set_frequency(frequency);
+        wf->set_volume(volume);
+        wf->set_auto_destroy(true);
+        wf->set_duration(_sample_rate / 1000 * duration_ms);
         wf->enable(true);
         play(true);
     }
@@ -535,12 +536,12 @@ public:
    */
     bool playing()
     {
-        return m_play;
+        return _play;
     }
 
-    WaveformGenerator *channels()
+    waveform_generator *channels()
     {
-        return m_channels;
+        return _channels;
     }
 
     /**
@@ -555,23 +556,23 @@ public:
    *     sine.enable(true);
    *     sine.setFrequency(500);  // 500 Hz
    */
-    void attach(WaveformGenerator *value);
+    void attach(waveform_generator *value);
 
     /**
    * @brief Detaches a waveform generator
    *
    * @param value Pointer of the waveform generator to detach
    */
-    void detach(WaveformGenerator *value);
+    void detach(waveform_generator *value);
 
     /**
    * @brief Sets the overall volume
    *
    * @param value Volume value. Minimum is 0, maximum is 127.
    */
-    void setVolume(int value)
+    void set_volume(int value)
     {
-        m_volume = value;
+        _volume = value;
     }
 
     /**
@@ -581,22 +582,22 @@ public:
    */
     int volume()
     {
-        return m_volume;
+        return _volume;
     }
 
 
 private:
 
-    static void ISRHandler(void *arg); // used in DAC mode
-    static void timerHandler(void *args); // used in sigma-delta mode
+    static void isr_handler(void *arg); // used in DAC mode
+    static void timer_handler(void *args); // used in sigma-delta mode
 
     void dac_init();
     void sigmadelta_init();
-    void detachNoSuspend(WaveformGenerator *value);
-    void setDMANode(int index, volatile uint16_t *buf, int len);
+    void detach_no_suspend(waveform_generator *value);
+    void set_dma_node(int index, volatile uint16_t *buf, int len);
     void init();
 
-    int getSample();
+    int sample();
 
 #ifdef FABGL_EMULATED
     void sdl_init();
@@ -604,30 +605,30 @@ private:
 #endif
 
 
-    WaveformGenerator *m_channels;
+    waveform_generator *_channels;
 
-    uint16_t *m_sampleBuffer[2];
+    uint16_t *_sample_buffer[2];
 
-    int8_t m_volume;
+    int8_t _volume;
 
-    uint16_t m_sampleRate;
+    uint16_t _sample_rate;
 
-    bool m_play;
+    bool _play;
 
-    gpio_num_t m_gpio;
+    gpio_num_t _gpio;
 
-    intr_handle_t m_isr_handle;
+    intr_handle_t _isr_handle;
 
-    lldesc_t volatile *m_DMAChain;
+    lldesc_t volatile *_dma_chain;
 
-    SoundGenMethod m_genMethod;
+    sound_gen_method _gen_method;
 
-    bool m_initDone;
+    bool _init_done;
 
-    esp_timer_handle_t m_timerHandle;
+    esp_timer_handle_t _timer_handle;
 
 #if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
-    sdm_channel_handle_t m_sdmChannel = nullptr;
+    sdm_channel_handle_t _sdm_channel = nullptr;
 #endif
 
 #ifdef FABGL_EMULATED

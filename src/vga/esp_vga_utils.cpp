@@ -63,7 +63,7 @@ namespace esp::vga
 ////////////////////////////////////////////////////////////////////////////////////////////
 // APLLEnable
 
-void APLLEnable(bool enable, uint32_t sdm0, uint32_t sdm1, uint32_t sdm2, uint32_t o_div)
+void apll_enable(bool enable, uint32_t sdm0, uint32_t sdm1, uint32_t sdm2, uint32_t o_div)
 {
 #   if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
     rtc_clk_apll_enable(enable);
@@ -80,7 +80,7 @@ void APLLEnable(bool enable, uint32_t sdm0, uint32_t sdm1, uint32_t sdm2, uint32
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // configureGPIO
-void configureGPIO(gpio_num_t gpio, gpio_mode_t mode)
+void configure_gpio(gpio_num_t gpio, gpio_mode_t mode)
 {
 #ifndef FABGL_EMULATED
     PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpio], PIN_FUNC_GPIO);
@@ -92,7 +92,7 @@ void configureGPIO(gpio_num_t gpio, gpio_mode_t mode)
 ////////////////////////////////////////////////////////////////////////////////////////////
 // getCPUFrequencyMHz
 #ifndef FABGL_EMULATED
-uint32_t getCPUFrequencyMHz()
+uint32_t cpu_frequency_mhz()
 {
     rtc_cpu_freq_config_t conf;
     rtc_clk_cpu_freq_get_config(&conf);
@@ -104,11 +104,11 @@ uint32_t getCPUFrequencyMHz()
 ///////////////////////////////////////////////////////////////////////////////////
 // rgb222_to_hsv
 // R, G, B in the 0..3 range
-void rgb222_to_hsv(int R, int G, int B, double *h, double *s, double *v)
+void rgb222_to_hsv(int red, int green, int blue, double *h, double *s, double *v)
 {
-    double r = R / 3.0;
-    double g = G / 3.0;
-    double b = B / 3.0;
+    double r = red / 3.0;
+    double g = green / 3.0;
+    double b = blue / 3.0;
     double cmax = esp::tmax<double>(esp::tmax<double>(r, g), b);
     double cmin = esp::tmin<double>(esp::tmin<double>(r, g), b);
     double diff = cmax - cmin;
@@ -281,10 +281,10 @@ void floatToFraction(double value, int maxDen, int *num, int *den)
 //
 //  MIN 5303030Hz - sdm0 = 0 sdm1 = 192 sdm2 = 4 o_div = 31
 //  MAX 7575757Hz - sdm0 = 0 sdm1 = 128 sdm2 = 8 o_div = 31
-void APLLCalcParams(double freq, APLLParams *params, uint8_t *a, uint8_t *b, double *out_freq,
-                    double *error)
+void apll_calc_params(double freq, apll_params *params, uint8_t *a, uint8_t *b, double *out_freq,
+                      double *error)
 {
-    double FXTAL = FABGLIB_XTAL;
+    double fxtal = FABGLIB_XTAL;
 
     *error = 999999999;
 
@@ -299,32 +299,32 @@ void APLLCalcParams(double freq, APLLParams *params, uint8_t *a, uint8_t *b, dou
         {
 
             // from tables above
-            int minSDM1 = (sdm2 == 4 ? 192 : 0);
-            int maxSDM1 = (sdm2 == 8 ? 128 : 255);
+            int min_sdm1 = (sdm2 == 4 ? 192 : 0);
+            int max_sdm1 = (sdm2 == 8 ? 128 : 255);
             // apll_freq = XTAL * (4 + sdm2 + sdm1 / 256) / divisor   ->   sdm1 = (apll_freq * divisor - XTAL * 4 - XTAL * sdm2) * 256 / XTAL
-            int startSDM1 = ((apll_freq * idivisor - FXTAL * 4.0 - FXTAL * sdm2) * 256.0 / FXTAL);
+            int start_sdm1 = ((apll_freq * idivisor - fxtal * 4.0 - fxtal * sdm2) * 256.0 / fxtal);
 #if FABGLIB_USE_APLL_AB_COEF
-            for (int isdm1 = esp::tmax(minSDM1, startSDM1); isdm1 <= maxSDM1; ++isdm1)
+            for (int isdm1 = esp::tmax(min_sdm1, start_sdm1); isdm1 <= max_sdm1; ++isdm1)
             {
 #else
-            int isdm1 = startSDM1;
+            int isdm1 = start_sdm1;
             {
 #endif
 
                 int sdm1 = isdm1;
-                sdm1 = esp::tmax(minSDM1, sdm1);
-                sdm1 = esp::tmin(maxSDM1, sdm1);
+                sdm1 = esp::tmax(min_sdm1, sdm1);
+                sdm1 = esp::tmin(max_sdm1, sdm1);
 
                 // apll_freq = XTAL * (4 + sdm2 + sdm1 / 256 + sdm0 / 65536) / divisor   ->   sdm0 = (apll_freq * divisor - XTAL * 4 - XTAL * sdm2 - XTAL * sdm1 / 256) * 65536 / XTAL
                 int sdm0 =
-                    ((apll_freq * idivisor - FXTAL * 4.0 - FXTAL * sdm2 - FXTAL * sdm1 / 256.0)
-                     * 65536.0 / FXTAL);
+                    ((apll_freq * idivisor - fxtal * 4.0 - fxtal * sdm2 - fxtal * sdm1 / 256.0)
+                     * 65536.0 / fxtal);
                 // from tables above
                 sdm0 = (sdm2 == 8 && sdm1 == 128 ? 0 : esp::tmin(255, sdm0));
                 sdm0 = esp::tmax(0, sdm0);
 
                 // dividend inside 350-500Mhz?
-                double dividend = FXTAL * (4.0 + sdm2 + sdm1 / 256.0 + sdm0 / 65536.0);
+                double dividend = fxtal * (4.0 + sdm2 + sdm1 / 256.0 + sdm0 / 65536.0);
                 if (dividend >= 350000000 && dividend <= 500000000)
                 {
                     // adjust output frequency using "b/a"
@@ -351,8 +351,8 @@ void APLLCalcParams(double freq, APLLParams *params, uint8_t *a, uint8_t *b, dou
                     double err = freq - ofreq;
                     if (abs(err) < abs(*error))
                     {
-                        *params = (APLLParams){(uint8_t)sdm0, (uint8_t)sdm1, (uint8_t)sdm2,
-                                               (uint8_t)o_div};
+                        *params = (apll_params){(uint8_t)sdm0, (uint8_t)sdm1, (uint8_t)sdm2,
+                                                (uint8_t)o_div};
                         *a = oa;
                         *b = ob;
                         *out_freq = ofreq;

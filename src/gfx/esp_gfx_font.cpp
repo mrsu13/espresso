@@ -5,7 +5,7 @@
 
 /**
  * @file esp_gfx_font.cpp
- * @brief Растровый шрифт Unicode для вывода текста на холст esp::gfx::Canvas.
+ * @brief Растровый шрифт Unicode для вывода текста на холст esp::gfx::canvas.
  */
 
 #include "esp_gfx_font.h"
@@ -20,13 +20,13 @@
  * @brief Растровый моноширинный шрифт, индексированный по кодам Unicode.
  *
  * Шрифт — таблица кодов знаков по возрастанию и изображения знаков в том
- * же порядке, по 1 биту на точку, в формате esp::gfx::Canvas::drawGlyph().
+ * же порядке, по 1 биту на точку, в формате esp::gfx::canvas::draw_glyph().
  * Такие таблицы строит сценарий src/fonts/ttf2font.py.
  *
  * Знак ищется двоичным поиском; вместо отсутствующего выводится знак
  * замены. Цвет знака — цвет пера холста; фон знакоместа заливается
  * цветом кисти, если это включено в параметрах знаков холста
- * (esp::gfx::Canvas::setGlyphOptions()).
+ * (esp::gfx::canvas::set_glyph_options()).
  */
 
 
@@ -79,11 +79,11 @@ int esp::gfx::font::index(char32_t codepoint) const
  * @param y Ордината левого верхнего угла знакоместа.
  * @param codepoint Код Unicode.
  */
-void esp::gfx::font::draw_char(esp::gfx::Canvas &canvas, int x, int y, char32_t codepoint) const
+void esp::gfx::font::draw_char(esp::gfx::canvas &canvas, int x, int y, char32_t codepoint) const
 {
     // Холст сам находит изображение по номеру знака: смещение — номер,
     // умноженный на размер изображения одного знака.
-    canvas.drawGlyph(x, y, _width, _height, _glyphs, index(codepoint));
+    canvas.draw_glyph(x, y, _width, _height, _glyphs, index(codepoint));
 }
 
 /**
@@ -99,7 +99,7 @@ void esp::gfx::font::draw_char(esp::gfx::Canvas &canvas, int x, int y, char32_t 
  *        проверяется: строка должна быть правильной UTF-8.
  * @return Число нарисованных знаков.
  */
-int esp::gfx::font::draw_text(esp::gfx::Canvas &canvas, int x, int y, const char *text) const
+int esp::gfx::font::draw_text(esp::gfx::canvas &canvas, int x, int y, const char *text) const
 {
     // С C++20 utf8.h работает с типом char8_t, а не char; байты строки
     // при этом те же.

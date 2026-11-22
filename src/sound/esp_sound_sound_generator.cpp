@@ -52,7 +52,7 @@ namespace esp::sound
 // SineWaveformGenerator
 
 
-static const int8_t sinTable[257] = {
+static const int8_t SIN_TABLE[257] = {
     0,    3,    6,    9,    12,   16,   19,   22,   25,   28,   31,   34,   37,   40,   43,   46,
     49,   51,   54,   57,   60,   63,   65,   68,   71,   73,   76,   78,   81,   83,   85,   88,
     90,   92,   94,   96,   98,   100,  102,  104,  106,  107,  109,  111,  112,  113,  115,  116,
@@ -73,50 +73,50 @@ static const int8_t sinTable[257] = {
 };
 
 
-SineWaveformGenerator::SineWaveformGenerator()
-    : m_phaseInc(0)
-    , m_phaseAcc(0)
-    , m_frequency(0)
-    , m_lastSample(0)
+sine_waveform_generator::sine_waveform_generator()
+    : _phase_inc(0)
+    , _phase_acc(0)
+    , _frequency(0)
+    , _last_sample(0)
 {
 }
 
 
-void SineWaveformGenerator::setFrequency(int value)
+void sine_waveform_generator::set_frequency(int value)
 {
-    if (m_frequency != value)
+    if (_frequency != value)
     {
-        m_frequency = value;
-        m_phaseInc = (((uint32_t)m_frequency * 256) << 11) / sampleRate();
+        _frequency = value;
+        _phase_inc = (((uint32_t)_frequency * 256) << 11) / sample_rate();
     }
 }
 
 
-int SineWaveformGenerator::getSample()
+int sine_waveform_generator::sample()
 {
-    if (m_frequency == 0 || duration() == 0)
+    if (_frequency == 0 || duration() == 0)
     {
-        if (m_lastSample > 0)
-            --m_lastSample;
-        else if (m_lastSample < 0)
-            ++m_lastSample;
+        if (_last_sample > 0)
+            --_last_sample;
+        else if (_last_sample < 0)
+            ++_last_sample;
         else
-            m_phaseAcc = 0;
-        return m_lastSample;
+            _phase_acc = 0;
+        return _last_sample;
     }
 
     // get sample  (-128...+127)
-    uint32_t index = m_phaseAcc >> 11;
-    int sample = sinTable[index];
+    uint32_t index = _phase_acc >> 11;
+    int sample = SIN_TABLE[index];
 
     // process volume
     sample = sample * volume() / 127;
 
-    m_lastSample = sample;
+    _last_sample = sample;
 
-    m_phaseAcc = (m_phaseAcc + m_phaseInc) & 0x7ffff;
+    _phase_acc = (_phase_acc + _phase_inc) & 0x7ffff;
 
-    decDuration();
+    dec_duration();
 
     return sample;
 }
@@ -130,57 +130,57 @@ int SineWaveformGenerator::getSample()
 // SquareWaveformGenerator
 
 
-SquareWaveformGenerator::SquareWaveformGenerator()
-    : m_phaseInc(0)
-    , m_phaseAcc(0)
-    , m_frequency(0)
-    , m_lastSample(0)
-    , m_dutyCycle(127)
+square_waveform_generator::square_waveform_generator()
+    : _phase_inc(0)
+    , _phase_acc(0)
+    , _frequency(0)
+    , _last_sample(0)
+    , _duty_cycle(127)
 {
 }
 
 
-void SquareWaveformGenerator::setFrequency(int value)
+void square_waveform_generator::set_frequency(int value)
 {
-    if (m_frequency != value)
+    if (_frequency != value)
     {
-        m_frequency = value;
-        m_phaseInc = (((uint32_t)m_frequency * 256) << 11) / sampleRate();
+        _frequency = value;
+        _phase_inc = (((uint32_t)_frequency * 256) << 11) / sample_rate();
     }
 }
 
 
 // dutyCycle: 0..255 (255=100%)
-void SquareWaveformGenerator::setDutyCycle(int dutyCycle)
+void square_waveform_generator::set_duty_cycle(int duty_cycle)
 {
-    m_dutyCycle = dutyCycle;
+    _duty_cycle = duty_cycle;
 }
 
 
-int SquareWaveformGenerator::getSample()
+int square_waveform_generator::sample()
 {
-    if (m_frequency == 0 || duration() == 0)
+    if (_frequency == 0 || duration() == 0)
     {
-        if (m_lastSample > 0)
-            --m_lastSample;
-        else if (m_lastSample < 0)
-            ++m_lastSample;
+        if (_last_sample > 0)
+            --_last_sample;
+        else if (_last_sample < 0)
+            ++_last_sample;
         else
-            m_phaseAcc = 0;
-        return m_lastSample;
+            _phase_acc = 0;
+        return _last_sample;
     }
 
-    uint32_t index = m_phaseAcc >> 11;
-    int sample = (index <= m_dutyCycle ? 127 : -127);
+    uint32_t index = _phase_acc >> 11;
+    int sample = (index <= _duty_cycle ? 127 : -127);
 
     // process volume
     sample = sample * volume() / 127;
 
-    m_lastSample = sample;
+    _last_sample = sample;
 
-    m_phaseAcc = (m_phaseAcc + m_phaseInc) & 0x7ffff;
+    _phase_acc = (_phase_acc + _phase_inc) & 0x7ffff;
 
-    decDuration();
+    dec_duration();
 
     return sample;
 }
@@ -193,49 +193,49 @@ int SquareWaveformGenerator::getSample()
 // TriangleWaveformGenerator
 
 
-TriangleWaveformGenerator::TriangleWaveformGenerator()
-    : m_phaseInc(0)
-    , m_phaseAcc(0)
-    , m_frequency(0)
-    , m_lastSample(0)
+triangle_waveform_generator::triangle_waveform_generator()
+    : _phase_inc(0)
+    , _phase_acc(0)
+    , _frequency(0)
+    , _last_sample(0)
 {
 }
 
 
-void TriangleWaveformGenerator::setFrequency(int value)
+void triangle_waveform_generator::set_frequency(int value)
 {
-    if (m_frequency != value)
+    if (_frequency != value)
     {
-        m_frequency = value;
-        m_phaseInc = (((uint32_t)m_frequency * 256) << 11) / sampleRate();
+        _frequency = value;
+        _phase_inc = (((uint32_t)_frequency * 256) << 11) / sample_rate();
     }
 }
 
 
-int TriangleWaveformGenerator::getSample()
+int triangle_waveform_generator::sample()
 {
-    if (m_frequency == 0 || duration() == 0)
+    if (_frequency == 0 || duration() == 0)
     {
-        if (m_lastSample > 0)
-            --m_lastSample;
-        else if (m_lastSample < 0)
-            ++m_lastSample;
+        if (_last_sample > 0)
+            --_last_sample;
+        else if (_last_sample < 0)
+            ++_last_sample;
         else
-            m_phaseAcc = 0;
-        return m_lastSample;
+            _phase_acc = 0;
+        return _last_sample;
     }
 
-    uint32_t index = m_phaseAcc >> 11;
+    uint32_t index = _phase_acc >> 11;
     int sample = (index & 0x80 ? -1 : 1) * ((index & 0x3F) * 2 - (index & 0x40 ? 0 : 127));
 
     // process volume
     sample = sample * volume() / 127;
 
-    m_lastSample = sample;
+    _last_sample = sample;
 
-    m_phaseAcc = (m_phaseAcc + m_phaseInc) & 0x7ffff;
+    _phase_acc = (_phase_acc + _phase_inc) & 0x7ffff;
 
-    decDuration();
+    dec_duration();
 
     return sample;
 }
@@ -248,49 +248,49 @@ int TriangleWaveformGenerator::getSample()
 // SawtoothWaveformGenerator
 
 
-SawtoothWaveformGenerator::SawtoothWaveformGenerator()
-    : m_phaseInc(0)
-    , m_phaseAcc(0)
-    , m_frequency(0)
-    , m_lastSample(0)
+sawtooth_waveform_generator::sawtooth_waveform_generator()
+    : _phase_inc(0)
+    , _phase_acc(0)
+    , _frequency(0)
+    , _last_sample(0)
 {
 }
 
 
-void SawtoothWaveformGenerator::setFrequency(int value)
+void sawtooth_waveform_generator::set_frequency(int value)
 {
-    if (m_frequency != value)
+    if (_frequency != value)
     {
-        m_frequency = value;
-        m_phaseInc = (((uint32_t)m_frequency * 256) << 11) / sampleRate();
+        _frequency = value;
+        _phase_inc = (((uint32_t)_frequency * 256) << 11) / sample_rate();
     }
 }
 
 
-int SawtoothWaveformGenerator::getSample()
+int sawtooth_waveform_generator::sample()
 {
-    if (m_frequency == 0 || duration() == 0)
+    if (_frequency == 0 || duration() == 0)
     {
-        if (m_lastSample > 0)
-            --m_lastSample;
-        else if (m_lastSample < 0)
-            ++m_lastSample;
+        if (_last_sample > 0)
+            --_last_sample;
+        else if (_last_sample < 0)
+            ++_last_sample;
         else
-            m_phaseAcc = 0;
-        return m_lastSample;
+            _phase_acc = 0;
+        return _last_sample;
     }
 
-    uint32_t index = m_phaseAcc >> 11;
+    uint32_t index = _phase_acc >> 11;
     int sample = index - 128;
 
     // process volume
     sample = sample * volume() / 127;
 
-    m_lastSample = sample;
+    _last_sample = sample;
 
-    m_phaseAcc = (m_phaseAcc + m_phaseInc) & 0x7ffff;
+    _phase_acc = (_phase_acc + _phase_inc) & 0x7ffff;
 
-    decDuration();
+    dec_duration();
 
     return sample;
 }
@@ -303,16 +303,16 @@ int SawtoothWaveformGenerator::getSample()
 // NoiseWaveformGenerator
 
 
-NoiseWaveformGenerator::NoiseWaveformGenerator()
-    : m_noise(0xFAB7)
+noise_waveform_generator::noise_waveform_generator()
+    : _noise(0xFAB7)
 {
 }
 
 
-void NoiseWaveformGenerator::setFrequency(int value) {}
+void noise_waveform_generator::set_frequency(int value) {}
 
 
-int NoiseWaveformGenerator::getSample()
+int noise_waveform_generator::sample()
 {
     if (duration() == 0)
     {
@@ -320,13 +320,13 @@ int NoiseWaveformGenerator::getSample()
     }
 
     // noise generator based on Galois LFSR
-    m_noise = (m_noise >> 1) ^ (-(m_noise & 1) & 0xB400u);
-    int sample = 127 - (m_noise >> 8);
+    _noise = (_noise >> 1) ^ (-(_noise & 1) & 0xB400u);
+    int sample = 127 - (_noise >> 8);
 
     // process volume
     sample = sample * volume() / 127;
 
-    decDuration();
+    dec_duration();
 
     return sample;
 }
@@ -342,61 +342,61 @@ int NoiseWaveformGenerator::getSample()
 // derived from a reverse engineering VHDL code: http://sleepingelephant.com/ipw-web/bulletin/bb/viewtopic.php?f=11&t=8733&fbclid=IwAR16x6OMMb670bA2ZtYcbB0Zat_X-oHNB0NxxYigPffXa8G_InSIoNAEiPU
 
 
-VICNoiseGenerator::VICNoiseGenerator()
-    : m_frequency(0)
-    , m_counter(0)
-    , m_LFSR(LFSRINIT)
-    , m_outSR(0)
+vic_noise_generator::vic_noise_generator()
+    : _frequency(0)
+    , _counter(0)
+    , _lfsr(LFSRINIT)
+    , _out_sr(0)
 {
 }
 
 
-void VICNoiseGenerator::setFrequency(int value)
+void vic_noise_generator::set_frequency(int value)
 {
-    if (m_frequency != value)
+    if (_frequency != value)
     {
-        m_frequency = value >= 127 ? 0 : value;
-        m_LFSR = LFSRINIT;
-        m_counter = 0;
-        m_outSR = 0;
+        _frequency = value >= 127 ? 0 : value;
+        _lfsr = LFSRINIT;
+        _counter = 0;
+        _out_sr = 0;
     }
 }
 
 
-int VICNoiseGenerator::getSample()
+int vic_noise_generator::sample()
 {
     if (duration() == 0)
     {
         return 0;
     }
 
-    const int reduc = CLK / 8 / sampleRate(); // resample to sampleRate() (ie 16000Hz)
+    const int reduc = CLK / 8 / sample_rate(); // resample to sampleRate() (ie 16000Hz)
 
     int sample = 0;
 
     for (int i = 0; i < reduc; ++i)
     {
 
-        if (m_counter >= 127)
+        if (_counter >= 127)
         {
 
             // reset counter
-            m_counter = m_frequency;
+            _counter = _frequency;
 
-            if (m_LFSR & 1)
-                m_outSR = ((m_outSR << 1) | ~(m_outSR >> 7));
+            if (_lfsr & 1)
+                _out_sr = ((_out_sr << 1) | ~(_out_sr >> 7));
 
-            m_LFSR <<= 1;
-            int bit3 = (m_LFSR >> 3) & 1;
-            int bit12 = (m_LFSR >> 12) & 1;
-            int bit14 = (m_LFSR >> 14) & 1;
-            int bit15 = (m_LFSR >> 15) & 1;
-            m_LFSR |= (bit3 ^ bit12) ^ (bit14 ^ bit15);
+            _lfsr <<= 1;
+            int bit3 = (_lfsr >> 3) & 1;
+            int bit12 = (_lfsr >> 12) & 1;
+            int bit14 = (_lfsr >> 14) & 1;
+            int bit15 = (_lfsr >> 15) & 1;
+            _lfsr |= (bit3 ^ bit12) ^ (bit14 ^ bit15);
         }
         else
-            ++m_counter;
+            ++_counter;
 
-        sample += m_outSR & 1 ? 127 : -128;
+        sample += _out_sr & 1 ? 127 : -128;
     }
 
     // simple mean of all samples
@@ -406,7 +406,7 @@ int VICNoiseGenerator::getSample()
     // process volume
     sample = sample * volume() / 127;
 
-    decDuration();
+    dec_duration();
 
     return sample;
 }
@@ -420,18 +420,18 @@ int VICNoiseGenerator::getSample()
 // SamplesGenerator
 
 
-SamplesGenerator::SamplesGenerator(int8_t const *data, int length)
-    : m_data(data)
-    , m_length(length)
-    , m_index(0)
+samples_generator::samples_generator(int8_t const *data, int length)
+    : _data(data)
+    , _length(length)
+    , _index(0)
 {
 }
 
 
-void SamplesGenerator::setFrequency(int value) {}
+void samples_generator::set_frequency(int value) {}
 
 
-int SamplesGenerator::getSample()
+int samples_generator::sample()
 {
 
     if (duration() == 0)
@@ -439,15 +439,15 @@ int SamplesGenerator::getSample()
         return 0;
     }
 
-    int sample = m_data[m_index++];
+    int sample = _data[_index++];
 
-    if (m_index == m_length)
-        m_index = 0;
+    if (_index == _length)
+        _index = 0;
 
     // process volume
     sample = sample * volume() / 127;
 
-    decDuration();
+    dec_duration();
 
     return sample;
 }
@@ -461,46 +461,46 @@ int SamplesGenerator::getSample()
 // SoundGenerator
 
 
-SoundGenerator::SoundGenerator(int sampleRate, gpio_num_t gpio, SoundGenMethod genMethod)
-    : m_channels(nullptr)
-    , m_sampleBuffer{0}
-    , m_volume(100)
-    , m_sampleRate(sampleRate)
-    , m_play(false)
-    , m_gpio(gpio)
-    , m_isr_handle(nullptr)
-    , m_DMAChain(nullptr)
-    , m_genMethod(genMethod)
-    , m_initDone(false)
-    , m_timerHandle(nullptr)
+sound_generator::sound_generator(int sample_rate, gpio_num_t gpio, sound_gen_method gen_method)
+    : _channels(nullptr)
+    , _sample_buffer{0}
+    , _volume(100)
+    , _sample_rate(sample_rate)
+    , _play(false)
+    , _gpio(gpio)
+    , _isr_handle(nullptr)
+    , _dma_chain(nullptr)
+    , _gen_method(gen_method)
+    , _init_done(false)
+    , _timer_handle(nullptr)
 {
 }
 
 
-SoundGenerator::~SoundGenerator()
+sound_generator::~sound_generator()
 {
     clear();
 
-    if (m_isr_handle)
+    if (_isr_handle)
     {
         // cleanup DAC mode
-        esp::I2SModuleEnable(0, false);
-        esp_intr_free(m_isr_handle);
+        esp::i2s_module_enable(0, false);
+        esp_intr_free(_isr_handle);
         for (int i = 0; i < 2; ++i)
-            heap_caps_free(m_sampleBuffer[i]);
-        heap_caps_free((void *)m_DMAChain);
+            heap_caps_free(_sample_buffer[i]);
+        heap_caps_free((void *)_dma_chain);
     }
 
-    if (m_timerHandle)
+    if (_timer_handle)
     {
         // cleanup sigmadelta mode
-        esp_timer_stop(m_timerHandle);
-        esp_timer_delete(m_timerHandle);
-        m_timerHandle = nullptr;
+        esp_timer_stop(_timer_handle);
+        esp_timer_delete(_timer_handle);
+        _timer_handle = nullptr;
 #if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
-        sdm_channel_disable(m_sdmChannel);
-        sdm_del_channel(m_sdmChannel);
-        m_sdmChannel = nullptr;
+        sdm_channel_disable(_sdm_channel);
+        sdm_del_channel(_sdm_channel);
+        _sdm_channel = nullptr;
 #endif
     }
 
@@ -510,43 +510,43 @@ SoundGenerator::~SoundGenerator()
 }
 
 
-void SoundGenerator::clear()
+void sound_generator::clear()
 {
     play(false);
-    m_channels = nullptr;
+    _channels = nullptr;
 }
 
 
-void SoundGenerator::setDMANode(int index, volatile uint16_t *buf, int len)
+void sound_generator::set_dma_node(int index, volatile uint16_t *buf, int len)
 {
-    m_DMAChain[index].eof = 1; // always generate interrupt
-    m_DMAChain[index].sosf = 0;
-    m_DMAChain[index].owner = 1;
-    m_DMAChain[index].qe.stqe_next = (lldesc_t *)(m_DMAChain + index + 1);
-    m_DMAChain[index].offset = 0;
-    m_DMAChain[index].size = len * sizeof(uint16_t);
-    m_DMAChain[index].length = len * sizeof(uint16_t);
-    m_DMAChain[index].buf = (uint8_t *)buf;
+    _dma_chain[index].eof = 1; // always generate interrupt
+    _dma_chain[index].sosf = 0;
+    _dma_chain[index].owner = 1;
+    _dma_chain[index].qe.stqe_next = (lldesc_t *)(_dma_chain + index + 1);
+    _dma_chain[index].offset = 0;
+    _dma_chain[index].size = len * sizeof(uint16_t);
+    _dma_chain[index].length = len * sizeof(uint16_t);
+    _dma_chain[index].buf = (uint8_t *)buf;
 }
 
 
-void SoundGenerator::dac_init()
+void sound_generator::dac_init()
 {
 #ifndef FABGL_EMULATED
-    m_DMAChain = (volatile lldesc_t *)heap_caps_malloc(2 * sizeof(lldesc_t), MALLOC_CAP_DMA);
+    _dma_chain = (volatile lldesc_t *)heap_caps_malloc(2 * sizeof(lldesc_t), MALLOC_CAP_DMA);
 
     for (int i = 0; i < 2; ++i)
     {
-        m_sampleBuffer[i] = (uint16_t *)heap_caps_malloc(
+        _sample_buffer[i] = (uint16_t *)heap_caps_malloc(
             FABGL_SOUNDGEN_SAMPLE_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA);
         for (int j = 0; j < FABGL_SOUNDGEN_SAMPLE_BUFFER_SIZE; ++j)
-            m_sampleBuffer[i][j] = 0x7f00;
-        setDMANode(i, m_sampleBuffer[i], FABGL_SOUNDGEN_SAMPLE_BUFFER_SIZE);
+            _sample_buffer[i][j] = 0x7f00;
+        set_dma_node(i, _sample_buffer[i], FABGL_SOUNDGEN_SAMPLE_BUFFER_SIZE);
     }
-    m_DMAChain[1].sosf = 1;
-    m_DMAChain[1].qe.stqe_next = (lldesc_t *)m_DMAChain; // closes DMA chain
+    _dma_chain[1].sosf = 1;
+    _dma_chain[1].qe.stqe_next = (lldesc_t *)_dma_chain; // closes DMA chain
 
-    esp::I2SModuleEnable(0, true);
+    esp::i2s_module_enable(0, true);
 
     // Initialize I2S device
     I2S0.conf.tx_reset = 1;
@@ -560,7 +560,7 @@ void SoundGenerator::dac_init()
     I2S0.conf.rx_fifo_reset = 1;
     I2S0.conf.rx_fifo_reset = 0;
 
-    I2S0.conf_chan.tx_chan_mod = (m_gpio == GPIO_NUM_25 ? 3 : 4);
+    I2S0.conf_chan.tx_chan_mod = (_gpio == GPIO_NUM_25 ? 3 : 4);
 
     I2S0.fifo_conf.tx_fifo_mod_force_en = 1;
     I2S0.fifo_conf.tx_fifo_mod = 1;
@@ -578,7 +578,7 @@ void SoundGenerator::dac_init()
     I2S0.conf2.camera_en = 0;
 
     int a, b, num, m;
-    m_sampleRate = calcI2STimingParams(m_sampleRate, &a, &b, &num, &m);
+    _sample_rate = calc_i2s_timing_params(_sample_rate, &a, &b, &num, &m);
     I2S0.clkm_conf.clka_en = 0;
     I2S0.clkm_conf.clkm_div_a = a;
     I2S0.clkm_conf.clkm_div_b = b;
@@ -587,80 +587,80 @@ void SoundGenerator::dac_init()
 
     I2S0.sample_rate_conf.tx_bits_mod = 16;
 
-    if (m_isr_handle == nullptr)
+    if (_isr_handle == nullptr)
     {
-        esp::esp_intr_alloc_pinnedToCore(ETS_I2S0_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, ISRHandler,
-                                         this, &m_isr_handle, esp::CoreUsage::quietCore());
+        esp::esp_intr_alloc_pinned_to_core(ETS_I2S0_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, isr_handler,
+                                           this, &_isr_handle, esp::core_usage::quiet_core());
         I2S0.int_clr.val = 0xFFFFFFFF;
         I2S0.int_ena.out_eof = 1;
     }
 
-    I2S0.out_link.addr = (uintptr_t)m_DMAChain;
+    I2S0.out_link.addr = (uintptr_t)_dma_chain;
     I2S0.out_link.start = 1;
     I2S0.conf.tx_start = 1;
 
-    DACEnableI2SOutput(m_gpio);
+    dac_enable_i2s_output(_gpio);
 #endif
 }
 
 
-void SoundGenerator::sigmadelta_init()
+void sound_generator::sigmadelta_init()
 {
 #if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
     sdm_config_t sdm_cfg = {};
-    sdm_cfg.gpio_num = m_gpio;
+    sdm_cfg.gpio_num = _gpio;
     sdm_cfg.clk_src = SDM_CLK_SRC_DEFAULT;
     sdm_cfg.sample_rate_hz = 80000000 / 11; // same as legacy prescale = 10
-    sdm_new_channel(&sdm_cfg, &m_sdmChannel);
-    sdm_channel_enable(m_sdmChannel);
+    sdm_new_channel(&sdm_cfg, &_sdm_channel);
+    sdm_channel_enable(_sdm_channel);
 #else
     sigmadelta_config_t sigmadelta_cfg;
     sigmadelta_cfg.channel = SIGMADELTA_CHANNEL_0;
     sigmadelta_cfg.sigmadelta_prescale = 10;
     sigmadelta_cfg.sigmadelta_duty = 0;
-    sigmadelta_cfg.sigmadelta_gpio = m_gpio;
+    sigmadelta_cfg.sigmadelta_gpio = _gpio;
     sigmadelta_config(&sigmadelta_cfg);
 #endif
 
     esp_timer_create_args_t args = {};
-    args.callback = timerHandler;
+    args.callback = timer_handler;
     args.arg = this;
     args.dispatch_method = ESP_TIMER_TASK;
-    esp_timer_create(&args, &m_timerHandle);
+    esp_timer_create(&args, &_timer_handle);
 }
 
 
 #ifdef FABGL_EMULATED
-void SoundGenerator::sdl_init()
+void sound_generator::sdl_init()
 {
     SDL_AudioSpec wantSpec, haveSpec;
     SDL_zero(wantSpec);
-    wantSpec.freq = m_sampleRate;
+    wantSpec.freq = _sample_rate;
     wantSpec.format = AUDIO_U8;
     wantSpec.channels = 1;
     wantSpec.samples = 2048;
     wantSpec.callback = SDLAudioCallback;
     wantSpec.userdata = this;
     m_device = SDL_OpenAudioDevice(NULL, 0, &wantSpec, &haveSpec, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
-    m_sampleRate = haveSpec.freq;
+    _sample_rate = haveSpec.freq;
 }
 #endif
 
 
-void SoundGenerator::init()
+void sound_generator::init()
 {
-    if (!m_initDone)
+    if (!_init_done)
     {
         // handle automatic paramters
-        if (m_genMethod == SoundGenMethod::Auto)
-            m_genMethod = esp::CurrentVideoMode::get() == esp::VideoMode::CVBS
-                ? SoundGenMethod::SigmaDelta
-                : SoundGenMethod::DAC;
-        if (m_gpio == GPIO_AUTO)
-            m_gpio = m_genMethod == SoundGenMethod::DAC ? GPIO_NUM_25 : GPIO_NUM_23;
+        if (_gen_method == sound_gen_method::Auto)
+            _gen_method = esp::current_video_mode::get() == esp::video_mode::cvbs
+                ? sound_gen_method::sigma_delta
+                : sound_gen_method::dac;
+        if (_gpio == GPIO_AUTO)
+            _gpio = _gen_method == sound_gen_method::dac ? GPIO_NUM_25 : GPIO_NUM_23;
 
         // actual init
-        if (m_genMethod == SoundGenMethod::DAC)
+        if (_gen_method == sound_gen_method::dac)
             dac_init();
         else
             sigmadelta_init();
@@ -669,34 +669,34 @@ void SoundGenerator::init()
         sdl_init();
 #endif
 
-        m_initDone = true;
+        _init_done = true;
     }
 }
 
 
-bool SoundGenerator::play(bool value)
+bool sound_generator::play(bool value)
 {
-    if (value != m_play)
+    if (value != _play)
     {
         init();
 
-        if (m_genMethod == SoundGenMethod::DAC)
+        if (_gen_method == sound_gen_method::dac)
         {
             I2S0.conf.tx_start = value;
         }
         else
         {
             if (value)
-                esp_timer_start_periodic(m_timerHandle, 1000000 / m_sampleRate);
+                esp_timer_start_periodic(_timer_handle, 1000000 / _sample_rate);
             else
-                esp_timer_stop(m_timerHandle);
+                esp_timer_stop(_timer_handle);
         }
 
 #ifdef FABGL_EMULATED
         SDL_PauseAudioDevice(m_device, !value);
 #endif
 
-        m_play = value;
+        _play = value;
         return !value;
     }
     else
@@ -704,15 +704,15 @@ bool SoundGenerator::play(bool value)
 }
 
 
-SamplesGenerator *SoundGenerator::playSamples(int8_t const *data, int length, int volume,
-                                              int durationMS)
+samples_generator *sound_generator::play_samples(int8_t const *data, int length, int volume,
+                                                 int duration_ms)
 {
-    auto sgen = new SamplesGenerator(data, length);
+    auto sgen = new samples_generator(data, length);
     attach(sgen);
-    sgen->setAutoDestroy(true);
-    if (durationMS > -1)
-        sgen->setDuration(durationMS > 0 ? (m_sampleRate / 1000 * durationMS) : length);
-    sgen->setVolume(volume);
+    sgen->set_auto_destroy(true);
+    if (duration_ms > -1)
+        sgen->set_duration(duration_ms > 0 ? (_sample_rate / 1000 * duration_ms) : length);
+    sgen->set_volume(volume);
     sgen->enable(true);
     play(true);
     return sgen;
@@ -720,41 +720,41 @@ SamplesGenerator *SoundGenerator::playSamples(int8_t const *data, int length, in
 
 
 // does NOT take ownership of the waveform generator
-void SoundGenerator::attach(WaveformGenerator *value)
+void sound_generator::attach(waveform_generator *value)
 {
-    bool isPlaying = play(false);
+    bool is_playing = play(false);
 
-    value->setSampleRate(m_sampleRate);
+    value->set_sample_rate(_sample_rate);
 
-    value->next = m_channels;
-    m_channels = value;
+    value->next = _channels;
+    _channels = value;
 
-    play(isPlaying);
+    play(is_playing);
 }
 
 
-void SoundGenerator::detach(WaveformGenerator *value)
+void sound_generator::detach(waveform_generator *value)
 {
     if (!value)
         return;
 
-    bool isPlaying = play(false);
-    detachNoSuspend(value);
-    play(isPlaying);
+    bool is_playing = play(false);
+    detach_no_suspend(value);
+    play(is_playing);
 }
 
 
-void SoundGenerator::detachNoSuspend(WaveformGenerator *value)
+void sound_generator::detach_no_suspend(waveform_generator *value)
 {
-    for (WaveformGenerator *c = m_channels, *prev = nullptr; c; prev = c, c = c->next)
+    for (waveform_generator *c = _channels, *prev = nullptr; c; prev = c, c = c->next)
     {
         if (c == value)
         {
             if (prev)
                 prev->next = c->next;
             else
-                m_channels = c->next;
-            if (value->autoDestroy())
+                _channels = c->next;
+            if (value->auto_destroy())
                 delete value;
             break;
         }
@@ -762,21 +762,21 @@ void SoundGenerator::detachNoSuspend(WaveformGenerator *value)
 }
 
 
-int IRAM_ATTR SoundGenerator::getSample()
+int IRAM_ATTR sound_generator::sample()
 {
     int sample = 0, tvol = 0;
-    for (auto g = m_channels; g;)
+    for (auto g = _channels; g;)
     {
         if (g->enabled())
         {
-            sample += g->getSample();
+            sample += g->sample();
             tvol += g->volume();
         }
-        else if (g->duration() == 0 && g->autoDetach())
+        else if (g->duration() == 0 && g->auto_detach())
         {
             auto curr = g;
             g = g->next; // setup next item before detaching this one
-            detachNoSuspend(curr);
+            detach_no_suspend(curr);
             continue; // bypass "g = g->next;"
         }
         g = g->next;
@@ -791,43 +791,43 @@ int IRAM_ATTR SoundGenerator::getSample()
 
 
 // used by DAC generator
-void IRAM_ATTR SoundGenerator::ISRHandler(void *arg)
+void IRAM_ATTR sound_generator::isr_handler(void *arg)
 {
     if (I2S0.int_st.out_eof)
     {
 
-        auto soundGenerator = (SoundGenerator *)arg;
+        auto sound_generator = (esp::sound::sound_generator *)arg;
         auto desc = (volatile lldesc_t *)I2S0.out_eof_des_addr;
 
-        auto buf = (uint16_t *)soundGenerator->m_sampleBuffer[desc->sosf];
+        auto buf = (uint16_t *)sound_generator->_sample_buffer[desc->sosf];
 
         for (int i = 0; i < FABGL_SOUNDGEN_SAMPLE_BUFFER_SIZE; ++i)
-            buf[i ^ 1] = (soundGenerator->getSample() + 127) << 8;
+            buf[i ^ 1] = (sound_generator->sample() + 127) << 8;
     }
     I2S0.int_clr.val = I2S0.int_st.val;
 }
 
 
 // used by sigma-delta generator
-void SoundGenerator::timerHandler(void *args)
+void sound_generator::timer_handler(void *args)
 {
-    auto soundGenerator = (SoundGenerator *)args;
+    auto sound_generator = (esp::sound::sound_generator *)args;
 
 #if FABGL_ESP_IDF_VERSION >= FABGL_ESP_IDF_VERSION_VAL(5, 0, 0)
-    sdm_channel_set_pulse_density(soundGenerator->m_sdmChannel, soundGenerator->getSample());
+    sdm_channel_set_pulse_density(sound_generator->_sdm_channel, sound_generator->sample());
 #else
-    sigmadelta_set_duty(SIGMADELTA_CHANNEL_0, soundGenerator->getSample());
+    sigmadelta_set_duty(SIGMADELTA_CHANNEL_0, sound_generator->sample());
 #endif
 }
 
 
 #ifdef FABGL_EMULATED
-void SoundGenerator::SDLAudioCallback(void *data, Uint8 *buffer, int length)
+void sound_generator::SDLAudioCallback(void *data, Uint8 *buffer, int length)
 {
-    auto soundGenerator = (SoundGenerator *)data;
+    auto sound_generator = (esp::sound::sound_generator *)data;
 
     for (int i = 0; i < length; ++i)
-        buffer[i] = soundGenerator->getSample() + 127;
+        buffer[i] = sound_generator->sample() + 127;
 }
 #endif
 

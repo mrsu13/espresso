@@ -393,7 +393,7 @@ namespace esp::ps2
 */
 
 
-const ulp_insn_t ULP_code[] = {
+const ulp_insn_t ULP_CODE[] = {
 
     // Stop ULP timer, not necessary because this routine never ends
     I_END(),
@@ -970,53 +970,53 @@ const ulp_insn_t ULP_code[] = {
 // Not allowed from GPIO_NUM_34 to GPIO_NUM_39
 // prg_start in 32 bit words
 // size in 32 bit words
-static void replace_placeholders(uint32_t prg_start, int size, bool port0Enabled,
-                                 gpio_num_t port0_clkGPIO, gpio_num_t port0_datGPIO,
-                                 bool port1Enabled, gpio_num_t port1_clkGPIO,
-                                 gpio_num_t port1_datGPIO)
+static void replace_placeholders(uint32_t prg_start, int size, bool port_0_enabled,
+                                 gpio_num_t port_0_clk_gpio, gpio_num_t port_0_dat_gpio,
+                                 bool port_1_enabled, gpio_num_t port_1_clk_gpio,
+                                 gpio_num_t port_1_dat_gpio)
 {
-    uint32_t CLK_rtc_gpio_num[2], CLK_rtc_gpio_reg[2], CLK_rtc_gpio_ie_s[2];
-    uint32_t DAT_rtc_gpio_num[2], DAT_rtc_gpio_reg[2], DAT_rtc_gpio_ie_s[2];
+    uint32_t clk_rtc_gpio_num[2], clk_rtc_gpio_reg[2], clk_rtc_gpio_ie_s[2];
+    uint32_t dat_rtc_gpio_num[2], dat_rtc_gpio_reg[2], dat_rtc_gpio_ie_s[2];
 
-    if (port0Enabled)
+    if (port_0_enabled)
     {
 #if FABGL_ESP_IDF_VERSION <= FABGL_ESP_IDF_VERSION_VAL(3, 3, 5)
-        CLK_rtc_gpio_num[0] = (uint32_t)rtc_gpio_desc[port0_clkGPIO].rtc_num;
-        CLK_rtc_gpio_reg[0] = rtc_gpio_desc[port0_clkGPIO].reg;
-        CLK_rtc_gpio_ie_s[0] = (uint32_t)ffs(rtc_gpio_desc[port0_clkGPIO].ie) - 1;
-        DAT_rtc_gpio_num[0] = (uint32_t)rtc_gpio_desc[port0_datGPIO].rtc_num;
-        DAT_rtc_gpio_reg[0] = rtc_gpio_desc[port0_datGPIO].reg;
-        DAT_rtc_gpio_ie_s[0] = (uint32_t)ffs(rtc_gpio_desc[port0_datGPIO].ie) - 1;
+        clk_rtc_gpio_num[0] = (uint32_t)rtc_gpio_desc[port_0_clk_gpio].rtc_num;
+        clk_rtc_gpio_reg[0] = rtc_gpio_desc[port_0_clk_gpio].reg;
+        clk_rtc_gpio_ie_s[0] = (uint32_t)ffs(rtc_gpio_desc[port_0_clk_gpio].ie) - 1;
+        dat_rtc_gpio_num[0] = (uint32_t)rtc_gpio_desc[port_0_dat_gpio].rtc_num;
+        dat_rtc_gpio_reg[0] = rtc_gpio_desc[port_0_dat_gpio].reg;
+        dat_rtc_gpio_ie_s[0] = (uint32_t)ffs(rtc_gpio_desc[port_0_dat_gpio].ie) - 1;
 #else
-        int port0_clkIO = rtc_io_number_get(port0_clkGPIO);
-        CLK_rtc_gpio_num[0] = port0_clkIO;
-        CLK_rtc_gpio_reg[0] = rtc_io_desc[port0_clkIO].reg;
-        CLK_rtc_gpio_ie_s[0] = (uint32_t)ffs(rtc_io_desc[port0_clkIO].ie) - 1;
-        int port0_datIO = rtc_io_number_get(port0_datGPIO);
-        DAT_rtc_gpio_num[0] = port0_datIO;
-        DAT_rtc_gpio_reg[0] = rtc_io_desc[port0_datIO].reg;
-        DAT_rtc_gpio_ie_s[0] = (uint32_t)ffs(rtc_io_desc[port0_datIO].ie) - 1;
+        int port_0_clk_io = rtc_io_number_get(port_0_clk_gpio);
+        clk_rtc_gpio_num[0] = port_0_clk_io;
+        clk_rtc_gpio_reg[0] = rtc_io_desc[port_0_clk_io].reg;
+        clk_rtc_gpio_ie_s[0] = (uint32_t)ffs(rtc_io_desc[port_0_clk_io].ie) - 1;
+        int port_0_dat_io = rtc_io_number_get(port_0_dat_gpio);
+        dat_rtc_gpio_num[0] = port_0_dat_io;
+        dat_rtc_gpio_reg[0] = rtc_io_desc[port_0_dat_io].reg;
+        dat_rtc_gpio_ie_s[0] = (uint32_t)ffs(rtc_io_desc[port_0_dat_io].ie) - 1;
 #endif
     }
 
-    if (port1Enabled)
+    if (port_1_enabled)
     {
 #if FABGL_ESP_IDF_VERSION <= FABGL_ESP_IDF_VERSION_VAL(3, 3, 5)
-        CLK_rtc_gpio_num[1] = (uint32_t)rtc_gpio_desc[port1_clkGPIO].rtc_num;
-        CLK_rtc_gpio_reg[1] = rtc_gpio_desc[port1_clkGPIO].reg;
-        CLK_rtc_gpio_ie_s[1] = (uint32_t)ffs(rtc_gpio_desc[port1_clkGPIO].ie) - 1;
-        DAT_rtc_gpio_num[1] = (uint32_t)rtc_gpio_desc[port1_datGPIO].rtc_num;
-        DAT_rtc_gpio_reg[1] = rtc_gpio_desc[port1_datGPIO].reg;
-        DAT_rtc_gpio_ie_s[1] = (uint32_t)ffs(rtc_gpio_desc[port1_datGPIO].ie) - 1;
+        clk_rtc_gpio_num[1] = (uint32_t)rtc_gpio_desc[port_1_clk_gpio].rtc_num;
+        clk_rtc_gpio_reg[1] = rtc_gpio_desc[port_1_clk_gpio].reg;
+        clk_rtc_gpio_ie_s[1] = (uint32_t)ffs(rtc_gpio_desc[port_1_clk_gpio].ie) - 1;
+        dat_rtc_gpio_num[1] = (uint32_t)rtc_gpio_desc[port_1_dat_gpio].rtc_num;
+        dat_rtc_gpio_reg[1] = rtc_gpio_desc[port_1_dat_gpio].reg;
+        dat_rtc_gpio_ie_s[1] = (uint32_t)ffs(rtc_gpio_desc[port_1_dat_gpio].ie) - 1;
 #else
-        int port1_clkIO = rtc_io_number_get(port1_clkGPIO);
-        CLK_rtc_gpio_num[1] = port1_clkIO;
-        CLK_rtc_gpio_reg[1] = rtc_io_desc[port1_clkIO].reg;
-        CLK_rtc_gpio_ie_s[1] = (uint32_t)ffs(rtc_io_desc[port1_clkIO].ie) - 1;
-        int port1_datIO = rtc_io_number_get(port1_datGPIO);
-        DAT_rtc_gpio_num[1] = port1_datIO;
-        DAT_rtc_gpio_reg[1] = rtc_io_desc[port1_datIO].reg;
-        DAT_rtc_gpio_ie_s[1] = (uint32_t)ffs(rtc_io_desc[port1_datIO].ie) - 1;
+        int port_1_clk_io = rtc_io_number_get(port_1_clk_gpio);
+        clk_rtc_gpio_num[1] = port_1_clk_io;
+        clk_rtc_gpio_reg[1] = rtc_io_desc[port_1_clk_io].reg;
+        clk_rtc_gpio_ie_s[1] = (uint32_t)ffs(rtc_io_desc[port_1_clk_io].ie) - 1;
+        int port_1_dat_io = rtc_io_number_get(port_1_dat_gpio);
+        dat_rtc_gpio_num[1] = port_1_dat_io;
+        dat_rtc_gpio_reg[1] = rtc_io_desc[port_1_dat_io].reg;
+        dat_rtc_gpio_ie_s[1] = (uint32_t)ffs(rtc_io_desc[port_1_dat_io].ie) - 1;
 #endif
     }
 
@@ -1026,7 +1026,7 @@ static void replace_placeholders(uint32_t prg_start, int size, bool port0Enabled
         if (ins->macro.opcode == OPCODE_PLACEHOLDER)
         {
             int ps2port = ins->macro.unused;
-            if ((port0Enabled && ps2port == 0) || (port1Enabled && ps2port == 1))
+            if ((port_0_enabled && ps2port == 0) || (port_1_enabled && ps2port == 1))
             {
                 ins->macro.unused = 0;
                 switch (ins->macro.sub_opcode)
@@ -1035,50 +1035,50 @@ static void replace_placeholders(uint32_t prg_start, int size, bool port0Enabled
                         if (ins->macro.label)
                             *ins = (ulp_insn_t)I_WR_REG_BIT(
                                 RTC_GPIO_ENABLE_W1TS_REG,
-                                DAT_rtc_gpio_num[ps2port] + RTC_GPIO_ENABLE_W1TS_S, 1);
+                                dat_rtc_gpio_num[ps2port] + RTC_GPIO_ENABLE_W1TS_S, 1);
                         else
                             *ins = (ulp_insn_t)I_WR_REG_BIT(
                                 RTC_GPIO_ENABLE_W1TC_REG,
-                                DAT_rtc_gpio_num[ps2port] + RTC_GPIO_ENABLE_W1TC_S, 1);
+                                dat_rtc_gpio_num[ps2port] + RTC_GPIO_ENABLE_W1TC_S, 1);
                         break;
                     case SUB_OPCODE_DAT_ENABLE_INPUT:
                         *ins =
-                            (ulp_insn_t)I_WR_REG_BIT(DAT_rtc_gpio_reg[ps2port],
-                                                     DAT_rtc_gpio_ie_s[ps2port], ins->macro.label);
+                            (ulp_insn_t)I_WR_REG_BIT(dat_rtc_gpio_reg[ps2port],
+                                                     dat_rtc_gpio_ie_s[ps2port], ins->macro.label);
                         break;
                     case SUB_OPCODE_CLK_ENABLE_OUTPUT:
                         if (ins->macro.label)
                             *ins = (ulp_insn_t)I_WR_REG_BIT(
                                 RTC_GPIO_ENABLE_W1TS_REG,
-                                CLK_rtc_gpio_num[ps2port] + RTC_GPIO_ENABLE_W1TS_S, 1);
+                                clk_rtc_gpio_num[ps2port] + RTC_GPIO_ENABLE_W1TS_S, 1);
                         else
                             *ins = (ulp_insn_t)I_WR_REG_BIT(
                                 RTC_GPIO_ENABLE_W1TC_REG,
-                                CLK_rtc_gpio_num[ps2port] + RTC_GPIO_ENABLE_W1TC_S, 1);
+                                clk_rtc_gpio_num[ps2port] + RTC_GPIO_ENABLE_W1TC_S, 1);
                         break;
                     case SUB_OPCODE_CLK_ENABLE_INPUT:
                         *ins =
-                            (ulp_insn_t)I_WR_REG_BIT(CLK_rtc_gpio_reg[ps2port],
-                                                     CLK_rtc_gpio_ie_s[ps2port], ins->macro.label);
+                            (ulp_insn_t)I_WR_REG_BIT(clk_rtc_gpio_reg[ps2port],
+                                                     clk_rtc_gpio_ie_s[ps2port], ins->macro.label);
                         break;
                     case SUB_OPCODE_READ_CLK:
                         *ins = (ulp_insn_t)I_RD_REG(RTC_GPIO_IN_REG,
-                                                    CLK_rtc_gpio_num[ps2port] + RTC_GPIO_IN_NEXT_S,
-                                                    CLK_rtc_gpio_num[ps2port] + RTC_GPIO_IN_NEXT_S);
+                                                    clk_rtc_gpio_num[ps2port] + RTC_GPIO_IN_NEXT_S,
+                                                    clk_rtc_gpio_num[ps2port] + RTC_GPIO_IN_NEXT_S);
                         break;
                     case SUB_OPCODE_READ_DAT:
                         *ins = (ulp_insn_t)I_RD_REG(RTC_GPIO_IN_REG,
-                                                    DAT_rtc_gpio_num[ps2port] + RTC_GPIO_IN_NEXT_S,
-                                                    DAT_rtc_gpio_num[ps2port] + RTC_GPIO_IN_NEXT_S);
+                                                    dat_rtc_gpio_num[ps2port] + RTC_GPIO_IN_NEXT_S,
+                                                    dat_rtc_gpio_num[ps2port] + RTC_GPIO_IN_NEXT_S);
                         break;
                     case SUB_OPCODE_WRITE_CLK:
                         *ins = (ulp_insn_t)I_WR_REG_BIT(
-                            RTC_GPIO_OUT_REG, CLK_rtc_gpio_num[ps2port] + RTC_GPIO_IN_NEXT_S,
+                            RTC_GPIO_OUT_REG, clk_rtc_gpio_num[ps2port] + RTC_GPIO_IN_NEXT_S,
                             ins->macro.label);
                         break;
                     case SUB_OPCODE_WRITE_DAT:
                         *ins = (ulp_insn_t)I_WR_REG_BIT(
-                            RTC_GPIO_OUT_REG, DAT_rtc_gpio_num[ps2port] + RTC_GPIO_IN_NEXT_S,
+                            RTC_GPIO_OUT_REG, dat_rtc_gpio_num[ps2port] + RTC_GPIO_IN_NEXT_S,
                             ins->macro.label);
                         break;
                 }
@@ -1088,72 +1088,74 @@ static void replace_placeholders(uint32_t prg_start, int size, bool port0Enabled
 }
 
 
-PS2Controller *PS2Controller::s_instance = nullptr;
-Keyboard *PS2Controller::s_keyboard = nullptr;
-Mouse *PS2Controller::s_mouse = nullptr;
-bool PS2Controller::s_keyboardAllocated = false;
-bool PS2Controller::s_mouseAllocated = false;
-bool PS2Controller::s_portEnabled[2];
-intr_handle_t PS2Controller::s_ULPWakeISRHandle;
-bool PS2Controller::s_parityError[2];
-bool PS2Controller::s_syncError[2];
-bool PS2Controller::s_CLKTimeOutError[2];
-QueueHandle_t PS2Controller::s_dataIn[2];
-SemaphoreHandle_t PS2Controller::s_portLock[2];
-bool PS2Controller::s_initDone = false;
+ps2_controller *ps2_controller::_instance = nullptr;
+keyboard *ps2_controller::_keyboard = nullptr;
+mouse *ps2_controller::_mouse = nullptr;
+bool ps2_controller::_keyboard_allocated = false;
+bool ps2_controller::_mouse_allocated = false;
+bool ps2_controller::_port_enabled[2];
+intr_handle_t ps2_controller::_ulp_wake_isr_handle;
+bool ps2_controller::_parity_error[2];
+bool ps2_controller::_sync_error[2];
+bool ps2_controller::_clk_time_out_error[2];
+QueueHandle_t ps2_controller::_data_in[2];
+SemaphoreHandle_t ps2_controller::_port_lock[2];
+bool ps2_controller::_init_done = false;
 
 
-PS2Controller::PS2Controller()
+ps2_controller::ps2_controller()
 {
-    if (!s_instance)
-        s_instance = this;
+    if (!_instance)
+        _instance = this;
 }
 
 
-PS2Controller::~PS2Controller()
+ps2_controller::~ps2_controller()
 {
     end();
-    if (this == s_instance)
-        s_instance = nullptr;
+    if (this == _instance)
+        _instance = nullptr;
 }
 
 
 // Note: GPIO_UNUSED is a placeholder used to disable PS/2 port 1.
-void PS2Controller::begin(gpio_num_t port0_clkGPIO, gpio_num_t port0_datGPIO,
-                          gpio_num_t port1_clkGPIO, gpio_num_t port1_datGPIO)
+void ps2_controller::begin(gpio_num_t port_0_clk_gpio, gpio_num_t port_0_dat_gpio,
+                           gpio_num_t port_1_clk_gpio, gpio_num_t port_1_dat_gpio)
 {
     // ULP stuff is always active, even when end() is called
-    if (!s_initDone)
+    if (!_init_done)
     {
 
-        s_portEnabled[0] = (port0_clkGPIO != GPIO_UNUSED && port0_datGPIO != GPIO_UNUSED);
-        s_portEnabled[1] = (port1_clkGPIO != GPIO_UNUSED && port1_datGPIO != GPIO_UNUSED);
+        _port_enabled[0] = (port_0_clk_gpio != GPIO_UNUSED && port_0_dat_gpio != GPIO_UNUSED);
+        _port_enabled[1] = (port_1_clk_gpio != GPIO_UNUSED && port_1_dat_gpio != GPIO_UNUSED);
 
-        if (s_portEnabled[0])
+        if (_port_enabled[0])
         {
-            if (!rtc_gpio_is_valid_gpio(port0_clkGPIO) || !rtc_gpio_is_valid_gpio(port0_datGPIO))
+            if (!rtc_gpio_is_valid_gpio(port_0_clk_gpio)
+                || !rtc_gpio_is_valid_gpio(port_0_dat_gpio))
             {
                 ESP_LOGE("FabGL", "Invalid PS/2 Port 0 pins");
-                s_portEnabled[0] = false;
+                _port_enabled[0] = false;
             }
             else
             {
-                rtc_gpio_init(port0_clkGPIO);
-                rtc_gpio_init(port0_datGPIO);
+                rtc_gpio_init(port_0_clk_gpio);
+                rtc_gpio_init(port_0_dat_gpio);
             }
         }
 
-        if (s_portEnabled[1])
+        if (_port_enabled[1])
         {
-            if (!rtc_gpio_is_valid_gpio(port1_clkGPIO) || !rtc_gpio_is_valid_gpio(port1_datGPIO))
+            if (!rtc_gpio_is_valid_gpio(port_1_clk_gpio)
+                || !rtc_gpio_is_valid_gpio(port_1_dat_gpio))
             {
                 ESP_LOGE("FabGL", "Invalid PS/2 Port 1 pins");
-                s_portEnabled[1] = false;
+                _port_enabled[1] = false;
             }
             else
             {
-                rtc_gpio_init(port1_clkGPIO);
-                rtc_gpio_init(port1_datGPIO);
+                rtc_gpio_init(port_1_clk_gpio);
+                rtc_gpio_init(port_1_dat_gpio);
             }
         }
 
@@ -1162,12 +1164,12 @@ void PS2Controller::begin(gpio_num_t port0_clkGPIO, gpio_num_t port0_datGPIO,
             RTC_SLOW_MEM[i] = 0x0000;
 
         // process, load and execute ULP program
-        size_t size = sizeof(ULP_code) / sizeof(ulp_insn_t);
-        ulp_process_macros_and_load_ex(RTCMEM_PROG_START, ULP_code,
+        size_t size = sizeof(ULP_CODE) / sizeof(ulp_insn_t);
+        ulp_process_macros_and_load_ex(RTCMEM_PROG_START, ULP_CODE,
                                        &size); // convert macros to ULP code
-        replace_placeholders(RTCMEM_PROG_START, size, s_portEnabled[0], port0_clkGPIO,
-                             port0_datGPIO, s_portEnabled[1], port1_clkGPIO,
-                             port1_datGPIO); // replace GPIO placeholders
+        replace_placeholders(RTCMEM_PROG_START, size, _port_enabled[0], port_0_clk_gpio,
+                             port_0_dat_gpio, _port_enabled[1], port_1_clk_gpio,
+                             port_1_dat_gpio); // replace GPIO placeholders
         //printf("prog size = %d\n", size);
         assert(size < RTCMEM_VARS_START && "ULP Program too long, increase RTCMEM_VARS_START");
 
@@ -1182,10 +1184,10 @@ void PS2Controller::begin(gpio_num_t port0_clkGPIO, gpio_num_t port0_datGPIO,
             RTC_SLOW_MEM[RTCMEM_PORT0_RX_DISABLE + p] = 0;
             RTC_SLOW_MEM[RTCMEM_PORT0_RX + p] = 0;
             RTC_SLOW_MEM[RTCMEM_PORT0_RX_ENABLED + p] = 0;
-            s_parityError[p] = s_syncError[p] = false;
-            s_dataIn[p] = (s_portEnabled[p] ? xQueueCreate(1, sizeof(uint16_t)) : nullptr);
-            s_portLock[p] = (s_portEnabled[p] ? xSemaphoreCreateRecursiveMutex() : nullptr);
-            enableRX(p);
+            _parity_error[p] = _sync_error[p] = false;
+            _data_in[p] = (_port_enabled[p] ? xQueueCreate(1, sizeof(uint16_t)) : nullptr);
+            _port_lock[p] = (_port_enabled[p] ? xSemaphoreCreateRecursiveMutex() : nullptr);
+            enable_rx(p);
         }
 
         // ULP start
@@ -1194,11 +1196,11 @@ void PS2Controller::begin(gpio_num_t port0_clkGPIO, gpio_num_t port0_datGPIO,
         // install RTC interrupt handler (on ULP Wake() instruction)
         // note about ESP_INTR_FLAG_LEVEL2: this is necessary in order to work reliably with interrupt intensive VGATextController, when running on the same core
         // On some boards only core "1" can -read- RTC slow memory and receive interrupts, hence we have to force core 1.
-        esp::esp_intr_alloc_pinnedToCore(ETS_RTC_CORE_INTR_SOURCE, ESP_INTR_FLAG_LEVEL2, ULPWakeISR,
-                                         nullptr, &s_ULPWakeISRHandle, 1);
+        esp::esp_intr_alloc_pinned_to_core(ETS_RTC_CORE_INTR_SOURCE, ESP_INTR_FLAG_LEVEL2,
+                                           ulp_wake_isr, nullptr, &_ulp_wake_isr_handle, 1);
         SET_PERI_REG_MASK(RTC_CNTL_INT_ENA_REG, RTC_CNTL_ULP_CP_INT_ENA);
 
-        s_initDone = true;
+        _init_done = true;
     }
     else
     {
@@ -1211,173 +1213,175 @@ void PS2Controller::begin(gpio_num_t port0_clkGPIO, gpio_num_t port0_datGPIO,
             RTC_SLOW_MEM[RTCMEM_PORT0_RX_DISABLE + p] = 0;
             RTC_SLOW_MEM[RTCMEM_PORT0_RX + p] = 0;
             RTC_SLOW_MEM[RTCMEM_PORT0_RX_ENABLED + p] = 0;
-            s_parityError[p] = s_syncError[p] = false;
-            if (s_portEnabled[p])
+            _parity_error[p] = _sync_error[p] = false;
+            if (_port_enabled[p])
             {
-                xQueueReset(s_dataIn[p]);
-                xSemaphoreGiveRecursive(s_portLock[p]);
-                enableRX(p);
+                xQueueReset(_data_in[p]);
+                xSemaphoreGiveRecursive(_port_lock[p]);
+                enable_rx(p);
             }
         }
     }
 }
 
 
-void PS2Controller::begin(PS2Preset preset, KbdMode keyboardMode)
+void ps2_controller::begin(ps2_preset preset, kbd_mode keyboard_mode)
 {
     end();
 
-    bool generateVirtualKeys = (keyboardMode == KbdMode::GenerateVirtualKeys
-                                || keyboardMode == KbdMode::CreateVirtualKeysQueue);
-    bool createVKQueue = (keyboardMode == KbdMode::CreateVirtualKeysQueue);
+    bool generate_virtual_keys = (keyboard_mode == kbd_mode::generate_virtual_keys
+                                  || keyboard_mode == kbd_mode::create_virtual_keys_queue);
+    bool create_vk_queue = (keyboard_mode == kbd_mode::create_virtual_keys_queue);
     switch (preset)
     {
-        case PS2Preset::KeyboardPort0_MousePort1:
+        case ps2_preset::keyboard_port_0_mouse_port_1:
             // both keyboard (port 0) and mouse configured (port 1)
             begin(GPIO_NUM_33, GPIO_NUM_32, GPIO_NUM_26, GPIO_NUM_27);
-            setKeyboard(new Keyboard);
-            keyboard()->begin(generateVirtualKeys, createVKQueue, 0);
-            setMouse(new Mouse);
+            set_keyboard(new esp::ps2::keyboard);
+            keyboard()->begin(generate_virtual_keys, create_vk_queue, 0);
+            set_mouse(new esp::ps2::mouse);
             mouse()->begin(1);
-            s_keyboardAllocated = s_mouseAllocated = true;
+            _keyboard_allocated = _mouse_allocated = true;
             break;
-        case PS2Preset::KeyboardPort1_MousePort0:
+        case ps2_preset::keyboard_port_1_mouse_port_0:
             // both keyboard (port 1) and mouse configured (port 0)
             begin(GPIO_NUM_33, GPIO_NUM_32, GPIO_NUM_26, GPIO_NUM_27);
-            setMouse(new Mouse);
+            set_mouse(new esp::ps2::mouse);
             mouse()->begin(0);
-            setKeyboard(new Keyboard);
-            keyboard()->begin(generateVirtualKeys, createVKQueue, 1);
-            s_keyboardAllocated = s_mouseAllocated = true;
+            set_keyboard(new esp::ps2::keyboard);
+            keyboard()->begin(generate_virtual_keys, create_vk_queue, 1);
+            _keyboard_allocated = _mouse_allocated = true;
             break;
-        case PS2Preset::KeyboardPort0:
+        case ps2_preset::keyboard_port_0:
             // only keyboard configured on port 0
             // this will call setKeyboard and begin()
-            (new Keyboard)->begin(GPIO_NUM_33, GPIO_NUM_32, generateVirtualKeys, createVKQueue);
-            s_keyboardAllocated = true;
+            (new esp::ps2::keyboard)
+                ->begin(GPIO_NUM_33, GPIO_NUM_32, generate_virtual_keys, create_vk_queue);
+            _keyboard_allocated = true;
             break;
-        case PS2Preset::KeyboardPort1:
+        case ps2_preset::keyboard_port_1:
             // only keyboard configured on port 1
             // this will call setKeyboard and begin()
-            (new Keyboard)->begin(GPIO_NUM_26, GPIO_NUM_27, generateVirtualKeys, createVKQueue);
-            s_keyboardAllocated = true;
+            (new esp::ps2::keyboard)
+                ->begin(GPIO_NUM_26, GPIO_NUM_27, generate_virtual_keys, create_vk_queue);
+            _keyboard_allocated = true;
             break;
-        case PS2Preset::MousePort0:
+        case ps2_preset::mouse_port_0:
             // only mouse configured on port 0
             // this will call setMouse and begin()
-            (new Mouse)->begin(GPIO_NUM_33, GPIO_NUM_32);
-            s_mouseAllocated = true;
+            (new esp::ps2::mouse)->begin(GPIO_NUM_33, GPIO_NUM_32);
+            _mouse_allocated = true;
             break;
-        case PS2Preset::MousePort1:
+        case ps2_preset::mouse_port_1:
             // only mouse configured on port 1
             // this will call setMouse and begin()
-            (new Mouse)->begin(GPIO_NUM_26, GPIO_NUM_27);
-            s_mouseAllocated = true;
+            (new esp::ps2::mouse)->begin(GPIO_NUM_26, GPIO_NUM_27);
+            _mouse_allocated = true;
             break;
     };
 }
 
 
-void PS2Controller::end()
+void ps2_controller::end()
 {
-    if (s_initDone)
+    if (_init_done)
     {
-        if (s_keyboardAllocated)
-            delete s_keyboard;
-        s_keyboard = nullptr;
+        if (_keyboard_allocated)
+            delete _keyboard;
+        _keyboard = nullptr;
 
-        if (s_mouseAllocated)
-            delete s_mouse;
-        s_mouse = nullptr;
+        if (_mouse_allocated)
+            delete _mouse;
+        _mouse = nullptr;
 
         for (int p = 0; p < 2; ++p)
-            disableRX(p);
+            disable_rx(p);
     }
 }
 
 
-void PS2Controller::disableRX(int PS2Port)
+void ps2_controller::disable_rx(int ps2_port)
 {
-    if (s_portEnabled[PS2Port])
-        RTC_SLOW_MEM[RTCMEM_PORT0_RX_DISABLE + PS2Port] = 1;
+    if (_port_enabled[ps2_port])
+        RTC_SLOW_MEM[RTCMEM_PORT0_RX_DISABLE + ps2_port] = 1;
 }
 
 
-void PS2Controller::enableRX(int PS2Port)
+void ps2_controller::enable_rx(int ps2_port)
 {
-    if (s_portEnabled[PS2Port])
+    if (_port_enabled[ps2_port])
     {
         // enable RX only if there is not data waiting
-        if (!dataAvailable(PS2Port))
-            RTC_SLOW_MEM[RTCMEM_PORT0_RX_ENABLE + PS2Port] = 1;
+        if (!data_available(ps2_port))
+            RTC_SLOW_MEM[RTCMEM_PORT0_RX_ENABLE + ps2_port] = 1;
     }
 }
 
 
-bool PS2Controller::dataAvailable(int PS2Port)
+bool ps2_controller::data_available(int ps2_port)
 {
-    return uxQueueMessagesWaiting(s_dataIn[PS2Port]);
+    return uxQueueMessagesWaiting(_data_in[ps2_port]);
 }
 
 
 // return -1 when no data is available
-int PS2Controller::getData(int PS2Port, int timeOutMS)
+int ps2_controller::get_data(int ps2_port, int time_out_ms)
 {
     int r = -1;
 
     uint16_t w;
-    if (xQueueReceive(s_dataIn[PS2Port], &w, esp::msToTicks(timeOutMS)))
+    if (xQueueReceive(_data_in[ps2_port], &w, esp::ms_to_ticks(time_out_ms)))
     {
 
         // check CLK timeout, parity, start and stop bits
-        s_CLKTimeOutError[PS2Port] = (w == 0xffff);
-        if (!s_CLKTimeOutError[PS2Port])
+        _clk_time_out_error[ps2_port] = (w == 0xffff);
+        if (!_clk_time_out_error[ps2_port])
         {
-            uint8_t startBit = w & 1;
-            uint8_t stopBit = (w >> 10) & 1;
+            uint8_t start_bit = w & 1;
+            uint8_t stop_bit = (w >> 10) & 1;
             uint8_t parity = (w >> 9) & 1;
             r = (w >> 1) & 0xff;
-            s_parityError[PS2Port] = (parity != !calcParity(r));
-            s_syncError[PS2Port] = (startBit != 0 || stopBit != 1);
-            if (s_parityError[PS2Port] || s_syncError[PS2Port])
+            _parity_error[ps2_port] = (parity != !calc_parity(r));
+            _sync_error[ps2_port] = (start_bit != 0 || stop_bit != 1);
+            if (_parity_error[ps2_port] || _sync_error[ps2_port])
                 r = -1;
         }
 
         // ULP leaves RX disables whenever receives data or CLK timeout, so we need to enable it here
-        RTC_SLOW_MEM[RTCMEM_PORT0_RX_ENABLE + PS2Port] = 1;
+        RTC_SLOW_MEM[RTCMEM_PORT0_RX_ENABLE + ps2_port] = 1;
     }
 
     return r;
 }
 
 
-void PS2Controller::sendData(uint8_t data, int PS2Port)
+void ps2_controller::send_data(uint8_t data, int ps2_port)
 {
-    if (s_portEnabled[PS2Port])
+    if (_port_enabled[ps2_port])
     {
-        RTC_SLOW_MEM[RTCMEM_PORT0_DATAOUT + PS2Port] = 0x200 | ((!calcParity(data) & 1) << 8)
+        RTC_SLOW_MEM[RTCMEM_PORT0_DATAOUT + ps2_port] = 0x200 | ((!calc_parity(data) & 1) << 8)
             | data; // 0x200 = stop bit. Start bit is not specified here.
-        RTC_SLOW_MEM[RTCMEM_PORT0_TX + PS2Port] = 1;
+        RTC_SLOW_MEM[RTCMEM_PORT0_TX + ps2_port] = 1;
     }
 }
 
 
-bool PS2Controller::lock(int PS2Port, int timeOutMS)
+bool ps2_controller::lock(int ps2_port, int time_out_ms)
 {
-    return s_portEnabled[PS2Port]
-        ? xSemaphoreTakeRecursive(s_portLock[PS2Port], esp::msToTicks(timeOutMS))
+    return _port_enabled[ps2_port]
+        ? xSemaphoreTakeRecursive(_port_lock[ps2_port], esp::ms_to_ticks(time_out_ms))
         : true;
 }
 
 
-void PS2Controller::unlock(int PS2Port)
+void ps2_controller::unlock(int ps2_port)
 {
-    if (s_portEnabled[PS2Port])
-        xSemaphoreGiveRecursive(s_portLock[PS2Port]);
+    if (_port_enabled[ps2_port])
+        xSemaphoreGiveRecursive(_port_lock[ps2_port]);
 }
 
 
-void IRAM_ATTR PS2Controller::ULPWakeISR(void *arg)
+void IRAM_ATTR ps2_controller::ulp_wake_isr(void *arg)
 {
     uint32_t rtc_intr = READ_PERI_REG(RTC_CNTL_INT_ST_REG);
 
@@ -1390,14 +1394,14 @@ void IRAM_ATTR PS2Controller::ULPWakeISR(void *arg)
             {
                 // RX
                 uint16_t d = RTC_SLOW_MEM[RTCMEM_PORT0_DATAIN + p] & 0xffff;
-                xQueueOverwriteFromISR(PS2Controller::s_dataIn[p], &d, nullptr);
+                xQueueOverwriteFromISR(ps2_controller::_data_in[p], &d, nullptr);
                 RTC_SLOW_MEM[RTCMEM_PORT0_RX + p] = 0;
             }
             else if (RTC_SLOW_MEM[RTCMEM_PORT0_RX_CLK_TIMEOUT + p] & 0xffff)
             {
                 // CLK timeout
                 uint16_t d = 0xffff;
-                xQueueOverwriteFromISR(PS2Controller::s_dataIn[p], &d, nullptr);
+                xQueueOverwriteFromISR(ps2_controller::_data_in[p], &d, nullptr);
                 RTC_SLOW_MEM[RTCMEM_PORT0_RX_CLK_TIMEOUT + p] = 0;
             }
         }

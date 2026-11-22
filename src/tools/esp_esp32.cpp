@@ -19,40 +19,40 @@
 
 
 /**
- * @enum esp::ChipPackage
+ * @enum esp::chip_package
  * @brief Корпус чипа ESP32, записанный в eFuse (поле CHIP_VER_PKG).
  *
  * Такие корпуса бывают только у классического ESP32; для других целей
- * сборки esp::chip_package() возвращает ChipPackage::Unknown. В описаниях
+ * сборки esp::detected_chip_package() возвращает chip_package::unknown. В описаниях
  * значений перечислены модули и платы на этих корпусах.
  *
- * @var esp::ChipPackage::Unknown
+ * @var esp::chip_package::unknown
  * Корпус неизвестен, или чип — не ESP32.
  *
- * @var esp::ChipPackage::D0WDQ6
+ * @var esp::chip_package::d0wdq6
  * ESP32-D0WDQ6, корпус QFN 6 × 6: модули ESP32-WROOM-32 и ESP32-WROVER,
  * плата TTGO T-Display.
  *
- * @var esp::ChipPackage::D0WDQ5
+ * @var esp::chip_package::d0wdq5
  * ESP32-D0WD (D0WDQ5), корпус QFN 5 × 5: модули ESP32-WROOM-32D/32U и
  * ESP32-WROVER-B; ревизия v3 (ESP32-D0WD-V3) — ESP32-WROOM-32E и
  * ESP32-WROVER-E.
  *
- * @var esp::ChipPackage::D2WDQ5
+ * @var esp::chip_package::d2wdq5
  * ESP32-D2WD (D2WDQ5): 2 МБ флеш-памяти в корпусе.
  *
- * @var esp::ChipPackage::U4WDH
+ * @var esp::chip_package::u4wdh
  * ESP32-U4WDH: 4 МБ флеш-памяти в корпусе; модуль ESP32-MINI-1.
  *
- * @var esp::ChipPackage::PicoD4
+ * @var esp::chip_package::pico_d4
  * Система в корпусе ESP32-PICO-D4 с 4 МБ флеш-памяти: плата ESP32-PICO-KIT,
  * плата TTGO VGA32.
  *
- * @var esp::ChipPackage::PicoV302
+ * @var esp::chip_package::pico_v302
  * Система в корпусе ESP32-PICO-V3-02: 8 МБ флеш-памяти и 2 МБ PSRAM;
  * модуль ESP32-PICO-MINI-02.
  *
- * @var esp::ChipPackage::D0WDR2V3
+ * @var esp::chip_package::d0wdr2v3
  * ESP32-D0WDR2-V3: 2 МБ PSRAM в корпусе.
  */
 
@@ -64,10 +64,10 @@
 
 /**
  * @brief Определяет корпус чипа по eFuse.
- * @return Корпус чипа; ChipPackage::Unknown, если корпус неизвестен или
+ * @return Корпус чипа; chip_package::unknown, если корпус неизвестен или
  *         цель сборки — не ESP32.
  */
-esp::ChipPackage esp::chip_package()
+esp::chip_package esp::detected_chip_package()
 {
 #if CONFIG_IDF_TARGET_ESP32
     // Поле CHIP_VER_PKG занимает три бита блока 0 eFuse и ещё один бит
@@ -75,25 +75,25 @@ esp::ChipPackage esp::chip_package()
     switch (esp_efuse_get_pkg_ver())
     {
         case EFUSE_RD_CHIP_VER_PKG_ESP32D0WDQ6:
-            return ChipPackage::D0WDQ6;
+            return chip_package::d0wdq6;
         case EFUSE_RD_CHIP_VER_PKG_ESP32D0WDQ5:
-            return ChipPackage::D0WDQ5;
+            return chip_package::d0wdq5;
         case EFUSE_RD_CHIP_VER_PKG_ESP32D2WDQ5:
-            return ChipPackage::D2WDQ5;
+            return chip_package::d2wdq5;
         case EFUSE_RD_CHIP_VER_PKG_ESP32U4WDH:
-            return ChipPackage::U4WDH;
+            return chip_package::u4wdh;
         case EFUSE_RD_CHIP_VER_PKG_ESP32PICOD4:
-            return ChipPackage::PicoD4;
+            return chip_package::pico_d4;
         case EFUSE_RD_CHIP_VER_PKG_ESP32PICOV302:
-            return ChipPackage::PicoV302;
+            return chip_package::pico_v302;
         case EFUSE_RD_CHIP_VER_PKG_ESP32D0WDR2V3:
-            return ChipPackage::D0WDR2V3;
+            return chip_package::d0wdr2v3;
         default:
             break;
     }
 #endif
 
-    return ChipPackage::Unknown;
+    return chip_package::unknown;
 }
 
 /**
@@ -101,27 +101,27 @@ esp::ChipPackage esp::chip_package()
  * @param package Корпус чипа.
  * @return Название, например «ESP32-D0WDQ6»; «unknown» для неизвестного корпуса.
  */
-const char *esp::chip_package_name(esp::ChipPackage package)
+const char *esp::chip_package_name(esp::chip_package package)
 {
     // Названия даны как в техническом описании ESP32: корпус D0WDQ5
     // продаётся под именем ESP32-D0WD, D2WDQ5 — под именем ESP32-D2WD.
     switch (package)
     {
-        case ChipPackage::D0WDQ6:
+        case chip_package::d0wdq6:
             return "ESP32-D0WDQ6";
-        case ChipPackage::D0WDQ5:
+        case chip_package::d0wdq5:
             return "ESP32-D0WD";
-        case ChipPackage::D2WDQ5:
+        case chip_package::d2wdq5:
             return "ESP32-D2WD";
-        case ChipPackage::U4WDH:
+        case chip_package::u4wdh:
             return "ESP32-U4WDH";
-        case ChipPackage::PicoD4:
+        case chip_package::pico_d4:
             return "ESP32-PICO-D4";
-        case ChipPackage::PicoV302:
+        case chip_package::pico_v302:
             return "ESP32-PICO-V3-02";
-        case ChipPackage::D0WDR2V3:
+        case chip_package::d0wdr2v3:
             return "ESP32-D0WDR2-V3";
-        case ChipPackage::Unknown:
+        case chip_package::unknown:
             break;
     }
 

@@ -177,9 +177,9 @@ void esp::app::hello()
 
     // Корпус известен только для ESP32; для других чипов выводится имя
     // цели сборки.
-    const esp::ChipPackage package = esp::chip_package();
+    const esp::chip_package package = esp::detected_chip_package();
     const char *const chip =
-        package == esp::ChipPackage::Unknown ? CONFIG_IDF_TARGET : esp::chip_package_name(package);
+        package == esp::chip_package::unknown ? CONFIG_IDF_TARGET : esp::chip_package_name(package);
 
     // Радиоинтерфейсы — по флагам возможностей чипа.
     std::string wireless;

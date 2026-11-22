@@ -76,16 +76,16 @@ namespace esp::vga
 *     // Set 640x350@70Hz resolution
 *     VGAController.setResolution(VGA_640x350_70Hz);
 */
-class VGAController : public VGABaseController
+class vga_controller : public vga_base_controller
 {
 
 public:
 
-    VGAController();
+    vga_controller();
 
     // unwanted methods
-    VGAController(VGAController const &) = delete;
-    void operator=(VGAController const &) = delete;
+    vga_controller(vga_controller const &) = delete;
+    void operator=(vga_controller const &) = delete;
 
 
     /**
@@ -93,28 +93,28 @@ public:
    *
    * @return A pointer to VGAController singleton object
    */
-    static VGAController *instance()
+    static vga_controller *instance()
     {
-        return s_instance;
+        return _instance;
     }
 
     // abstract method of BitmappedDisplayController
-    void suspendBackgroundPrimitiveExecution();
+    void suspend_background_primitive_execution();
 
     // abstract method of BitmappedDisplayController
-    void resumeBackgroundPrimitiveExecution();
+    void resume_background_primitive_execution();
 
     // abstract method of BitmappedDisplayController
-    esp::gfx::NativePixelFormat nativePixelFormat()
+    esp::gfx::native_pixel_format native_pixel_format()
     {
-        return esp::gfx::NativePixelFormat::SBGR2222;
+        return esp::gfx::native_pixel_format::sbgr2222;
     }
 
     // import "modeline" version of setResolution
-    using VGABaseController::setResolution;
+    using vga_base_controller::set_resolution;
 
-    void setResolution(VGATimings const &timings, int viewPortWidth = -1, int viewPortHeight = -1,
-                       bool doubleBuffered = false);
+    void set_resolution(vga_timings const &timings, int view_port_width = -1,
+                        int view_port_height = -1, bool double_buffered = false);
 
     /**
    * @brief Reads pixels inside the specified rectangle.
@@ -142,9 +142,9 @@ public:
    *     VGAController.writeScreen(rect.translate(110, 0), buf);
    *     delete buf;
    */
-    void readScreen(esp::gfx::Rect const &rect, esp::gfx::RGB222 *destBuf);
+    void read_screen(esp::gfx::rect const &rect, esp::gfx::rgb222 *dest_buf);
 
-    void readScreen(esp::gfx::Rect const &rect, esp::gfx::RGB888 *destBuf);
+    void read_screen(esp::gfx::rect const &rect, esp::gfx::rgb888 *dest_buf);
 
     /**
    * @brief Writes pixels inside the specified rectangle.
@@ -172,7 +172,7 @@ public:
    *     VGAController.writeScreen(rect.translate(110, 0), buf);
    *     delete buf;
    */
-    void writeScreen(esp::gfx::Rect const &rect, esp::gfx::RGB222 *srcBuf);
+    void write_screen(esp::gfx::rect const &rect, esp::gfx::rgb222 *src_buf);
 
     /**
    * @brief Sets a raw pixel prepared using VGAController.createRawPixel.
@@ -188,7 +188,7 @@ public:
    *     // Set color of pixel at 100, 100
    *     VGAController.setRawPixel(100, 100, VGAController.createRawPixel(RGB222(3, 0, 0));
    */
-    void setRawPixel(int x, int y, uint8_t rgb)
+    void set_raw_pixel(int x, int y, uint8_t rgb)
     {
         VGA_PIXEL(x, y) = rgb;
     }
@@ -198,83 +198,83 @@ private:
 
     void init();
 
-    void allocateViewPort();
-    void onSetupDMABuffer(lldesc_t volatile *buffer, bool isStartOfVertFrontPorch, int scan,
-                          bool isVisible, int visibleRow);
+    void allocate_view_port();
+    void on_setup_dma_buffer(lldesc_t volatile *buffer, bool is_start_of_vert_front_porch, int scan,
+                             bool is_visible, int visible_row);
 
     // abstract method of BitmappedDisplayController
-    void setPixelAt(esp::gfx::PixelDesc const &pixelDesc, esp::gfx::Rect &updateRect);
+    void set_pixel_at(esp::gfx::pixel_desc const &pixel_desc, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void drawEllipse(esp::gfx::Size const &size, esp::gfx::Rect &updateRect);
+    void draw_ellipse(esp::gfx::size const &size, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void clear(esp::gfx::Rect &updateRect);
+    void clear(esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void VScroll(int scroll, esp::gfx::Rect &updateRect);
+    void v_scroll(int scroll, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void HScroll(int scroll, esp::gfx::Rect &updateRect);
+    void h_scroll(int scroll, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void drawGlyph(esp::gfx::Glyph const &glyph, esp::gfx::GlyphOptions glyphOptions,
-                   esp::gfx::RGB888 penColor, esp::gfx::RGB888 brushColor,
-                   esp::gfx::Rect &updateRect);
+    void draw_glyph(esp::gfx::glyph const &glyph, esp::gfx::glyph_options glyph_options,
+                    esp::gfx::rgb888 pen_color, esp::gfx::rgb888 brush_color,
+                    esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void invertRect(esp::gfx::Rect const &rect, esp::gfx::Rect &updateRect);
+    void invert_rect(esp::gfx::rect const &rect, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void copyRect(esp::gfx::Rect const &source, esp::gfx::Rect &updateRect);
+    void copy_rect(esp::gfx::rect const &source, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void swapFGBG(esp::gfx::Rect const &rect, esp::gfx::Rect &updateRect);
+    void swap_fgbg(esp::gfx::rect const &rect, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void rawDrawBitmap_Native(int destX, int destY, esp::gfx::Bitmap const *bitmap, int X1, int Y1,
-                              int XCount, int YCount);
+    void raw_draw_bitmap_native(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap, int x1,
+                                int y1, int x_count, int y_count);
 
     // abstract method of BitmappedDisplayController
-    void rawDrawBitmap_Mask(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                            void *saveBackground, int X1, int Y1, int XCount, int YCount);
+    void raw_draw_bitmap_mask(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
+                              void *save_background, int x1, int y1, int x_count, int y_count);
 
     // abstract method of BitmappedDisplayController
-    void rawDrawBitmap_RGBA2222(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                                void *saveBackground, int X1, int Y1, int XCount, int YCount);
+    void raw_draw_bitmap_rgba2222(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
+                                  void *save_background, int x1, int y1, int x_count, int y_count);
 
     // abstract method of BitmappedDisplayController
-    void rawDrawBitmap_RGBA8888(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                                void *saveBackground, int X1, int Y1, int XCount, int YCount);
+    void raw_draw_bitmap_rgba8888(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
+                                  void *save_background, int x1, int y1, int x_count, int y_count);
 
     // abstract method of BitmappedDisplayController
-    void rawFillRow(int y, int x1, int x2, esp::gfx::RGB888 color);
+    void raw_fill_row(int y, int x1, int x2, esp::gfx::rgb888 color);
 
-    void rawFillRow(int y, int x1, int x2, uint8_t pattern);
+    void raw_fill_row(int y, int x1, int x2, uint8_t pattern);
 
-    void rawInvertRow(int y, int x1, int x2);
+    void raw_invert_row(int y, int x1, int x2);
 
-    void swapRows(int yA, int yB, int x1, int x2);
-
-    // abstract method of BitmappedDisplayController
-    void absDrawLine(int X1, int Y1, int X2, int Y2, esp::gfx::RGB888 color);
+    void swap_rows(int y_a, int y_b, int x1, int x2);
 
     // abstract method of BitmappedDisplayController
-    int getBitmapSavePixelSize()
+    void abs_draw_line(int x1, int y1, int x2, int y2, esp::gfx::rgb888 color);
+
+    // abstract method of BitmappedDisplayController
+    int bitmap_save_pixel_size()
     {
         return 1;
     }
 
-    static void VSyncInterrupt(void *arg);
+    static void v_sync_interrupt(void *arg);
 
 #ifdef FABGL_EMULATED
     virtual void updateFrameBuffer(uint32_t *frameBuffer);
 #endif
 
 
-    static VGAController *s_instance;
+    static vga_controller *_instance;
 
-    volatile int16_t m_maxVSyncISRTime; // Maximum us VSync interrupt routine can run
+    volatile int16_t _max_v_sync_isr_time; // Maximum us VSync interrupt routine can run
 };
 
 

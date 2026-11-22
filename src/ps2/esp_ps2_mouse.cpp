@@ -39,68 +39,68 @@ namespace esp::ps2
 {
 
 
-bool Mouse::s_quickCheckHardware = false;
+bool mouse::_quick_check_hardware = false;
 
 
-Mouse::Mouse()
-    : m_mouseAvailable(false)
-    , m_mouseType(LegacyMouse)
-    , m_mouseUpdateTask(nullptr)
-    , m_receivedPacket(nullptr)
-    , m_absoluteUpdate(false)
-    , m_prevDeltaTime(0)
-    , m_movementAcceleration(180)
-    , m_wheelAcceleration(60000)
-    , m_absoluteQueue(nullptr)
-    , m_updateDisplayController(nullptr)
+mouse::mouse()
+    : _mouse_available(false)
+    , _mouse_type(legacy_mouse)
+    , _mouse_update_task(nullptr)
+    , _received_packet(nullptr)
+    , _absolute_update(false)
+    , _prev_delta_time(0)
+    , _movement_acceleration(180)
+    , _wheel_acceleration(60000)
+    , _absolute_queue(nullptr)
+    , _update_display_controller(nullptr)
 {
 }
 
 
-Mouse::~Mouse()
+mouse::~mouse()
 {
-    PS2DeviceLock lock(this);
-    terminateAbsolutePositioner();
-    if (m_mouseUpdateTask)
-        vTaskDelete(m_mouseUpdateTask);
-    if (m_receivedPacket)
-        vQueueDelete(m_receivedPacket);
+    ps2_device_lock lock(this);
+    terminate_absolute_positioner();
+    if (_mouse_update_task)
+        vTaskDelete(_mouse_update_task);
+    if (_received_packet)
+        vQueueDelete(_received_packet);
 }
 
 
-void Mouse::begin(int PS2Port)
+void mouse::begin(int ps2_port)
 {
-    if (s_quickCheckHardware)
-        PS2Device::quickCheckHardware();
-    PS2Device::begin(PS2Port);
+    if (_quick_check_hardware)
+        ps2_device::quick_check_hardware();
+    ps2_device::begin(ps2_port);
     reset();
-    m_receivedPacket = xQueueCreate(1, sizeof(MousePacket));
-    xTaskCreate(&mouseUpdateTask, "", 1600, this, 5, &m_mouseUpdateTask);
-    m_area = esp::gfx::Size(0, 0);
+    _received_packet = xQueueCreate(1, sizeof(mouse_packet));
+    xTaskCreate(&mouse_update_task, "", 1600, this, 5, &_mouse_update_task);
+    _area = esp::gfx::size(0, 0);
 }
 
 
-void Mouse::begin(gpio_num_t clkGPIO, gpio_num_t dataGPIO)
+void mouse::begin(gpio_num_t clk_gpio, gpio_num_t data_gpio)
 {
-    PS2Controller::begin(clkGPIO, dataGPIO);
-    PS2Controller::setMouse(this);
+    ps2_controller::begin(clk_gpio, data_gpio);
+    ps2_controller::set_mouse(this);
     begin(0);
 }
 
 
-bool Mouse::reset()
+bool mouse::reset()
 {
-    if (s_quickCheckHardware)
+    if (_quick_check_hardware)
     {
-        m_mouseAvailable = send_cmdReset();
+        _mouse_available = send_cmd_reset();
     }
     else
     {
         // tries up to three times for mouse reset
         for (int i = 0; i < 3; ++i)
         {
-            m_mouseAvailable = send_cmdReset();
-            if (m_mouseAvailable)
+            _mouse_available = send_cmd_reset();
+            if (_mouse_available)
                 break;
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
@@ -109,44 +109,45 @@ bool Mouse::reset()
     }
 
     // negotiate compatibility and default parameters
-    if (m_mouseAvailable)
+    if (_mouse_available)
     {
         // try Intellimouse (three buttons + scroll wheel, 4 bytes packet)
-        if (send_cmdSetSampleRate(200) && send_cmdSetSampleRate(100) && send_cmdSetSampleRate(80)
-            && identify() == PS2DeviceType::MouseWithScrollWheel)
+        if (send_cmd_set_sample_rate(200) && send_cmd_set_sample_rate(100)
+            && send_cmd_set_sample_rate(80)
+            && identify() == ps2_device_type::mouse_with_scroll_wheel)
         {
             // Intellimouse ok!
-            m_mouseType = Intellimouse;
+            _mouse_type = intellimouse;
         }
 
-        setSampleRate(60);
+        set_sample_rate(60);
     }
 
-    return m_mouseAvailable;
+    return _mouse_available;
 }
 
 
-int Mouse::getPacketSize()
+int mouse::packet_size()
 {
-    return (m_mouseType == Intellimouse ? 4 : 3);
+    return (_mouse_type == intellimouse ? 4 : 3);
 }
 
 
-bool Mouse::packetAvailable()
+bool mouse::packet_available()
 {
-    return uxQueueMessagesWaiting(m_receivedPacket) > 0;
+    return uxQueueMessagesWaiting(_received_packet) > 0;
 }
 
 
-bool Mouse::getNextPacket(MousePacket *packet, int timeOutMS, bool requestResendOnTimeOut)
+bool mouse::get_next_packet(mouse_packet *packet, int time_out_ms, bool request_resend_on_time_out)
 {
-    return xQueueReceive(m_receivedPacket, packet, esp::msToTicks(timeOutMS));
+    return xQueueReceive(_received_packet, packet, esp::ms_to_ticks(time_out_ms));
 }
 
 
-bool Mouse::deltaAvailable()
+bool mouse::delta_available()
 {
-    return packetAvailable();
+    return packet_available();
 }
 
 
@@ -166,214 +167,215 @@ bool Mouse::deltaAvailable()
 //       Y movement
 //    byte 3:
 //       Z movement
-bool Mouse::decodeMousePacket(MousePacket *mousePacket, MouseDelta *delta)
+bool mouse::decode_mouse_packet(mouse_packet *mouse_packet, mouse_delta *delta)
 {
     // the bit 4 of first byte must be always 1
-    if ((mousePacket->data[0] & 8) == 0)
+    if ((mouse_packet->data[0] & 8) == 0)
         return false;
 
-    m_prevStatus = m_status;
+    _prev_status = _status;
 
     // decode packet
-    m_status.buttons.left = (mousePacket->data[0] & 0x01 ? 1 : 0);
-    m_status.buttons.middle = (mousePacket->data[0] & 0x04 ? 1 : 0);
-    m_status.buttons.right = (mousePacket->data[0] & 0x02 ? 1 : 0);
+    _status.buttons.left = (mouse_packet->data[0] & 0x01 ? 1 : 0);
+    _status.buttons.middle = (mouse_packet->data[0] & 0x04 ? 1 : 0);
+    _status.buttons.right = (mouse_packet->data[0] & 0x02 ? 1 : 0);
     if (delta)
     {
-        delta->deltaX = (int16_t)(mousePacket->data[0] & 0x10 ? 0xFF00 | mousePacket->data[1]
-                                                              : mousePacket->data[1]);
-        delta->deltaY = (int16_t)(mousePacket->data[0] & 0x20 ? 0xFF00 | mousePacket->data[2]
-                                                              : mousePacket->data[2]);
-        delta->deltaZ = (int8_t)(getPacketSize() > 3 ? mousePacket->data[3] : 0);
-        delta->overflowX = (mousePacket->data[0] & 0x40 ? 1 : 0);
-        delta->overflowY = (mousePacket->data[0] & 0x80 ? 1 : 0);
-        delta->buttons = m_status.buttons;
+        delta->delta_x = (int16_t)(mouse_packet->data[0] & 0x10 ? 0xFF00 | mouse_packet->data[1]
+                                                                : mouse_packet->data[1]);
+        delta->delta_y = (int16_t)(mouse_packet->data[0] & 0x20 ? 0xFF00 | mouse_packet->data[2]
+                                                                : mouse_packet->data[2]);
+        delta->delta_z = (int8_t)(packet_size() > 3 ? mouse_packet->data[3] : 0);
+        delta->overflow_x = (mouse_packet->data[0] & 0x40 ? 1 : 0);
+        delta->overflow_y = (mouse_packet->data[0] & 0x80 ? 1 : 0);
+        delta->buttons = _status.buttons;
     }
 
     return true;
 }
 
 
-bool Mouse::getNextDelta(MouseDelta *delta, int timeOutMS, bool requestResendOnTimeOut)
+bool mouse::get_next_delta(mouse_delta *delta, int time_out_ms, bool request_resend_on_time_out)
 {
-    MousePacket mousePacket;
-    return getNextPacket(&mousePacket, timeOutMS, requestResendOnTimeOut)
-        && decodeMousePacket(&mousePacket, delta);
+    mouse_packet mouse_packet;
+    return get_next_packet(&mouse_packet, time_out_ms, request_resend_on_time_out)
+        && decode_mouse_packet(&mouse_packet, delta);
 }
 
 
-void Mouse::setupAbsolutePositioner(int width, int height, bool createAbsolutePositionsQueue,
-                                    esp::gfx::BitmappedDisplayController *updateDisplayController)
+void mouse::setup_absolute_positioner(
+    int width, int height, bool create_absolute_positions_queue,
+    esp::gfx::bitmapped_display_controller *update_display_controller)
 {
-    if (m_area != esp::gfx::Size(width, height))
+    if (_area != esp::gfx::size(width, height))
     {
-        m_area = esp::gfx::Size(width, height);
-        m_status.X = width >> 1;
-        m_status.Y = height >> 1;
+        _area = esp::gfx::size(width, height);
+        _status.x = width >> 1;
+        _status.y = height >> 1;
     }
-    m_status.wheelDelta = 0;
-    m_status.buttons.left = 0;
-    m_status.buttons.middle = 0;
-    m_status.buttons.right = 0;
-    m_prevStatus = m_status;
+    _status.wheel_delta = 0;
+    _status.buttons.left = 0;
+    _status.buttons.middle = 0;
+    _status.buttons.right = 0;
+    _prev_status = _status;
 
-    m_updateDisplayController = updateDisplayController;
+    _update_display_controller = update_display_controller;
 
-    if (createAbsolutePositionsQueue && m_absoluteQueue == nullptr)
+    if (create_absolute_positions_queue && _absolute_queue == nullptr)
     {
-        m_absoluteQueue = xQueueCreate(FABGLIB_MOUSE_EVENTS_QUEUE_SIZE, sizeof(MouseStatus));
+        _absolute_queue = xQueueCreate(FABGLIB_MOUSE_EVENTS_QUEUE_SIZE, sizeof(mouse_status));
     }
 
-    if (m_updateDisplayController)
+    if (_update_display_controller)
     {
         // setup initial position
-        m_updateDisplayController->setMouseCursorPos(m_status.X, m_status.Y);
+        _update_display_controller->set_mouse_cursor_pos(_status.x, _status.y);
     }
 
-    m_absoluteUpdate = (m_updateDisplayController || createAbsolutePositionsQueue);
+    _absolute_update = (_update_display_controller || create_absolute_positions_queue);
 }
 
 
-void Mouse::terminateAbsolutePositioner()
+void mouse::terminate_absolute_positioner()
 {
-    if (m_absoluteQueue)
+    if (_absolute_queue)
     {
-        vQueueDelete(m_absoluteQueue);
-        m_absoluteQueue = nullptr;
+        vQueueDelete(_absolute_queue);
+        _absolute_queue = nullptr;
     }
-    m_absoluteUpdate = false;
-    m_updateDisplayController = nullptr;
+    _absolute_update = false;
+    _update_display_controller = nullptr;
 }
 
 
-void Mouse::updateAbsolutePosition(MouseDelta *delta)
+void mouse::update_absolute_position(mouse_delta *delta)
 {
     const int maxDeltaTimeUS = 500000; // after 0.5s doesn't consider acceleration
 
-    int dx = delta->deltaX;
-    int dy = delta->deltaY;
-    int dz = delta->deltaZ;
+    int dx = delta->delta_x;
+    int dy = delta->delta_y;
+    int dz = delta->delta_z;
 
     int64_t now = esp_timer_get_time();
-    int deltaTime = (int)(now - m_prevDeltaTime); // time in microseconds
+    int delta_time = (int)(now - _prev_delta_time); // time in microseconds
 
-    if (deltaTime < maxDeltaTimeUS)
+    if (delta_time < maxDeltaTimeUS)
     {
 
         // calculate movement acceleration
         if (dx != 0 || dy != 0)
         {
-            int deltaDist = isqrt(dx * dx + dy * dy); // distance in mouse points
-            float vel = (float)deltaDist / deltaTime; // velocity in mousepoints/microsecond
-            float newVel = vel + m_movementAcceleration * vel * vel; // new velocity
-            int newDeltaDist = newVel * deltaTime; // new distance
-            dx = dx * newDeltaDist / deltaDist;
-            dy = dy * newDeltaDist / deltaDist;
+            int delta_dist = isqrt(dx * dx + dy * dy); // distance in mouse points
+            float vel = (float)delta_dist / delta_time; // velocity in mousepoints/microsecond
+            float new_vel = vel + _movement_acceleration * vel * vel; // new velocity
+            int new_delta_dist = new_vel * delta_time; // new distance
+            dx = dx * new_delta_dist / delta_dist;
+            dy = dy * new_delta_dist / delta_dist;
         }
 
         // calculate wheel acceleration
         if (dz != 0)
         {
-            int deltaDist = abs(dz); // distance in wheel points
-            float vel = (float)deltaDist / deltaTime; // velocity in mousepoints/microsecond
-            float newVel = vel + m_wheelAcceleration * vel * vel; // new velocity
-            int newDeltaDist = newVel * deltaTime; // new distance
-            dz = dz * newDeltaDist / deltaDist;
+            int delta_dist = abs(dz); // distance in wheel points
+            float vel = (float)delta_dist / delta_time; // velocity in mousepoints/microsecond
+            float new_vel = vel + _wheel_acceleration * vel * vel; // new velocity
+            int new_delta_dist = new_vel * delta_time; // new distance
+            dz = dz * new_delta_dist / delta_dist;
         }
     }
 
-    m_status.X = esp::tclamp((int)m_status.X + dx, 0, m_area.width - 1);
-    m_status.Y = esp::tclamp((int)m_status.Y - dy, 0, m_area.height - 1);
-    m_status.wheelDelta = dz;
-    m_prevDeltaTime = now;
+    _status.x = esp::tclamp((int)_status.x + dx, 0, _area.width - 1);
+    _status.y = esp::tclamp((int)_status.y - dy, 0, _area.height - 1);
+    _status.wheel_delta = dz;
+    _prev_delta_time = now;
 }
 
 
-void Mouse::mouseUpdateTask(void *arg)
+void mouse::mouse_update_task(void *arg)
 {
     constexpr int MAX_TIME_BETWEEN_DATA_US =
         500000; // maximum time between data composing a delta frame
 
-    Mouse *mouse = (Mouse *)arg;
+    mouse *mouse = (esp::ps2::mouse *)arg;
 
-    int64_t prevDataTime = 0;
+    int64_t prev_data_time = 0;
 
     while (true)
     {
 
-        MousePacket mousePacket;
-        int mousePacketLen = 0;
-        while (mousePacketLen < mouse->getPacketSize())
+        mouse_packet mouse_packet;
+        int mouse_packet_len = 0;
+        while (mouse_packet_len < mouse->packet_size())
         {
-            int r = mouse->getData(-1);
-            if (mouse->parityError() || mouse->syncError())
+            int r = mouse->get_data(-1);
+            if (mouse->parity_error() || mouse->sync_error())
             {
-                mousePacketLen = 0;
+                mouse_packet_len = 0;
                 continue;
             }
             int64_t now = esp_timer_get_time();
-            if (mousePacketLen > 0 && prevDataTime > 0
-                && (now - prevDataTime) > MAX_TIME_BETWEEN_DATA_US)
+            if (mouse_packet_len > 0 && prev_data_time > 0
+                && (now - prev_data_time) > MAX_TIME_BETWEEN_DATA_US)
             {
                 // too much time elapsed since last byte, start a new delta
-                mousePacketLen = 0;
+                mouse_packet_len = 0;
             }
             if (r > -1)
             {
-                mousePacket.data[mousePacketLen++] = r;
-                prevDataTime = now;
+                mouse_packet.data[mouse_packet_len++] = r;
+                prev_data_time = now;
             }
         }
 
-        if (mouse->m_absoluteUpdate)
+        if (mouse->_absolute_update)
         {
-            MouseDelta delta;
-            if (mouse->decodeMousePacket(&mousePacket, &delta))
+            mouse_delta delta;
+            if (mouse->decode_mouse_packet(&mouse_packet, &delta))
             {
-                mouse->updateAbsolutePosition(&delta);
+                mouse->update_absolute_position(&delta);
 
                 // VGA Controller
-                if (mouse->m_updateDisplayController)
-                    mouse->m_updateDisplayController->setMouseCursorPos(mouse->m_status.X,
-                                                                        mouse->m_status.Y);
+                if (mouse->_update_display_controller)
+                    mouse->_update_display_controller->set_mouse_cursor_pos(mouse->_status.x,
+                                                                            mouse->_status.y);
 
                 // queue (if you need availableStatus() or getNextStatus())
-                if (mouse->m_absoluteQueue)
+                if (mouse->_absolute_queue)
                 {
-                    xQueueSendToBack(mouse->m_absoluteQueue, &mouse->m_status, 0);
+                    xQueueSendToBack(mouse->_absolute_queue, &mouse->_status, 0);
                 }
             }
         }
         else
         {
 
-            xQueueOverwrite(mouse->m_receivedPacket, &mousePacket);
+            xQueueOverwrite(mouse->_received_packet, &mouse_packet);
         }
     }
 }
 
 
-int Mouse::availableStatus()
+int mouse::available_status()
 {
-    return m_absoluteQueue ? uxQueueMessagesWaiting(m_absoluteQueue) : 0;
+    return _absolute_queue ? uxQueueMessagesWaiting(_absolute_queue) : 0;
 }
 
 
-MouseStatus Mouse::getNextStatus(int timeOutMS)
+mouse_status mouse::get_next_status(int time_out_ms)
 {
-    MouseStatus status;
-    if (m_absoluteQueue)
-        xQueueReceive(m_absoluteQueue, &status, esp::msToTicks(timeOutMS));
+    mouse_status status;
+    if (_absolute_queue)
+        xQueueReceive(_absolute_queue, &status, esp::ms_to_ticks(time_out_ms));
     return status;
 }
 
 
-void Mouse::emptyQueue()
+void mouse::empty_queue()
 {
-    while (getData(0) != -1)
+    while (get_data(0) != -1)
         ;
-    if (m_absoluteQueue)
-        xQueueReset(m_absoluteQueue);
+    if (_absolute_queue)
+        xQueueReset(_absolute_queue);
 }
 
 

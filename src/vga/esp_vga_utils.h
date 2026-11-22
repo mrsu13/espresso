@@ -93,10 +93,10 @@ namespace esp::vga
 #endif
 
 
-void rgb222_to_hsv(int R, int G, int B, double *h, double *s, double *v);
+void rgb222_to_hsv(int red, int green, int blue, double *h, double *s, double *v);
 
 
-struct APLLParams
+struct apll_params
 {
     uint8_t sdm0;
     uint8_t sdm1;
@@ -104,13 +104,13 @@ struct APLLParams
     uint8_t o_div;
 };
 
-void APLLCalcParams(double freq, APLLParams *params, uint8_t *a, uint8_t *b, double *out_freq,
-                    double *error);
+void apll_calc_params(double freq, apll_params *params, uint8_t *a, uint8_t *b, double *out_freq,
+                      double *error);
 
 
 #ifndef FABGL_EMULATED
 
-inline __attribute__((always_inline)) uint32_t getCycleCount()
+inline __attribute__((always_inline)) uint32_t cycle_count()
 {
     uint32_t ccount;
     __asm__ __volatile__("esync \n\t"
@@ -123,8 +123,8 @@ inline __attribute__((always_inline)) uint32_t getCycleCount()
 
 
 // enables APLL using specified coefficients, or disables it
-void APLLEnable(bool enable, uint32_t sdm0 = 0, uint32_t sdm1 = 0, uint32_t sdm2 = 0,
-                uint32_t o_div = 0);
+void apll_enable(bool enable, uint32_t sdm0 = 0, uint32_t sdm1 = 0, uint32_t sdm2 = 0,
+                 uint32_t o_div = 0);
 
 
 // mode: GPIO_MODE_DISABLE,
@@ -133,10 +133,10 @@ void APLLEnable(bool enable, uint32_t sdm0 = 0, uint32_t sdm1 = 0, uint32_t sdm2
 //       GPIO_MODE_OUTPUT_OD (open drain),
 //       GPIO_MODE_INPUT_OUTPUT_OD (open drain),
 //       GPIO_MODE_INPUT_OUTPUT
-void configureGPIO(gpio_num_t gpio, gpio_mode_t mode);
+void configure_gpio(gpio_num_t gpio, gpio_mode_t mode);
 
 
-uint32_t getCPUFrequencyMHz();
+uint32_t cpu_frequency_mhz();
 
 
 } // end of namespace

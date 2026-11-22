@@ -47,7 +47,7 @@ int isqrt(int x);
 
 
 template<typename T>
-T moveItems(T dest, T src, size_t n)
+T move_items(T dest, T src, size_t n)
 {
     T pd = dest;
     T ps = src;
@@ -67,13 +67,13 @@ T moveItems(T dest, T src, size_t n)
 /**
  * @brief Describes mouse buttons status.
  */
-struct MouseButtons
+struct mouse_buttons
 {
     uint8_t left : 1; /**< Contains 1 when left button is pressed. */
     uint8_t middle : 1; /**< Contains 1 when middle button is pressed. */
     uint8_t right : 1; /**< Contains 1 when right button is pressed. */
 
-    MouseButtons()
+    mouse_buttons()
         : left(0)
         , middle(0)
         , right(0)
@@ -85,17 +85,17 @@ struct MouseButtons
 /**
  * @brief Describes mouse absolute position, scroll wheel delta and buttons status.
  */
-struct MouseStatus
+struct mouse_status
 {
-    int16_t X; /**< Absolute horizontal mouse position. */
-    int16_t Y; /**< Absolute vertical mouse position. */
-    int8_t wheelDelta; /**< Scroll wheel delta. */
-    MouseButtons buttons; /**< Mouse buttons status. */
+    int16_t x; /**< Absolute horizontal mouse position. */
+    int16_t y; /**< Absolute vertical mouse position. */
+    int8_t wheel_delta; /**< Scroll wheel delta. */
+    mouse_buttons buttons; /**< Mouse buttons status. */
 
-    MouseStatus()
-        : X(0)
-        , Y(0)
-        , wheelDelta(0)
+    mouse_status()
+        : x(0)
+        , y(0)
+        , wheel_delta(0)
     {
     }
 };
@@ -105,16 +105,16 @@ struct MouseStatus
 // TimeOut
 
 
-struct TimeOut
+struct time_out
 {
-    TimeOut();
+    time_out();
 
     // -1 means "infinite", never times out
-    bool expired(int valueMS);
+    bool expired(int value_ms);
 
 private:
 
-    int64_t m_start;
+    int64_t _start;
 };
 
 
@@ -122,396 +122,396 @@ private:
 // Delegate
 
 template<typename... Params>
-struct Delegate
+struct delegate
 {
 
     // empty constructor
-    Delegate()
-        : m_closure(nullptr)
-        , m_func(nullptr)
+    delegate()
+        : _closure(nullptr)
+        , _func(nullptr)
     {
     }
 
     // denied copy
-    Delegate(const Delegate &c) = delete;
+    delegate(const delegate &c) = delete;
 
     // construct from lambda
     template<typename Func>
-    Delegate(Func f)
-        : Delegate()
+    delegate(Func f)
+        : delegate()
     {
         *this = f;
     }
 
-    ~Delegate()
+    ~delegate()
     {
-        cleanUp();
+        clean_up();
     }
 
     // assignment operator from Func
     template<typename Func>
     void operator=(Func f)
     {
-        cleanUp();
-        m_closure = [](void *func, const Params &...params) -> void { (*(Func *)func)(params...); };
-        m_func = heap_caps_malloc(sizeof(Func), MALLOC_CAP_32BIT | MALLOC_CAP_INTERNAL);
-        moveItems<uint32_t *>((uint32_t *)m_func, (uint32_t *)&f, sizeof(Func) / sizeof(uint32_t));
+        clean_up();
+        _closure = [](void *func, const Params &...params) -> void { (*(Func *)func)(params...); };
+        _func = heap_caps_malloc(sizeof(Func), MALLOC_CAP_32BIT | MALLOC_CAP_INTERNAL);
+        move_items<uint32_t *>((uint32_t *)_func, (uint32_t *)&f, sizeof(Func) / sizeof(uint32_t));
     }
 
     // denied assignment from Delegate
-    void operator=(const Delegate &) = delete;
+    void operator=(const delegate &) = delete;
 
     void operator()(const Params &...params)
     {
-        if (m_func)
-            m_closure(m_func, params...);
+        if (_func)
+            _closure(_func, params...);
     }
 
 private:
 
-    void (*m_closure)(void *func, const Params &...params);
-    void *m_func;
+    void (*_closure)(void *func, const Params &...params);
+    void *_func;
 
-    void cleanUp()
+    void clean_up()
     {
-        if (m_func)
-            heap_caps_free(m_func);
+        if (_func)
+            heap_caps_free(_func);
     }
 };
 
 
-bool calcParity(uint8_t v);
+bool calc_parity(uint8_t v);
 
 
 /** \ingroup Enumerations
  * @brief Represents each possible real or derived (SHIFT + real) key.
  */
-enum VirtualKey
+enum virtual_key
 {
-    VK_NONE, /**< No character (marks the first virtual key) */
+    vk_none, /**< No character (marks the first virtual key) */
 
-    VK_SPACE, /**< Space */
+    vk_space, /**< Space */
 
-    VK_0, /**< Number 0 */
-    VK_1, /**< Number 1 */
-    VK_2, /**< Number 2 */
-    VK_3, /**< Number 3 */
-    VK_4, /**< Number 4 */
-    VK_5, /**< Number 5 */
-    VK_6, /**< Number 6 */
-    VK_7, /**< Number 7 */
-    VK_8, /**< Number 8 */
-    VK_9, /**< Number 9 */
-    VK_KP_0, /**< Keypad number 0 */
-    VK_KP_1, /**< Keypad number 1 */
-    VK_KP_2, /**< Keypad number 2 */
-    VK_KP_3, /**< Keypad number 3 */
-    VK_KP_4, /**< Keypad number 4 */
-    VK_KP_5, /**< Keypad number 5 */
-    VK_KP_6, /**< Keypad number 6 */
-    VK_KP_7, /**< Keypad number 7 */
-    VK_KP_8, /**< Keypad number 8 */
-    VK_KP_9, /**< Keypad number 9 */
+    vk_0, /**< Number 0 */
+    vk_1, /**< Number 1 */
+    vk_2, /**< Number 2 */
+    vk_3, /**< Number 3 */
+    vk_4, /**< Number 4 */
+    vk_5, /**< Number 5 */
+    vk_6, /**< Number 6 */
+    vk_7, /**< Number 7 */
+    vk_8, /**< Number 8 */
+    vk_9, /**< Number 9 */
+    vk_kp_0, /**< Keypad number 0 */
+    vk_kp_1, /**< Keypad number 1 */
+    vk_kp_2, /**< Keypad number 2 */
+    vk_kp_3, /**< Keypad number 3 */
+    vk_kp_4, /**< Keypad number 4 */
+    vk_kp_5, /**< Keypad number 5 */
+    vk_kp_6, /**< Keypad number 6 */
+    vk_kp_7, /**< Keypad number 7 */
+    vk_kp_8, /**< Keypad number 8 */
+    vk_kp_9, /**< Keypad number 9 */
 
-    VK_a, /**< Lower case letter 'a' */
-    VK_b, /**< Lower case letter 'b' */
-    VK_c, /**< Lower case letter 'c' */
-    VK_d, /**< Lower case letter 'd' */
-    VK_e, /**< Lower case letter 'e' */
-    VK_f, /**< Lower case letter 'f' */
-    VK_g, /**< Lower case letter 'g' */
-    VK_h, /**< Lower case letter 'h' */
-    VK_i, /**< Lower case letter 'i' */
-    VK_j, /**< Lower case letter 'j' */
-    VK_k, /**< Lower case letter 'k' */
-    VK_l, /**< Lower case letter 'l' */
-    VK_m, /**< Lower case letter 'm' */
-    VK_n, /**< Lower case letter 'n' */
-    VK_o, /**< Lower case letter 'o' */
-    VK_p, /**< Lower case letter 'p' */
-    VK_q, /**< Lower case letter 'q' */
-    VK_r, /**< Lower case letter 'r' */
-    VK_s, /**< Lower case letter 's' */
-    VK_t, /**< Lower case letter 't' */
-    VK_u, /**< Lower case letter 'u' */
-    VK_v, /**< Lower case letter 'v' */
-    VK_w, /**< Lower case letter 'w' */
-    VK_x, /**< Lower case letter 'x' */
-    VK_y, /**< Lower case letter 'y' */
-    VK_z, /**< Lower case letter 'z' */
-    VK_A, /**< Upper case letter 'A' */
-    VK_B, /**< Upper case letter 'B' */
-    VK_C, /**< Upper case letter 'C' */
-    VK_D, /**< Upper case letter 'D' */
-    VK_E, /**< Upper case letter 'E' */
-    VK_F, /**< Upper case letter 'F' */
-    VK_G, /**< Upper case letter 'G' */
-    VK_H, /**< Upper case letter 'H' */
-    VK_I, /**< Upper case letter 'I' */
-    VK_J, /**< Upper case letter 'J' */
-    VK_K, /**< Upper case letter 'K' */
-    VK_L, /**< Upper case letter 'L' */
-    VK_M, /**< Upper case letter 'M' */
-    VK_N, /**< Upper case letter 'N' */
-    VK_O, /**< Upper case letter 'O' */
-    VK_P, /**< Upper case letter 'P' */
-    VK_Q, /**< Upper case letter 'Q' */
-    VK_R, /**< Upper case letter 'R' */
-    VK_S, /**< Upper case letter 'S' */
-    VK_T, /**< Upper case letter 'T' */
-    VK_U, /**< Upper case letter 'U' */
-    VK_V, /**< Upper case letter 'V' */
-    VK_W, /**< Upper case letter 'W' */
-    VK_X, /**< Upper case letter 'X' */
-    VK_Y, /**< Upper case letter 'Y' */
-    VK_Z, /**< Upper case letter 'Z' */
+    vk_a, /**< Lower case letter 'a' */
+    vk_b, /**< Lower case letter 'b' */
+    vk_c, /**< Lower case letter 'c' */
+    vk_d, /**< Lower case letter 'd' */
+    vk_e, /**< Lower case letter 'e' */
+    vk_f, /**< Lower case letter 'f' */
+    vk_g, /**< Lower case letter 'g' */
+    vk_h, /**< Lower case letter 'h' */
+    vk_i, /**< Lower case letter 'i' */
+    vk_j, /**< Lower case letter 'j' */
+    vk_k, /**< Lower case letter 'k' */
+    vk_l, /**< Lower case letter 'l' */
+    vk_m, /**< Lower case letter 'm' */
+    vk_n, /**< Lower case letter 'n' */
+    vk_o, /**< Lower case letter 'o' */
+    vk_p, /**< Lower case letter 'p' */
+    vk_q, /**< Lower case letter 'q' */
+    vk_r, /**< Lower case letter 'r' */
+    vk_s, /**< Lower case letter 's' */
+    vk_t, /**< Lower case letter 't' */
+    vk_u, /**< Lower case letter 'u' */
+    vk_v, /**< Lower case letter 'v' */
+    vk_w, /**< Lower case letter 'w' */
+    vk_x, /**< Lower case letter 'x' */
+    vk_y, /**< Lower case letter 'y' */
+    vk_z, /**< Lower case letter 'z' */
+    vk_A, /**< Upper case letter 'A' */
+    vk_B, /**< Upper case letter 'B' */
+    vk_C, /**< Upper case letter 'C' */
+    vk_D, /**< Upper case letter 'D' */
+    vk_E, /**< Upper case letter 'E' */
+    vk_F, /**< Upper case letter 'F' */
+    vk_G, /**< Upper case letter 'G' */
+    vk_H, /**< Upper case letter 'H' */
+    vk_I, /**< Upper case letter 'I' */
+    vk_J, /**< Upper case letter 'J' */
+    vk_K, /**< Upper case letter 'K' */
+    vk_L, /**< Upper case letter 'L' */
+    vk_M, /**< Upper case letter 'M' */
+    vk_N, /**< Upper case letter 'N' */
+    vk_O, /**< Upper case letter 'O' */
+    vk_P, /**< Upper case letter 'P' */
+    vk_Q, /**< Upper case letter 'Q' */
+    vk_R, /**< Upper case letter 'R' */
+    vk_S, /**< Upper case letter 'S' */
+    vk_T, /**< Upper case letter 'T' */
+    vk_U, /**< Upper case letter 'U' */
+    vk_V, /**< Upper case letter 'V' */
+    vk_W, /**< Upper case letter 'W' */
+    vk_X, /**< Upper case letter 'X' */
+    vk_Y, /**< Upper case letter 'Y' */
+    vk_Z, /**< Upper case letter 'Z' */
 
-    VK_GRAVEACCENT, /**< Grave accent: ` */
-    VK_ACUTEACCENT, /**< Acute accent: ´ */
-    VK_QUOTE, /**< Quote: ' */
-    VK_QUOTEDBL, /**< Double quote: " */
-    VK_EQUALS, /**< Equals: = */
-    VK_MINUS, /**< Minus: - */
-    VK_KP_MINUS, /**< Keypad minus: - */
-    VK_PLUS, /**< Plus: + */
-    VK_KP_PLUS, /**< Keypad plus: + */
-    VK_KP_MULTIPLY, /**< Keypad multiply: * */
-    VK_ASTERISK, /**< Asterisk: * */
-    VK_BACKSLASH, /**< Backslash: \ */
-    VK_KP_DIVIDE, /**< Keypad divide: / */
-    VK_SLASH, /**< Slash: / */
-    VK_KP_PERIOD, /**< Keypad period: . */
-    VK_PERIOD, /**< Period: . */
-    VK_COLON, /**< Colon: : */
-    VK_COMMA, /**< Comma: , */
-    VK_SEMICOLON, /**< Semicolon: ; */
-    VK_AMPERSAND, /**< Ampersand: & */
-    VK_VERTICALBAR, /**< Vertical bar: | */
-    VK_HASH, /**< Hash: # */
-    VK_AT, /**< At: @ */
-    VK_CARET, /**< Caret: ^ */
-    VK_DOLLAR, /**< Dollar: $ */
-    VK_POUND, /**< Pound: £ */
-    VK_EURO, /**< Euro: € */
-    VK_PERCENT, /**< Percent: % */
-    VK_EXCLAIM, /**< Exclamation mark: ! */
-    VK_QUESTION, /**< Question mark: ? */
-    VK_LEFTBRACE, /**< Left brace: { */
-    VK_RIGHTBRACE, /**< Right brace: } */
-    VK_LEFTBRACKET, /**< Left bracket: [ */
-    VK_RIGHTBRACKET, /**< Right bracket: ] */
-    VK_LEFTPAREN, /**< Left parenthesis: ( */
-    VK_RIGHTPAREN, /**< Right parenthesis: ) */
-    VK_LESS, /**< Less: < */
-    VK_GREATER, /**< Greater: > */
-    VK_UNDERSCORE, /**< Underscore: _ */
-    VK_DEGREE, /**< Degree: ° */
-    VK_SECTION, /**< Section: § */
-    VK_TILDE, /**< Tilde: ~ */
-    VK_NEGATION, /**< Negation: ¬ */
+    vk_graveaccent, /**< Grave accent: ` */
+    vk_acuteaccent, /**< Acute accent: ´ */
+    vk_quote, /**< Quote: ' */
+    vk_quotedbl, /**< Double quote: " */
+    vk_equals, /**< Equals: = */
+    vk_minus, /**< Minus: - */
+    vk_kp_minus, /**< Keypad minus: - */
+    vk_plus, /**< Plus: + */
+    vk_kp_plus, /**< Keypad plus: + */
+    vk_kp_multiply, /**< Keypad multiply: * */
+    vk_asterisk, /**< Asterisk: * */
+    vk_backslash, /**< Backslash: \ */
+    vk_kp_divide, /**< Keypad divide: / */
+    vk_slash, /**< Slash: / */
+    vk_kp_period, /**< Keypad period: . */
+    vk_period, /**< Period: . */
+    vk_colon, /**< Colon: : */
+    vk_comma, /**< Comma: , */
+    vk_semicolon, /**< Semicolon: ; */
+    vk_ampersand, /**< Ampersand: & */
+    vk_verticalbar, /**< Vertical bar: | */
+    vk_hash, /**< Hash: # */
+    vk_at, /**< At: @ */
+    vk_caret, /**< Caret: ^ */
+    vk_dollar, /**< Dollar: $ */
+    vk_pound, /**< Pound: £ */
+    vk_euro, /**< Euro: € */
+    vk_percent, /**< Percent: % */
+    vk_exclaim, /**< Exclamation mark: ! */
+    vk_question, /**< Question mark: ? */
+    vk_leftbrace, /**< Left brace: { */
+    vk_rightbrace, /**< Right brace: } */
+    vk_leftbracket, /**< Left bracket: [ */
+    vk_rightbracket, /**< Right bracket: ] */
+    vk_leftparen, /**< Left parenthesis: ( */
+    vk_rightparen, /**< Right parenthesis: ) */
+    vk_less, /**< Less: < */
+    vk_greater, /**< Greater: > */
+    vk_underscore, /**< Underscore: _ */
+    vk_degree, /**< Degree: ° */
+    vk_section, /**< Section: § */
+    vk_tilde, /**< Tilde: ~ */
+    vk_negation, /**< Negation: ¬ */
 
-    VK_LSHIFT, /**< Left SHIFT */
-    VK_RSHIFT, /**< Right SHIFT */
-    VK_LALT, /**< Left ALT */
-    VK_RALT, /**< Right ALT */
-    VK_LCTRL, /**< Left CTRL */
-    VK_RCTRL, /**< Right CTRL */
-    VK_LGUI, /**< Left GUI */
-    VK_RGUI, /**< Right GUI */
+    vk_lshift, /**< Left SHIFT */
+    vk_rshift, /**< Right SHIFT */
+    vk_lalt, /**< Left ALT */
+    vk_ralt, /**< Right ALT */
+    vk_lctrl, /**< Left CTRL */
+    vk_rctrl, /**< Right CTRL */
+    vk_lgui, /**< Left GUI */
+    vk_rgui, /**< Right GUI */
 
-    VK_ESCAPE, /**< ESC */
+    vk_escape, /**< ESC */
 
-    VK_PRINTSCREEN, /**< PRINTSCREEN */
-    VK_SYSREQ, /**< SYSREQ */
+    vk_printscreen, /**< PRINTSCREEN */
+    vk_sysreq, /**< SYSREQ */
 
-    VK_INSERT, /**< INS */
-    VK_KP_INSERT, /**< Keypad INS */
-    VK_DELETE, /**< DEL */
-    VK_KP_DELETE, /**< Keypad DEL */
-    VK_BACKSPACE, /**< Backspace */
-    VK_HOME, /**< HOME */
-    VK_KP_HOME, /**< Keypad HOME */
-    VK_END, /**< END */
-    VK_KP_END, /**< Keypad END */
-    VK_PAUSE, /**< PAUSE */
-    VK_BREAK, /**< CTRL + PAUSE */
-    VK_SCROLLLOCK, /**< SCROLLLOCK */
-    VK_NUMLOCK, /**< NUMLOCK */
-    VK_CAPSLOCK, /**< CAPSLOCK */
-    VK_TAB, /**< TAB */
-    VK_RETURN, /**< RETURN */
-    VK_KP_ENTER, /**< Keypad ENTER */
-    VK_APPLICATION, /**< APPLICATION / MENU key */
-    VK_PAGEUP, /**< PAGEUP */
-    VK_KP_PAGEUP, /**< Keypad PAGEUP */
-    VK_PAGEDOWN, /**< PAGEDOWN */
-    VK_KP_PAGEDOWN, /**< Keypad PAGEDOWN */
-    VK_UP, /**< Cursor UP */
-    VK_KP_UP, /**< Keypad cursor UP  */
-    VK_DOWN, /**< Cursor DOWN */
-    VK_KP_DOWN, /**< Keypad cursor DOWN */
-    VK_LEFT, /**< Cursor LEFT */
-    VK_KP_LEFT, /**< Keypad cursor LEFT */
-    VK_RIGHT, /**< Cursor RIGHT */
-    VK_KP_RIGHT, /**< Keypad cursor RIGHT */
-    VK_KP_CENTER, /**< Keypad CENTER key */
+    vk_insert, /**< INS */
+    vk_kp_insert, /**< Keypad INS */
+    vk_delete, /**< DEL */
+    vk_kp_delete, /**< Keypad DEL */
+    vk_backspace, /**< Backspace */
+    vk_home, /**< HOME */
+    vk_kp_home, /**< Keypad HOME */
+    vk_end, /**< END */
+    vk_kp_end, /**< Keypad END */
+    vk_pause, /**< PAUSE */
+    vk_break, /**< CTRL + PAUSE */
+    vk_scrolllock, /**< SCROLLLOCK */
+    vk_numlock, /**< NUMLOCK */
+    vk_capslock, /**< CAPSLOCK */
+    vk_tab, /**< TAB */
+    vk_return, /**< RETURN */
+    vk_kp_enter, /**< Keypad ENTER */
+    vk_application, /**< APPLICATION / MENU key */
+    vk_pageup, /**< PAGEUP */
+    vk_kp_pageup, /**< Keypad PAGEUP */
+    vk_pagedown, /**< PAGEDOWN */
+    vk_kp_pagedown, /**< Keypad PAGEDOWN */
+    vk_up, /**< Cursor UP */
+    vk_kp_up, /**< Keypad cursor UP  */
+    vk_down, /**< Cursor DOWN */
+    vk_kp_down, /**< Keypad cursor DOWN */
+    vk_left, /**< Cursor LEFT */
+    vk_kp_left, /**< Keypad cursor LEFT */
+    vk_right, /**< Cursor RIGHT */
+    vk_kp_right, /**< Keypad cursor RIGHT */
+    vk_kp_center, /**< Keypad CENTER key */
 
-    VK_F1, /**< F1 function key */
-    VK_F2, /**< F2 function key */
-    VK_F3, /**< F3 function key */
-    VK_F4, /**< F4 function key */
-    VK_F5, /**< F5 function key */
-    VK_F6, /**< F6 function key */
-    VK_F7, /**< F7 function key */
-    VK_F8, /**< F8 function key */
-    VK_F9, /**< F9 function key */
-    VK_F10, /**< F10 function key */
-    VK_F11, /**< F11 function key */
-    VK_F12, /**< F12 function key */
+    vk_f1, /**< F1 function key */
+    vk_f2, /**< F2 function key */
+    vk_f3, /**< F3 function key */
+    vk_f4, /**< F4 function key */
+    vk_f5, /**< F5 function key */
+    vk_f6, /**< F6 function key */
+    vk_f7, /**< F7 function key */
+    vk_f8, /**< F8 function key */
+    vk_f9, /**< F9 function key */
+    vk_f10, /**< F10 function key */
+    vk_f11, /**< F11 function key */
+    vk_f12, /**< F12 function key */
 
-    VK_GRAVE_a, /**< Grave a: à */
-    VK_GRAVE_e, /**< Grave e: è */
-    VK_GRAVE_i, /**< Grave i: ì */
-    VK_GRAVE_o, /**< Grave o: ò */
-    VK_GRAVE_u, /**< Grave u: ù */
-    VK_GRAVE_y, /**< Grave y: ỳ */
+    vk_grave_a, /**< Grave a: à */
+    vk_grave_e, /**< Grave e: è */
+    vk_grave_i, /**< Grave i: ì */
+    vk_grave_o, /**< Grave o: ò */
+    vk_grave_u, /**< Grave u: ù */
+    vk_grave_y, /**< Grave y: ỳ */
 
-    VK_ACUTE_a, /**< Acute a: á */
-    VK_ACUTE_e, /**< Acute e: é */
-    VK_ACUTE_i, /**< Acute i: í */
-    VK_ACUTE_o, /**< Acute o: ó */
-    VK_ACUTE_u, /**< Acute u: ú */
-    VK_ACUTE_y, /**< Acute y: ý */
+    vk_acute_a, /**< Acute a: á */
+    vk_acute_e, /**< Acute e: é */
+    vk_acute_i, /**< Acute i: í */
+    vk_acute_o, /**< Acute o: ó */
+    vk_acute_u, /**< Acute u: ú */
+    vk_acute_y, /**< Acute y: ý */
 
-    VK_GRAVE_A, /**< Grave A: À */
-    VK_GRAVE_E, /**< Grave E: È */
-    VK_GRAVE_I, /**< Grave I: Ì */
-    VK_GRAVE_O, /**< Grave O: Ò */
-    VK_GRAVE_U, /**< Grave U: Ù */
-    VK_GRAVE_Y, /**< Grave Y: Ỳ */
+    vk_grave_A, /**< Grave A: À */
+    vk_grave_E, /**< Grave E: È */
+    vk_grave_I, /**< Grave I: Ì */
+    vk_grave_O, /**< Grave O: Ò */
+    vk_grave_U, /**< Grave U: Ù */
+    vk_grave_Y, /**< Grave Y: Ỳ */
 
-    VK_ACUTE_A, /**< Acute A: Á */
-    VK_ACUTE_E, /**< Acute E: É */
-    VK_ACUTE_I, /**< Acute I: Í */
-    VK_ACUTE_O, /**< Acute O: Ó */
-    VK_ACUTE_U, /**< Acute U: Ú */
-    VK_ACUTE_Y, /**< Acute Y: Ý */
+    vk_acute_A, /**< Acute A: Á */
+    vk_acute_E, /**< Acute E: É */
+    vk_acute_I, /**< Acute I: Í */
+    vk_acute_O, /**< Acute O: Ó */
+    vk_acute_U, /**< Acute U: Ú */
+    vk_acute_Y, /**< Acute Y: Ý */
 
-    VK_UMLAUT_a, /**< Diaeresis a: ä */
-    VK_UMLAUT_e, /**< Diaeresis e: ë */
-    VK_UMLAUT_i, /**< Diaeresis i: ï */
-    VK_UMLAUT_o, /**< Diaeresis o: ö */
-    VK_UMLAUT_u, /**< Diaeresis u: ü */
-    VK_UMLAUT_y, /**< Diaeresis y: ÿ */
+    vk_umlaut_a, /**< Diaeresis a: ä */
+    vk_umlaut_e, /**< Diaeresis e: ë */
+    vk_umlaut_i, /**< Diaeresis i: ï */
+    vk_umlaut_o, /**< Diaeresis o: ö */
+    vk_umlaut_u, /**< Diaeresis u: ü */
+    vk_umlaut_y, /**< Diaeresis y: ÿ */
 
-    VK_UMLAUT_A, /**< Diaeresis A: Ä */
-    VK_UMLAUT_E, /**< Diaeresis E: Ë */
-    VK_UMLAUT_I, /**< Diaeresis I: Ï */
-    VK_UMLAUT_O, /**< Diaeresis O: Ö */
-    VK_UMLAUT_U, /**< Diaeresis U: Ü */
-    VK_UMLAUT_Y, /**< Diaeresis Y: Ÿ */
+    vk_umlaut_A, /**< Diaeresis A: Ä */
+    vk_umlaut_E, /**< Diaeresis E: Ë */
+    vk_umlaut_I, /**< Diaeresis I: Ï */
+    vk_umlaut_O, /**< Diaeresis O: Ö */
+    vk_umlaut_U, /**< Diaeresis U: Ü */
+    vk_umlaut_Y, /**< Diaeresis Y: Ÿ */
 
-    VK_CARET_a, /**< Caret a: â */
-    VK_CARET_e, /**< Caret e: ê */
-    VK_CARET_i, /**< Caret i: î */
-    VK_CARET_o, /**< Caret o: ô */
-    VK_CARET_u, /**< Caret u: û */
-    VK_CARET_y, /**< Caret y: ŷ */
+    vk_caret_a, /**< Caret a: â */
+    vk_caret_e, /**< Caret e: ê */
+    vk_caret_i, /**< Caret i: î */
+    vk_caret_o, /**< Caret o: ô */
+    vk_caret_u, /**< Caret u: û */
+    vk_caret_y, /**< Caret y: ŷ */
 
-    VK_CARET_A, /**< Caret A: Â */
-    VK_CARET_E, /**< Caret E: Ê */
-    VK_CARET_I, /**< Caret I: Î */
-    VK_CARET_O, /**< Caret O: Ô */
-    VK_CARET_U, /**< Caret U: Û */
-    VK_CARET_Y, /**< Caret Y: Ŷ */
+    vk_caret_A, /**< Caret A: Â */
+    vk_caret_E, /**< Caret E: Ê */
+    vk_caret_I, /**< Caret I: Î */
+    vk_caret_O, /**< Caret O: Ô */
+    vk_caret_U, /**< Caret U: Û */
+    vk_caret_Y, /**< Caret Y: Ŷ */
 
-    VK_CEDILLA_c, /**< Cedilla c: ç */
-    VK_CEDILLA_C, /**< Cedilla C: Ç */
+    vk_cedilla_c, /**< Cedilla c: ç */
+    vk_cedilla_C, /**< Cedilla C: Ç */
 
-    VK_TILDE_a, /**< Lower case tilde a: ã */
-    VK_TILDE_o, /**< Lower case tilde o: õ */
-    VK_TILDE_n, /**< Lower case tilde n: ñ */
+    vk_tilde_a, /**< Lower case tilde a: ã */
+    vk_tilde_o, /**< Lower case tilde o: õ */
+    vk_tilde_n, /**< Lower case tilde n: ñ */
 
-    VK_TILDE_A, /**< Upper case tilde A: Ã */
-    VK_TILDE_O, /**< Upper case tilde O: Õ */
-    VK_TILDE_N, /**< Upper case tilde N: Ñ */
+    vk_tilde_A, /**< Upper case tilde A: Ã */
+    vk_tilde_O, /**< Upper case tilde O: Õ */
+    vk_tilde_N, /**< Upper case tilde N: Ñ */
 
-    VK_UPPER_a, /**< primera: a */
-    VK_ESZETT, /**< Eszett: ß */
-    VK_EXCLAIM_INV, /**< Inverted exclamation mark: ! */
-    VK_QUESTION_INV, /**< Inverted question mark : ? */
-    VK_INTERPUNCT, /**< Interpunct : · */
-    VK_DIAERESIS, /**< Diaeresis  : ¨ */
-    VK_SQUARE, /**< Square     : ² */
-    VK_CURRENCY, /**< Currency   : ¤ */
-    VK_MU, /**< Mu         : µ */
+    vk_upper_a, /**< primera: a */
+    vk_eszett, /**< Eszett: ß */
+    vk_exclaim_inv, /**< Inverted exclamation mark: ! */
+    vk_question_inv, /**< Inverted question mark : ? */
+    vk_interpunct, /**< Interpunct : · */
+    vk_diaeresis, /**< Diaeresis  : ¨ */
+    vk_square, /**< Square     : ² */
+    vk_currency, /**< Currency   : ¤ */
+    vk_mu, /**< Mu         : µ */
 
-    VK_aelig, /** Lower case aelig  : æ */
-    VK_oslash, /** Lower case oslash : ø */
-    VK_aring, /** Lower case aring  : å */
+    vk_aelig, /** Lower case aelig  : æ */
+    vk_oslash, /** Lower case oslash : ø */
+    vk_aring, /** Lower case aring  : å */
 
-    VK_AELIG, /** Upper case aelig  : Æ */
-    VK_OSLASH, /** Upper case oslash : Ø */
-    VK_ARING, /** Upper case aring  : Å */
+    vk_AELIG, /** Upper case aelig  : Æ */
+    vk_OSLASH, /** Upper case oslash : Ø */
+    vk_ARING, /** Upper case aring  : Å */
 
     // Japanese layout support
-    VK_YEN,
-    VK_MUHENKAN,
-    VK_HENKAN,
-    VK_KATAKANA_HIRAGANA_ROMAJI,
-    VK_HANKAKU_ZENKAKU_KANJI,
-    VK_SHIFT_0,
+    vk_yen,
+    vk_muhenkan,
+    vk_henkan,
+    vk_katakana_hiragana_romaji,
+    vk_hankaku_zenkaku_kanji,
+    vk_shift_0,
 
-    VK_ASCII, /**< Specifies an ASCII code - used when virtual key is embedded in VirtualKeyItem structure and VirtualKeyItem.ASCII is valid */
-    VK_LAST, // marks the last virtual key
+    vk_ascii, /**< Specifies an ASCII code - used when virtual key is embedded in VirtualKeyItem structure and VirtualKeyItem.ASCII is valid */
+    vk_last, // marks the last virtual key
 };
 
 
 /**
  * @brief A struct which contains a virtual key, key state and associated scan code
  */
-struct VirtualKeyItem
+struct virtual_key_item
 {
-    VirtualKey vk; /**< Virtual key */
+    virtual_key vk; /**< Virtual key */
     uint8_t down; /**< 0 = up, 1 = down */
     uint8_t scancode
         [8]; /**< Keyboard scancode. Ends with zero if length is <8, otherwise gets the entire length (like PAUSE, which is 8 bytes) */
-    uint8_t ASCII; /**< ASCII value (0 = if it isn't possible to translate from virtual key) */
-    uint8_t CTRL : 1; /**< CTRL key state at the time of this virtual key event */
-    uint8_t LALT : 1; /**< LEFT ALT key state at the time of this virtual key event */
-    uint8_t RALT : 1; /**< RIGHT ALT key state at the time of this virtual key event */
-    uint8_t SHIFT : 1; /**< SHIFT key state at the time of this virtual key event */
-    uint8_t GUI : 1; /**< GUI key state at the time of this virtual key event */
-    uint8_t CAPSLOCK : 1; /**< CAPSLOCK key state at the time of this virtual key event */
-    uint8_t NUMLOCK : 1; /**< NUMLOCK key state at the time of this virtual key event */
-    uint8_t SCROLLLOCK : 1; /**< SCROLLLOCK key state at the time of this virtual key event */
+    uint8_t ascii; /**< ASCII value (0 = if it isn't possible to translate from virtual key) */
+    uint8_t ctrl : 1; /**< CTRL key state at the time of this virtual key event */
+    uint8_t lalt : 1; /**< LEFT ALT key state at the time of this virtual key event */
+    uint8_t ralt : 1; /**< RIGHT ALT key state at the time of this virtual key event */
+    uint8_t shift : 1; /**< SHIFT key state at the time of this virtual key event */
+    uint8_t gui : 1; /**< GUI key state at the time of this virtual key event */
+    uint8_t capslock : 1; /**< CAPSLOCK key state at the time of this virtual key event */
+    uint8_t numlock : 1; /**< NUMLOCK key state at the time of this virtual key event */
+    uint8_t scrolllock : 1; /**< SCROLLLOCK key state at the time of this virtual key event */
 };
 
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Virtual keys helpers
 
-inline bool isSHIFT(VirtualKey value)
+inline bool is_shift(virtual_key value)
 {
-    return value == VK_LSHIFT || value == VK_RSHIFT;
+    return value == vk_lshift || value == vk_rshift;
 }
 
 
-inline bool isALT(VirtualKey value)
+inline bool is_alt(virtual_key value)
 {
-    return value == VK_LALT || value == VK_RALT;
+    return value == vk_lalt || value == vk_ralt;
 }
 
 
-inline bool isCTRL(VirtualKey value)
+inline bool is_ctrl(virtual_key value)
 {
-    return value == VK_LCTRL || value == VK_RCTRL;
+    return value == vk_lctrl || value == vk_rctrl;
 }
 
 
-inline bool isGUI(VirtualKey value)
+inline bool is_gui(virtual_key value)
 {
-    return value == VK_LGUI || value == VK_RGUI;
+    return value == vk_lgui || value == vk_rgui;
 }
 
 

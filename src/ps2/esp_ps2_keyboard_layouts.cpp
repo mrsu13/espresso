@@ -34,7 +34,7 @@ namespace esp::ps2
 /**************************************************************************************/
 /* US LAYOUT                                                                          */
 /**************************************************************************************/
-const KeyboardLayout USLayout{
+const keyboard_layout US_LAYOUT{
     // name
     "US",
 
@@ -46,147 +46,147 @@ const KeyboardLayout USLayout{
 
     // single byte scancodes
     {
-        {0x76, VK_ESCAPE},      {0x05, VK_F1},          {0x06, VK_F2},
-        {0x04, VK_F3},          {0x0C, VK_F4},          {0x03, VK_F5},
-        {0x0B, VK_F6},          {0x83, VK_F7},          {0x0A, VK_F8},
-        {0x01, VK_F9},          {0x09, VK_F10},         {0x78, VK_F11},
-        {0x07, VK_F12},         {0x16, VK_1},           {0x1E, VK_2},
-        {0x26, VK_3},           {0x25, VK_4},           {0x2E, VK_5},
-        {0x36, VK_6},           {0x3D, VK_7},           {0x3E, VK_8},
-        {0x46, VK_9},           {0x45, VK_0},           {0x15, VK_q},
-        {0x1D, VK_w},           {0x24, VK_e},           {0x2D, VK_r},
-        {0x2C, VK_t},           {0x35, VK_y},           {0x3C, VK_u},
-        {0x43, VK_i},           {0x44, VK_o},           {0x4D, VK_p},
-        {0x1C, VK_a},           {0x1b, VK_s},           {0x23, VK_d},
-        {0x2b, VK_f},           {0x34, VK_g},           {0x33, VK_h},
-        {0x3B, VK_j},           {0x42, VK_k},           {0x4B, VK_l},
-        {0x1A, VK_z},           {0x22, VK_x},           {0x21, VK_c},
-        {0x2A, VK_v},           {0x32, VK_b},           {0x31, VK_n},
-        {0x3A, VK_m},           {0x0E, VK_GRAVEACCENT}, {0x4E, VK_MINUS},
-        {0x55, VK_EQUALS},      {0x54, VK_LEFTBRACKET}, {0x5B, VK_RIGHTBRACKET},
-        {0x5D, VK_BACKSLASH},   {0x4C, VK_SEMICOLON},   {0x52, VK_QUOTE},
-        {0x41, VK_COMMA},       {0x49, VK_PERIOD},      {0x4A, VK_SLASH},
-        {0x70, VK_KP_INSERT},   {0x69, VK_KP_END},      {0x72, VK_KP_DOWN},
-        {0x7A, VK_KP_PAGEDOWN}, {0x6B, VK_KP_LEFT},     {0x73, VK_KP_CENTER}, // "5" in the keypad
-        {0x74, VK_KP_RIGHT},    {0x6C, VK_KP_HOME},     {0x75, VK_KP_UP},
-        {0x7D, VK_KP_PAGEUP},   {0x71, VK_KP_DELETE},   {0x7C, VK_KP_MULTIPLY},
-        {0x79, VK_KP_PLUS},     {0x7B, VK_KP_MINUS},    {0x66, VK_BACKSPACE},
-        {0x0D, VK_TAB},         {0x5A, VK_RETURN},      {0x77, VK_NUMLOCK},
-        {0x7E, VK_SCROLLLOCK},  {0x58, VK_CAPSLOCK},    {0x12, VK_LSHIFT},
-        {0x59, VK_RSHIFT},      {0x14, VK_LCTRL},       {0x11, VK_LALT},
-        {0x29, VK_SPACE},       {0x84, VK_SYSREQ}, // ALT + PRINTSCREEN directly translated by the keyboard
+        {0x76, vk_escape},      {0x05, vk_f1},          {0x06, vk_f2},
+        {0x04, vk_f3},          {0x0C, vk_f4},          {0x03, vk_f5},
+        {0x0B, vk_f6},          {0x83, vk_f7},          {0x0A, vk_f8},
+        {0x01, vk_f9},          {0x09, vk_f10},         {0x78, vk_f11},
+        {0x07, vk_f12},         {0x16, vk_1},           {0x1E, vk_2},
+        {0x26, vk_3},           {0x25, vk_4},           {0x2E, vk_5},
+        {0x36, vk_6},           {0x3D, vk_7},           {0x3E, vk_8},
+        {0x46, vk_9},           {0x45, vk_0},           {0x15, vk_q},
+        {0x1D, vk_w},           {0x24, vk_e},           {0x2D, vk_r},
+        {0x2C, vk_t},           {0x35, vk_y},           {0x3C, vk_u},
+        {0x43, vk_i},           {0x44, vk_o},           {0x4D, vk_p},
+        {0x1C, vk_a},           {0x1b, vk_s},           {0x23, vk_d},
+        {0x2b, vk_f},           {0x34, vk_g},           {0x33, vk_h},
+        {0x3B, vk_j},           {0x42, vk_k},           {0x4B, vk_l},
+        {0x1A, vk_z},           {0x22, vk_x},           {0x21, vk_c},
+        {0x2A, vk_v},           {0x32, vk_b},           {0x31, vk_n},
+        {0x3A, vk_m},           {0x0E, vk_graveaccent}, {0x4E, vk_minus},
+        {0x55, vk_equals},      {0x54, vk_leftbracket}, {0x5B, vk_rightbracket},
+        {0x5D, vk_backslash},   {0x4C, vk_semicolon},   {0x52, vk_quote},
+        {0x41, vk_comma},       {0x49, vk_period},      {0x4A, vk_slash},
+        {0x70, vk_kp_insert},   {0x69, vk_kp_end},      {0x72, vk_kp_down},
+        {0x7A, vk_kp_pagedown}, {0x6B, vk_kp_left},     {0x73, vk_kp_center}, // "5" in the keypad
+        {0x74, vk_kp_right},    {0x6C, vk_kp_home},     {0x75, vk_kp_up},
+        {0x7D, vk_kp_pageup},   {0x71, vk_kp_delete},   {0x7C, vk_kp_multiply},
+        {0x79, vk_kp_plus},     {0x7B, vk_kp_minus},    {0x66, vk_backspace},
+        {0x0D, vk_tab},         {0x5A, vk_return},      {0x77, vk_numlock},
+        {0x7E, vk_scrolllock},  {0x58, vk_capslock},    {0x12, vk_lshift},
+        {0x59, vk_rshift},      {0x14, vk_lctrl},       {0x11, vk_lalt},
+        {0x29, vk_space},       {0x84, vk_sysreq}, // ALT + PRINTSCREEN directly translated by the keyboard
     },
 
     // extended scancodes (0xE0..)
     {
-        {0x14, VK_RCTRL},
-        {0x11, VK_RALT},
-        {0x1F, VK_LGUI},
-        {0x27, VK_RGUI},
-        {0x2F, VK_APPLICATION},
-        {0x70, VK_INSERT},
-        {0x71, VK_DELETE},
-        {0x4A, VK_KP_DIVIDE},
-        {0x5A, VK_KP_ENTER},
-        {0x7D, VK_PAGEUP},
-        {0x7A, VK_PAGEDOWN},
-        {0x6C, VK_HOME},
-        {0x69, VK_END},
-        {0x75, VK_UP},
-        {0x72, VK_DOWN},
-        {0x6B, VK_LEFT},
-        {0x74, VK_RIGHT},
-        {0x7C, VK_PRINTSCREEN},
+        {0x14, vk_rctrl},
+        {0x11, vk_ralt},
+        {0x1F, vk_lgui},
+        {0x27, vk_rgui},
+        {0x2F, vk_application},
+        {0x70, vk_insert},
+        {0x71, vk_delete},
+        {0x4A, vk_kp_divide},
+        {0x5A, vk_kp_enter},
+        {0x7D, vk_pageup},
+        {0x7A, vk_pagedown},
+        {0x6C, vk_home},
+        {0x69, vk_end},
+        {0x75, vk_up},
+        {0x72, vk_down},
+        {0x6B, vk_left},
+        {0x74, vk_right},
+        {0x7C, vk_printscreen},
         // note1: pressing CTRL + PAUSE will generate "E0 7E" instead of normal Pause sequence. Here is translated to VK_BREAK.
         // note2: pressing CTRL + PAUSE generates both keydown and keyup at the same time (hence the sequence E0 7E E0 F0 7E)
-        {0x7E, VK_BREAK},
+        {0x7E, vk_break},
         // these codes are discarded. They are a sort of extended left and right shifts.
         // They are prefixed/postfixed on some special keys (insert, cursor,...) in combination with SHIFT or NUM LOCK, and even in unshifted PRINTSCREEN
-        {0x12, VK_NONE},
-        {0x59, VK_NONE},
+        {0x12, vk_none},
+        {0x59, vk_none},
     },
 
     // virtual keys generated by other virtual keys combinations
     //  in_key, { CTRL, LALT, RALT, SHIFT }, out_key
     {
-        {VK_1, {0, 0, 0, 1}, VK_EXCLAIM}, // SHIFT "1" = "!"
-        {VK_2, {0, 0, 0, 1}, VK_AT}, // SHIFT "2" = "@"
-        {VK_3, {0, 0, 0, 1}, VK_HASH}, // SHIFT "3" = "#"
-        {VK_4, {0, 0, 0, 1}, VK_DOLLAR}, // SHIFT "4" = "$"
-        {VK_5, {0, 0, 0, 1}, VK_PERCENT}, // SHIFT "5" = "%"
-        {VK_6, {0, 0, 0, 1}, VK_CARET}, // SHIFT "6" = "^"
-        {VK_7, {0, 0, 0, 1}, VK_AMPERSAND}, // SHIFT "7" = "&"
-        {VK_8, {0, 0, 0, 1}, VK_ASTERISK}, // SHIFT "8" = "*"
-        {VK_9, {0, 0, 0, 1}, VK_LEFTPAREN}, // SHIFT "9" = "("
-        {VK_0, {0, 0, 0, 1}, VK_RIGHTPAREN}, // SHIFT "0" = ")"
+        {vk_1, {0, 0, 0, 1}, vk_exclaim}, // SHIFT "1" = "!"
+        {vk_2, {0, 0, 0, 1}, vk_at}, // SHIFT "2" = "@"
+        {vk_3, {0, 0, 0, 1}, vk_hash}, // SHIFT "3" = "#"
+        {vk_4, {0, 0, 0, 1}, vk_dollar}, // SHIFT "4" = "$"
+        {vk_5, {0, 0, 0, 1}, vk_percent}, // SHIFT "5" = "%"
+        {vk_6, {0, 0, 0, 1}, vk_caret}, // SHIFT "6" = "^"
+        {vk_7, {0, 0, 0, 1}, vk_ampersand}, // SHIFT "7" = "&"
+        {vk_8, {0, 0, 0, 1}, vk_asterisk}, // SHIFT "8" = "*"
+        {vk_9, {0, 0, 0, 1}, vk_leftparen}, // SHIFT "9" = "("
+        {vk_0, {0, 0, 0, 1}, vk_rightparen}, // SHIFT "0" = ")"
 
-        {VK_GRAVEACCENT, {0, 0, 0, 1}, VK_TILDE}, // SHIFT "`" = "~"
-        {VK_MINUS, {0, 0, 0, 1}, VK_UNDERSCORE}, // SHIFT "-" = "_"
-        {VK_EQUALS, {0, 0, 0, 1}, VK_PLUS}, // SHIFT "=" = "+"
-        {VK_LEFTBRACKET, {0, 0, 0, 1}, VK_LEFTBRACE}, // SHIFT "[" = "{"
-        {VK_RIGHTBRACKET, {0, 0, 0, 1}, VK_RIGHTBRACE}, // SHIFT "]" = "}"
-        {VK_BACKSLASH, {0, 0, 0, 1}, VK_VERTICALBAR}, // SHIFT "\" = "|"
-        {VK_SEMICOLON, {0, 0, 0, 1}, VK_COLON}, // SHIFT ";" = ":"
-        {VK_QUOTE, {0, 0, 0, 1}, VK_QUOTEDBL}, // SHIFT "'" = """
-        {VK_COMMA, {0, 0, 0, 1}, VK_LESS}, // SHIFT "," = "<"
-        {VK_PERIOD, {0, 0, 0, 1}, VK_GREATER}, // SHIFT "." = ">"
-        {VK_SLASH, {0, 0, 0, 1}, VK_QUESTION}, // SHIFT "/" = "?"
+        {vk_graveaccent, {0, 0, 0, 1}, vk_tilde}, // SHIFT "`" = "~"
+        {vk_minus, {0, 0, 0, 1}, vk_underscore}, // SHIFT "-" = "_"
+        {vk_equals, {0, 0, 0, 1}, vk_plus}, // SHIFT "=" = "+"
+        {vk_leftbracket, {0, 0, 0, 1}, vk_leftbrace}, // SHIFT "[" = "{"
+        {vk_rightbracket, {0, 0, 0, 1}, vk_rightbrace}, // SHIFT "]" = "}"
+        {vk_backslash, {0, 0, 0, 1}, vk_verticalbar}, // SHIFT "\" = "|"
+        {vk_semicolon, {0, 0, 0, 1}, vk_colon}, // SHIFT ";" = ":"
+        {vk_quote, {0, 0, 0, 1}, vk_quotedbl}, // SHIFT "'" = """
+        {vk_comma, {0, 0, 0, 1}, vk_less}, // SHIFT "," = "<"
+        {vk_period, {0, 0, 0, 1}, vk_greater}, // SHIFT "." = ">"
+        {vk_slash, {0, 0, 0, 1}, vk_question}, // SHIFT "/" = "?"
 
         // SHIFT "a".."z" = "A".."Z"
-        {VK_a, {0, 0, 0, 1}, VK_A},
-        {VK_b, {0, 0, 0, 1}, VK_B},
-        {VK_c, {0, 0, 0, 1}, VK_C},
-        {VK_d, {0, 0, 0, 1}, VK_D},
-        {VK_e, {0, 0, 0, 1}, VK_E},
-        {VK_f, {0, 0, 0, 1}, VK_F},
-        {VK_g, {0, 0, 0, 1}, VK_G},
-        {VK_h, {0, 0, 0, 1}, VK_H},
-        {VK_i, {0, 0, 0, 1}, VK_I},
-        {VK_j, {0, 0, 0, 1}, VK_J},
-        {VK_k, {0, 0, 0, 1}, VK_K},
-        {VK_l, {0, 0, 0, 1}, VK_L},
-        {VK_m, {0, 0, 0, 1}, VK_M},
-        {VK_n, {0, 0, 0, 1}, VK_N},
-        {VK_o, {0, 0, 0, 1}, VK_O},
-        {VK_p, {0, 0, 0, 1}, VK_P},
-        {VK_q, {0, 0, 0, 1}, VK_Q},
-        {VK_r, {0, 0, 0, 1}, VK_R},
-        {VK_s, {0, 0, 0, 1}, VK_S},
-        {VK_t, {0, 0, 0, 1}, VK_T},
-        {VK_u, {0, 0, 0, 1}, VK_U},
-        {VK_v, {0, 0, 0, 1}, VK_V},
-        {VK_w, {0, 0, 0, 1}, VK_W},
-        {VK_x, {0, 0, 0, 1}, VK_X},
-        {VK_y, {0, 0, 0, 1}, VK_Y},
-        {VK_z, {0, 0, 0, 1}, VK_Z},
+        {vk_a, {0, 0, 0, 1}, vk_A},
+        {vk_b, {0, 0, 0, 1}, vk_B},
+        {vk_c, {0, 0, 0, 1}, vk_C},
+        {vk_d, {0, 0, 0, 1}, vk_D},
+        {vk_e, {0, 0, 0, 1}, vk_E},
+        {vk_f, {0, 0, 0, 1}, vk_F},
+        {vk_g, {0, 0, 0, 1}, vk_G},
+        {vk_h, {0, 0, 0, 1}, vk_H},
+        {vk_i, {0, 0, 0, 1}, vk_I},
+        {vk_j, {0, 0, 0, 1}, vk_J},
+        {vk_k, {0, 0, 0, 1}, vk_K},
+        {vk_l, {0, 0, 0, 1}, vk_L},
+        {vk_m, {0, 0, 0, 1}, vk_M},
+        {vk_n, {0, 0, 0, 1}, vk_N},
+        {vk_o, {0, 0, 0, 1}, vk_O},
+        {vk_p, {0, 0, 0, 1}, vk_P},
+        {vk_q, {0, 0, 0, 1}, vk_Q},
+        {vk_r, {0, 0, 0, 1}, vk_R},
+        {vk_s, {0, 0, 0, 1}, vk_S},
+        {vk_t, {0, 0, 0, 1}, vk_T},
+        {vk_u, {0, 0, 0, 1}, vk_U},
+        {vk_v, {0, 0, 0, 1}, vk_V},
+        {vk_w, {0, 0, 0, 1}, vk_W},
+        {vk_x, {0, 0, 0, 1}, vk_X},
+        {vk_y, {0, 0, 0, 1}, vk_Y},
+        {vk_z, {0, 0, 0, 1}, vk_Z},
 
         // SHIFT "A".."Z" = "a".."z"
-        {VK_A, {0, 0, 0, 1}, VK_a},
-        {VK_B, {0, 0, 0, 1}, VK_b},
-        {VK_C, {0, 0, 0, 1}, VK_c},
-        {VK_D, {0, 0, 0, 1}, VK_d},
-        {VK_E, {0, 0, 0, 1}, VK_e},
-        {VK_F, {0, 0, 0, 1}, VK_f},
-        {VK_G, {0, 0, 0, 1}, VK_g},
-        {VK_H, {0, 0, 0, 1}, VK_h},
-        {VK_I, {0, 0, 0, 1}, VK_i},
-        {VK_J, {0, 0, 0, 1}, VK_j},
-        {VK_K, {0, 0, 0, 1}, VK_k},
-        {VK_L, {0, 0, 0, 1}, VK_l},
-        {VK_M, {0, 0, 0, 1}, VK_m},
-        {VK_N, {0, 0, 0, 1}, VK_n},
-        {VK_O, {0, 0, 0, 1}, VK_o},
-        {VK_P, {0, 0, 0, 1}, VK_p},
-        {VK_Q, {0, 0, 0, 1}, VK_q},
-        {VK_R, {0, 0, 0, 1}, VK_r},
-        {VK_S, {0, 0, 0, 1}, VK_s},
-        {VK_T, {0, 0, 0, 1}, VK_t},
-        {VK_U, {0, 0, 0, 1}, VK_u},
-        {VK_V, {0, 0, 0, 1}, VK_v},
-        {VK_W, {0, 0, 0, 1}, VK_w},
-        {VK_X, {0, 0, 0, 1}, VK_x},
-        {VK_Y, {0, 0, 0, 1}, VK_y},
-        {VK_Z, {0, 0, 0, 1}, VK_z},
+        {vk_A, {0, 0, 0, 1}, vk_a},
+        {vk_B, {0, 0, 0, 1}, vk_b},
+        {vk_C, {0, 0, 0, 1}, vk_c},
+        {vk_D, {0, 0, 0, 1}, vk_d},
+        {vk_E, {0, 0, 0, 1}, vk_e},
+        {vk_F, {0, 0, 0, 1}, vk_f},
+        {vk_G, {0, 0, 0, 1}, vk_g},
+        {vk_H, {0, 0, 0, 1}, vk_h},
+        {vk_I, {0, 0, 0, 1}, vk_i},
+        {vk_J, {0, 0, 0, 1}, vk_j},
+        {vk_K, {0, 0, 0, 1}, vk_k},
+        {vk_L, {0, 0, 0, 1}, vk_l},
+        {vk_M, {0, 0, 0, 1}, vk_m},
+        {vk_N, {0, 0, 0, 1}, vk_n},
+        {vk_O, {0, 0, 0, 1}, vk_o},
+        {vk_P, {0, 0, 0, 1}, vk_p},
+        {vk_Q, {0, 0, 0, 1}, vk_q},
+        {vk_R, {0, 0, 0, 1}, vk_r},
+        {vk_S, {0, 0, 0, 1}, vk_s},
+        {vk_T, {0, 0, 0, 1}, vk_t},
+        {vk_U, {0, 0, 0, 1}, vk_u},
+        {vk_V, {0, 0, 0, 1}, vk_v},
+        {vk_W, {0, 0, 0, 1}, vk_w},
+        {vk_X, {0, 0, 0, 1}, vk_x},
+        {vk_Y, {0, 0, 0, 1}, vk_y},
+        {vk_Z, {0, 0, 0, 1}, vk_z},
 
     },
 
@@ -201,7 +201,7 @@ const KeyboardLayout USLayout{
 /**************************************************************************************/
 /* UK LAYOUT                                                                          */
 /**************************************************************************************/
-const KeyboardLayout UKLayout{
+const keyboard_layout UK_LAYOUT{
     // name
     "UK",
 
@@ -209,12 +209,12 @@ const KeyboardLayout UKLayout{
     "UK British",
 
     // inherited layout
-    &USLayout,
+    &US_LAYOUT,
 
     // single byte scancodes
     {
-        {0x5D, VK_HASH},
-        {0x61, VK_BACKSLASH},
+        {0x5D, vk_hash},
+        {0x61, vk_backslash},
     },
 
     // extended scancodes (0xE0..)
@@ -223,12 +223,12 @@ const KeyboardLayout UKLayout{
     // virtual keys generated by other virtual keys combinations
     //  in_key, { CTRL, LALT, RALT, SHIFT }, out_key
     {
-        {VK_GRAVEACCENT, {0, 0, 0, 1}, VK_NEGATION}, // SHIFT "`" = "¬"
-        {VK_2, {0, 0, 0, 1}, VK_QUOTEDBL}, // SHIFT "2" = """
-        {VK_3, {0, 0, 0, 1}, VK_POUND}, // SHIFT "3" = "£"
-        {VK_QUOTE, {0, 0, 0, 1}, VK_AT}, // SHIFT "'" = "@"
-        {VK_HASH, {0, 0, 0, 1}, VK_TILDE}, // SHIFT "#" = "~"
-        {VK_BACKSLASH, {0, 0, 0, 1}, VK_VERTICALBAR}, // SHIFT "\" = "|"
+        {vk_graveaccent, {0, 0, 0, 1}, vk_negation}, // SHIFT "`" = "¬"
+        {vk_2, {0, 0, 0, 1}, vk_quotedbl}, // SHIFT "2" = """
+        {vk_3, {0, 0, 0, 1}, vk_pound}, // SHIFT "3" = "£"
+        {vk_quote, {0, 0, 0, 1}, vk_at}, // SHIFT "'" = "@"
+        {vk_hash, {0, 0, 0, 1}, vk_tilde}, // SHIFT "#" = "~"
+        {vk_backslash, {0, 0, 0, 1}, vk_verticalbar}, // SHIFT "\" = "|"
     },
 
     // deadkeys
@@ -242,7 +242,7 @@ const KeyboardLayout UKLayout{
 /**************************************************************************************/
 /* GERMAN LAYOUT                                                                      */
 /**************************************************************************************/
-const KeyboardLayout GermanLayout{
+const keyboard_layout GERMAN_LAYOUT{
     // name
     "DE",
 
@@ -250,22 +250,22 @@ const KeyboardLayout GermanLayout{
     "German",
 
     // inherited layout
-    &USLayout,
+    &US_LAYOUT,
 
     // single byte scancodes
     {
-        {0x0E, VK_CARET},
-        {0x4E, VK_ESZETT},
-        {0x55, VK_ACUTEACCENT},
-        {0x54, VK_UMLAUT_u},
-        {0x5B, VK_PLUS},
-        {0x4C, VK_UMLAUT_o},
-        {0x52, VK_UMLAUT_a},
-        {0x5D, VK_HASH},
-        {0x61, VK_LESS},
-        {0x4A, VK_MINUS},
-        {0x35, VK_z},
-        {0x1A, VK_y},
+        {0x0E, vk_caret},
+        {0x4E, vk_eszett},
+        {0x55, vk_acuteaccent},
+        {0x54, vk_umlaut_u},
+        {0x5B, vk_plus},
+        {0x4C, vk_umlaut_o},
+        {0x52, vk_umlaut_a},
+        {0x5D, vk_hash},
+        {0x61, vk_less},
+        {0x4A, vk_minus},
+        {0x35, vk_z},
+        {0x1A, vk_y},
     },
 
     // extended scancodes (0xE0..)
@@ -274,31 +274,31 @@ const KeyboardLayout GermanLayout{
     // virtual keys generated by other virtual keys combinations
     //  in_key, { CTRL, LALT, RALT, SHIFT }, out_key
     {
-        {VK_CARET, {0, 0, 0, 1}, VK_DEGREE}, // SHIFT "^" = "°"
-        {VK_2, {0, 0, 0, 1}, VK_QUOTEDBL}, // SHIFT "2" = """
-        {VK_3, {0, 0, 0, 1}, VK_SECTION}, // SHIFT "3" = "§"
-        {VK_6, {0, 0, 0, 1}, VK_AMPERSAND}, // SHIFT "6" = "&"
-        {VK_7, {0, 0, 0, 1}, VK_SLASH}, // SHIFT "7" = "/"
-        {VK_8, {0, 0, 0, 1}, VK_LEFTPAREN}, // SHIFT "8" = "("
-        {VK_9, {0, 0, 0, 1}, VK_RIGHTPAREN}, // SHIFT "9" = ")"
-        {VK_0, {0, 0, 0, 1}, VK_EQUALS}, // SHIFT "0" = "="
-        {VK_ESZETT, {0, 0, 0, 1}, VK_QUESTION}, // SHIFT "ß" = "?"
-        {VK_ACUTEACCENT, {0, 0, 0, 1}, VK_GRAVEACCENT}, // SHIFT "´" = "`"
-        {VK_PLUS, {0, 0, 0, 1}, VK_ASTERISK}, // SHIFT "+" = "*"
-        {VK_HASH, {0, 0, 0, 1}, VK_QUOTE}, // SHIFT "#" = "'"
-        {VK_LESS, {0, 0, 0, 1}, VK_GREATER}, // SHIFT "<" = ">"
-        {VK_COMMA, {0, 0, 0, 1}, VK_SEMICOLON}, // SHIFT "," = ";"
-        {VK_PERIOD, {0, 0, 0, 1}, VK_COLON}, // SHIFT "." = ":"
-        {VK_MINUS, {0, 0, 0, 1}, VK_UNDERSCORE}, // SHIFT "-" = "_"
-        {VK_7, {0, 0, 1, 0}, VK_LEFTBRACE}, // ALT "7"   = "{"
-        {VK_8, {0, 0, 1, 0}, VK_LEFTBRACKET}, // ALT "8"   = "["
-        {VK_9, {0, 0, 1, 0}, VK_RIGHTBRACKET}, // ALT "9"   = "]"
-        {VK_0, {0, 0, 1, 0}, VK_RIGHTBRACE}, // ALT "0"   = "}"
-        {VK_ESZETT, {0, 0, 1, 0}, VK_BACKSLASH}, // ALT "ß"   = "\"
-        {VK_q, {0, 0, 1, 0}, VK_AT}, // ALT "q"   = "@"
-        {VK_e, {0, 0, 1, 0}, VK_EURO}, // ALT "e"   = "€"
-        {VK_PLUS, {0, 0, 1, 0}, VK_TILDE}, // ALT "+"   = "~"
-        {VK_LESS, {0, 0, 1, 0}, VK_VERTICALBAR}, // ALT "<"   = "|"
+        {vk_caret, {0, 0, 0, 1}, vk_degree}, // SHIFT "^" = "°"
+        {vk_2, {0, 0, 0, 1}, vk_quotedbl}, // SHIFT "2" = """
+        {vk_3, {0, 0, 0, 1}, vk_section}, // SHIFT "3" = "§"
+        {vk_6, {0, 0, 0, 1}, vk_ampersand}, // SHIFT "6" = "&"
+        {vk_7, {0, 0, 0, 1}, vk_slash}, // SHIFT "7" = "/"
+        {vk_8, {0, 0, 0, 1}, vk_leftparen}, // SHIFT "8" = "("
+        {vk_9, {0, 0, 0, 1}, vk_rightparen}, // SHIFT "9" = ")"
+        {vk_0, {0, 0, 0, 1}, vk_equals}, // SHIFT "0" = "="
+        {vk_eszett, {0, 0, 0, 1}, vk_question}, // SHIFT "ß" = "?"
+        {vk_acuteaccent, {0, 0, 0, 1}, vk_graveaccent}, // SHIFT "´" = "`"
+        {vk_plus, {0, 0, 0, 1}, vk_asterisk}, // SHIFT "+" = "*"
+        {vk_hash, {0, 0, 0, 1}, vk_quote}, // SHIFT "#" = "'"
+        {vk_less, {0, 0, 0, 1}, vk_greater}, // SHIFT "<" = ">"
+        {vk_comma, {0, 0, 0, 1}, vk_semicolon}, // SHIFT "," = ";"
+        {vk_period, {0, 0, 0, 1}, vk_colon}, // SHIFT "." = ":"
+        {vk_minus, {0, 0, 0, 1}, vk_underscore}, // SHIFT "-" = "_"
+        {vk_7, {0, 0, 1, 0}, vk_leftbrace}, // ALT "7"   = "{"
+        {vk_8, {0, 0, 1, 0}, vk_leftbracket}, // ALT "8"   = "["
+        {vk_9, {0, 0, 1, 0}, vk_rightbracket}, // ALT "9"   = "]"
+        {vk_0, {0, 0, 1, 0}, vk_rightbrace}, // ALT "0"   = "}"
+        {vk_eszett, {0, 0, 1, 0}, vk_backslash}, // ALT "ß"   = "\"
+        {vk_q, {0, 0, 1, 0}, vk_at}, // ALT "q"   = "@"
+        {vk_e, {0, 0, 1, 0}, vk_euro}, // ALT "e"   = "€"
+        {vk_plus, {0, 0, 1, 0}, vk_tilde}, // ALT "+"   = "~"
+        {vk_less, {0, 0, 1, 0}, vk_verticalbar}, // ALT "<"   = "|"
     },
 
     // deadkeys
@@ -312,7 +312,7 @@ const KeyboardLayout GermanLayout{
 /**************************************************************************************/
 /* ITALIAN LAYOUT                                                                     */
 /**************************************************************************************/
-const KeyboardLayout ItalianLayout{
+const keyboard_layout ITALIAN_LAYOUT{
     // name
     "IT",
 
@@ -320,20 +320,20 @@ const KeyboardLayout ItalianLayout{
     "Italian",
 
     // inherited layout
-    &USLayout,
+    &US_LAYOUT,
 
     // single byte scancodes
     {
-        {0x0E, VK_BACKSLASH},
-        {0x4E, VK_QUOTE},
-        {0x55, VK_GRAVE_i},
-        {0x54, VK_GRAVE_e},
-        {0x5B, VK_PLUS},
-        {0x4C, VK_GRAVE_o},
-        {0x52, VK_GRAVE_a},
-        {0x5D, VK_GRAVE_u},
-        {0x61, VK_LESS},
-        {0x4A, VK_MINUS},
+        {0x0E, vk_backslash},
+        {0x4E, vk_quote},
+        {0x55, vk_grave_i},
+        {0x54, vk_grave_e},
+        {0x5B, vk_plus},
+        {0x4C, vk_grave_o},
+        {0x52, vk_grave_a},
+        {0x5D, vk_grave_u},
+        {0x61, vk_less},
+        {0x4A, vk_minus},
     },
 
     // extended scancodes (0xE0..)
@@ -342,34 +342,34 @@ const KeyboardLayout ItalianLayout{
     // virtual keys generated by other virtual keys combinations
     //  in_key, { CTRL, LALT, RALT, SHIFT }, out_key
     {
-        {VK_BACKSLASH, {0, 0, 0, 1}, VK_VERTICALBAR}, // SHIFT "\" = "|"
-        {VK_2, {0, 0, 0, 1}, VK_QUOTEDBL}, // SHIFT "2" = """
-        {VK_3, {0, 0, 0, 1}, VK_POUND}, // SHIFT "3" = "£"
-        {VK_6, {0, 0, 0, 1}, VK_AMPERSAND}, // SHIFT "6" = "&"
-        {VK_7, {0, 0, 0, 1}, VK_SLASH}, // SHIFT "7" = "/"
-        {VK_8, {0, 0, 0, 1}, VK_LEFTPAREN}, // SHIFT "8" = "("
-        {VK_9, {0, 0, 0, 1}, VK_RIGHTPAREN}, // SHIFT "9" = ")"
-        {VK_0, {0, 0, 0, 1}, VK_EQUALS}, // SHIFT "0" = "="
-        {VK_QUOTE, {0, 0, 0, 1}, VK_QUESTION}, // SHIFT "'" = "?"
-        {VK_GRAVE_i, {0, 0, 0, 1}, VK_CARET}, // SHIFT "ì" = "^"
-        {VK_GRAVE_e, {0, 0, 0, 1}, VK_ACUTE_e}, // SHIFT "è" = "é"
-        {VK_PLUS, {0, 0, 0, 1}, VK_ASTERISK}, // SHIFT "+" = "*"
-        {VK_GRAVE_o, {0, 0, 0, 1}, VK_CEDILLA_c}, // SHIFT "ò" = "ç"
-        {VK_GRAVE_a, {0, 0, 0, 1}, VK_DEGREE}, // SHIFT "à" = "°"
-        {VK_GRAVE_u, {0, 0, 0, 1}, VK_SECTION}, // SHIFT "ù" = "§"
-        {VK_LESS, {0, 0, 0, 1}, VK_GREATER}, // SHIFT "<" = ">"
-        {VK_COMMA, {0, 0, 0, 1}, VK_SEMICOLON}, // SHIFT "," = ";"
-        {VK_PERIOD, {0, 0, 0, 1}, VK_COLON}, // SHIFT "." = ":"
-        {VK_MINUS, {0, 0, 0, 1}, VK_UNDERSCORE}, // SHIFT "-" = "_"
-        {VK_BACKSLASH, {0, 0, 1, 0}, VK_GRAVEACCENT}, // ALT "\"   = "`"
-        {VK_5, {0, 0, 1, 0}, VK_TILDE}, // ALT "5"   = "~"
-        {VK_e, {0, 0, 1, 0}, VK_EURO}, // ALT "e"   = "€"
-        {VK_GRAVE_e, {0, 0, 1, 0}, VK_LEFTBRACKET}, // ALT "è"   = "["
-        {VK_PLUS, {0, 0, 1, 0}, VK_RIGHTBRACKET}, // ALT "+"   = "]"
-        {VK_GRAVE_o, {0, 0, 1, 0}, VK_AT}, // ALT "ò"   = "@"
-        {VK_GRAVE_a, {0, 0, 1, 0}, VK_HASH}, // ALT "à"   = "#"
-        {VK_GRAVE_e, {0, 0, 1, 1}, VK_LEFTBRACE}, // SHIFT ALT "è" = "{"
-        {VK_PLUS, {0, 0, 1, 1}, VK_RIGHTBRACE}, // SHIFT ALT "+" = "}"
+        {vk_backslash, {0, 0, 0, 1}, vk_verticalbar}, // SHIFT "\" = "|"
+        {vk_2, {0, 0, 0, 1}, vk_quotedbl}, // SHIFT "2" = """
+        {vk_3, {0, 0, 0, 1}, vk_pound}, // SHIFT "3" = "£"
+        {vk_6, {0, 0, 0, 1}, vk_ampersand}, // SHIFT "6" = "&"
+        {vk_7, {0, 0, 0, 1}, vk_slash}, // SHIFT "7" = "/"
+        {vk_8, {0, 0, 0, 1}, vk_leftparen}, // SHIFT "8" = "("
+        {vk_9, {0, 0, 0, 1}, vk_rightparen}, // SHIFT "9" = ")"
+        {vk_0, {0, 0, 0, 1}, vk_equals}, // SHIFT "0" = "="
+        {vk_quote, {0, 0, 0, 1}, vk_question}, // SHIFT "'" = "?"
+        {vk_grave_i, {0, 0, 0, 1}, vk_caret}, // SHIFT "ì" = "^"
+        {vk_grave_e, {0, 0, 0, 1}, vk_acute_e}, // SHIFT "è" = "é"
+        {vk_plus, {0, 0, 0, 1}, vk_asterisk}, // SHIFT "+" = "*"
+        {vk_grave_o, {0, 0, 0, 1}, vk_cedilla_c}, // SHIFT "ò" = "ç"
+        {vk_grave_a, {0, 0, 0, 1}, vk_degree}, // SHIFT "à" = "°"
+        {vk_grave_u, {0, 0, 0, 1}, vk_section}, // SHIFT "ù" = "§"
+        {vk_less, {0, 0, 0, 1}, vk_greater}, // SHIFT "<" = ">"
+        {vk_comma, {0, 0, 0, 1}, vk_semicolon}, // SHIFT "," = ";"
+        {vk_period, {0, 0, 0, 1}, vk_colon}, // SHIFT "." = ":"
+        {vk_minus, {0, 0, 0, 1}, vk_underscore}, // SHIFT "-" = "_"
+        {vk_backslash, {0, 0, 1, 0}, vk_graveaccent}, // ALT "\"   = "`"
+        {vk_5, {0, 0, 1, 0}, vk_tilde}, // ALT "5"   = "~"
+        {vk_e, {0, 0, 1, 0}, vk_euro}, // ALT "e"   = "€"
+        {vk_grave_e, {0, 0, 1, 0}, vk_leftbracket}, // ALT "è"   = "["
+        {vk_plus, {0, 0, 1, 0}, vk_rightbracket}, // ALT "+"   = "]"
+        {vk_grave_o, {0, 0, 1, 0}, vk_at}, // ALT "ò"   = "@"
+        {vk_grave_a, {0, 0, 1, 0}, vk_hash}, // ALT "à"   = "#"
+        {vk_grave_e, {0, 0, 1, 1}, vk_leftbrace}, // SHIFT ALT "è" = "{"
+        {vk_plus, {0, 0, 1, 1}, vk_rightbrace}, // SHIFT ALT "+" = "}"
     },
 
     // deadkeys
@@ -385,7 +385,7 @@ const KeyboardLayout ItalianLayout{
 /*                                                                                    */
 /* Implemented by Carles Oriol (https://github.com/carlesoriol)                       */
 /**************************************************************************************/
-const KeyboardLayout SpanishLayout{
+const keyboard_layout SPANISH_LAYOUT{
     // name
     "ES",
 
@@ -393,22 +393,22 @@ const KeyboardLayout SpanishLayout{
     "Spanish",
 
     // inherited layout
-    &USLayout, // To avoid conflict key combinations
+    &US_LAYOUT, // To avoid conflict key combinations
 
     // single byte scancodes
-    {{0x0E, VK_DEGREE},
-     {0x4E, VK_QUOTE},
-     {0x55, VK_EXCLAIM_INV}, // inverted exclaim
-     {0x5D, VK_CEDILLA_c},
+    {{0x0E, vk_degree},
+     {0x4E, vk_quote},
+     {0x55, vk_exclaim_inv}, // inverted exclaim
+     {0x5D, vk_cedilla_c},
 
-     {0x54, VK_GRAVEACCENT},
-     {0x5B, VK_PLUS},
+     {0x54, vk_graveaccent},
+     {0x5B, vk_plus},
 
-     {0x4C, VK_TILDE_n}, // spanish ñ
-     {0x52, VK_ACUTEACCENT},
+     {0x4C, vk_tilde_n}, // spanish ñ
+     {0x52, vk_acuteaccent},
 
-     {0x61, VK_LESS},
-     {0x4A, VK_MINUS}
+     {0x61, vk_less},
+     {0x4A, vk_minus}
 
     },
 
@@ -420,118 +420,118 @@ const KeyboardLayout SpanishLayout{
     //  in_key, { CTRL, LALT, RALT, SHIFT }, out_key
     {
 
-        {VK_DEGREE, {0, 0, 1, 0}, VK_BACKSLASH}, // ALT   "º" = "\"
-        {VK_DEGREE, {0, 0, 0, 1}, VK_UPPER_a}, // SHIFT "º" = "ª"
+        {vk_degree, {0, 0, 1, 0}, vk_backslash}, // ALT   "º" = "\"
+        {vk_degree, {0, 0, 0, 1}, vk_upper_a}, // SHIFT "º" = "ª"
 
-        {VK_1, {0, 0, 1, 0}, VK_VERTICALBAR}, // ALT   "1" = "|"
-        {VK_1, {0, 0, 0, 1}, VK_EXCLAIM}, // SHIFT "1" = "!"
+        {vk_1, {0, 0, 1, 0}, vk_verticalbar}, // ALT   "1" = "|"
+        {vk_1, {0, 0, 0, 1}, vk_exclaim}, // SHIFT "1" = "!"
 
-        {VK_2, {0, 0, 0, 1}, VK_QUOTEDBL}, // SHIFT "2" = """
-        {VK_2, {0, 0, 1, 0}, VK_AT}, // ALT   "2" = "@"
+        {vk_2, {0, 0, 0, 1}, vk_quotedbl}, // SHIFT "2" = """
+        {vk_2, {0, 0, 1, 0}, vk_at}, // ALT   "2" = "@"
 
-        {VK_3, {0, 0, 0, 1}, VK_INTERPUNCT}, // SHIFT "3" = "·"
-        {VK_3, {0, 0, 1, 0}, VK_HASH}, // SHIFT "3" = "#"
+        {vk_3, {0, 0, 0, 1}, vk_interpunct}, // SHIFT "3" = "·"
+        {vk_3, {0, 0, 1, 0}, vk_hash}, // SHIFT "3" = "#"
 
-        {VK_4, {0, 0, 1, 0}, VK_TILDE}, // SHIFT "4" = "~"
+        {vk_4, {0, 0, 1, 0}, vk_tilde}, // SHIFT "4" = "~"
 
-        {VK_6, {0, 0, 0, 1}, VK_AMPERSAND}, // SHIFT "6" = "&"
-        {VK_6, {0, 0, 1, 0}, VK_NEGATION}, // ALT   "6" = "¬"
+        {vk_6, {0, 0, 0, 1}, vk_ampersand}, // SHIFT "6" = "&"
+        {vk_6, {0, 0, 1, 0}, vk_negation}, // ALT   "6" = "¬"
 
-        {VK_7, {0, 0, 0, 1}, VK_SLASH}, // SHIFT "7" = "/"
-        {VK_8, {0, 0, 0, 1}, VK_LEFTPAREN}, // SHIFT "8" = "("
-        {VK_9, {0, 0, 0, 1}, VK_RIGHTPAREN}, // SHIFT "9" = ")"
-        {VK_0, {0, 0, 0, 1}, VK_EQUALS}, // SHIFT "0" = "="
+        {vk_7, {0, 0, 0, 1}, vk_slash}, // SHIFT "7" = "/"
+        {vk_8, {0, 0, 0, 1}, vk_leftparen}, // SHIFT "8" = "("
+        {vk_9, {0, 0, 0, 1}, vk_rightparen}, // SHIFT "9" = ")"
+        {vk_0, {0, 0, 0, 1}, vk_equals}, // SHIFT "0" = "="
 
-        {VK_QUOTE, {0, 0, 0, 1}, VK_QUESTION}, // SHIFT "'" = "?"
-        {VK_EXCLAIM_INV, {0, 0, 0, 1}, VK_QUESTION_INV}, // SHIFT "¡" = "¿"
+        {vk_quote, {0, 0, 0, 1}, vk_question}, // SHIFT "'" = "?"
+        {vk_exclaim_inv, {0, 0, 0, 1}, vk_question_inv}, // SHIFT "¡" = "¿"
 
-        {VK_GRAVEACCENT, {0, 0, 0, 1}, VK_CARET}, // SHIFT "`" = "^"
-        {VK_GRAVEACCENT, {0, 0, 1, 0}, VK_LEFTBRACKET}, // SHIFT "`" = "["
+        {vk_graveaccent, {0, 0, 0, 1}, vk_caret}, // SHIFT "`" = "^"
+        {vk_graveaccent, {0, 0, 1, 0}, vk_leftbracket}, // SHIFT "`" = "["
 
-        {VK_PLUS, {0, 0, 0, 1}, VK_ASTERISK}, // SHIFT "'" = "*"
-        {VK_PLUS, {0, 0, 1, 0}, VK_RIGHTBRACKET}, // SHIFT "'" = "]"
+        {vk_plus, {0, 0, 0, 1}, vk_asterisk}, // SHIFT "'" = "*"
+        {vk_plus, {0, 0, 1, 0}, vk_rightbracket}, // SHIFT "'" = "]"
 
-        {VK_CEDILLA_c, {0, 0, 0, 1}, VK_CEDILLA_C}, // SHIFT "ç" = "Ç" // should be upper case
-        {VK_CEDILLA_c, {0, 0, 1, 0}, VK_RIGHTBRACE}, // ALT   "ç" = "}" // should be upper case
+        {vk_cedilla_c, {0, 0, 0, 1}, vk_cedilla_C}, // SHIFT "ç" = "Ç" // should be upper case
+        {vk_cedilla_c, {0, 0, 1, 0}, vk_rightbrace}, // ALT   "ç" = "}" // should be upper case
 
-        {VK_ACUTEACCENT,
+        {vk_acuteaccent,
          {0, 0, 0, 1},
-         VK_DIAERESIS}, // ALT   "'" = "¨" // should be diaeresis for vocals
-        {VK_ACUTEACCENT, {0, 0, 1, 0}, VK_LEFTBRACE}, // ALT   "'" = "{" //
+         vk_diaeresis}, // ALT   "'" = "¨" // should be diaeresis for vocals
+        {vk_acuteaccent, {0, 0, 1, 0}, vk_leftbrace}, // ALT   "'" = "{" //
 
-        {VK_LESS, {0, 0, 0, 1}, VK_GREATER}, // SHIFT "<" = ">"
-        {VK_LESS, {0, 0, 1, 0}, VK_VERTICALBAR}, // ALT   "<" = "|"
+        {vk_less, {0, 0, 0, 1}, vk_greater}, // SHIFT "<" = ">"
+        {vk_less, {0, 0, 1, 0}, vk_verticalbar}, // ALT   "<" = "|"
 
-        {VK_COMMA, {0, 0, 0, 1}, VK_SEMICOLON}, // SHIFT "," = ";"
-        {VK_PERIOD, {0, 0, 0, 1}, VK_COLON}, // SHIFT "." = ":"
+        {vk_comma, {0, 0, 0, 1}, vk_semicolon}, // SHIFT "," = ";"
+        {vk_period, {0, 0, 0, 1}, vk_colon}, // SHIFT "." = ":"
 
-        {VK_MINUS, {0, 0, 0, 1}, VK_UNDERSCORE}, // SHIFT "-" = "_"
+        {vk_minus, {0, 0, 0, 1}, vk_underscore}, // SHIFT "-" = "_"
 
-        {VK_TILDE_n, {0, 0, 0, 1}, VK_TILDE_N}, // SHIFT "ñ" = "Ñ"
+        {vk_tilde_n, {0, 0, 0, 1}, vk_tilde_N}, // SHIFT "ñ" = "Ñ"
     },
 
     // deadkeys
     {
-        VK_GRAVEACCENT,
-        VK_ACUTEACCENT,
-        VK_DIAERESIS,
-        VK_CARET,
+        vk_graveaccent,
+        vk_acuteaccent,
+        vk_diaeresis,
+        vk_caret,
     },
 
     // deadkeys translation
     {
-        {VK_GRAVEACCENT, VK_SPACE, VK_GRAVEACCENT},
-        {VK_ACUTEACCENT, VK_SPACE, VK_ACUTEACCENT},
-        {VK_DIAERESIS, VK_SPACE, VK_DIAERESIS},
-        {VK_CARET, VK_SPACE, VK_CARET},
+        {vk_graveaccent, vk_space, vk_graveaccent},
+        {vk_acuteaccent, vk_space, vk_acuteaccent},
+        {vk_diaeresis, vk_space, vk_diaeresis},
+        {vk_caret, vk_space, vk_caret},
 
-        {VK_GRAVEACCENT, VK_a, VK_GRAVE_a},
-        {VK_GRAVEACCENT, VK_e, VK_GRAVE_e},
-        {VK_GRAVEACCENT, VK_i, VK_GRAVE_i},
-        {VK_GRAVEACCENT, VK_o, VK_GRAVE_o},
-        {VK_GRAVEACCENT, VK_u, VK_GRAVE_u},
+        {vk_graveaccent, vk_a, vk_grave_a},
+        {vk_graveaccent, vk_e, vk_grave_e},
+        {vk_graveaccent, vk_i, vk_grave_i},
+        {vk_graveaccent, vk_o, vk_grave_o},
+        {vk_graveaccent, vk_u, vk_grave_u},
 
-        {VK_GRAVEACCENT, VK_A, VK_GRAVE_A},
-        {VK_GRAVEACCENT, VK_E, VK_GRAVE_E},
-        {VK_GRAVEACCENT, VK_I, VK_GRAVE_I},
-        {VK_GRAVEACCENT, VK_O, VK_GRAVE_O},
-        {VK_GRAVEACCENT, VK_U, VK_GRAVE_U},
+        {vk_graveaccent, vk_A, vk_grave_A},
+        {vk_graveaccent, vk_E, vk_grave_E},
+        {vk_graveaccent, vk_I, vk_grave_I},
+        {vk_graveaccent, vk_O, vk_grave_O},
+        {vk_graveaccent, vk_U, vk_grave_U},
 
-        {VK_ACUTEACCENT, VK_a, VK_ACUTE_a},
-        {VK_ACUTEACCENT, VK_e, VK_ACUTE_e},
-        {VK_ACUTEACCENT, VK_i, VK_ACUTE_i},
-        {VK_ACUTEACCENT, VK_o, VK_ACUTE_o},
-        {VK_ACUTEACCENT, VK_u, VK_ACUTE_u},
+        {vk_acuteaccent, vk_a, vk_acute_a},
+        {vk_acuteaccent, vk_e, vk_acute_e},
+        {vk_acuteaccent, vk_i, vk_acute_i},
+        {vk_acuteaccent, vk_o, vk_acute_o},
+        {vk_acuteaccent, vk_u, vk_acute_u},
 
-        {VK_ACUTEACCENT, VK_A, VK_ACUTE_A},
-        {VK_ACUTEACCENT, VK_E, VK_ACUTE_E},
-        {VK_ACUTEACCENT, VK_I, VK_ACUTE_I},
-        {VK_ACUTEACCENT, VK_O, VK_ACUTE_O},
-        {VK_ACUTEACCENT, VK_U, VK_ACUTE_U},
+        {vk_acuteaccent, vk_A, vk_acute_A},
+        {vk_acuteaccent, vk_E, vk_acute_E},
+        {vk_acuteaccent, vk_I, vk_acute_I},
+        {vk_acuteaccent, vk_O, vk_acute_O},
+        {vk_acuteaccent, vk_U, vk_acute_U},
 
-        {VK_CARET, VK_a, VK_CARET_a},
-        {VK_CARET, VK_e, VK_CARET_e},
-        {VK_CARET, VK_i, VK_CARET_i},
-        {VK_CARET, VK_o, VK_CARET_o},
-        {VK_CARET, VK_u, VK_CARET_u},
+        {vk_caret, vk_a, vk_caret_a},
+        {vk_caret, vk_e, vk_caret_e},
+        {vk_caret, vk_i, vk_caret_i},
+        {vk_caret, vk_o, vk_caret_o},
+        {vk_caret, vk_u, vk_caret_u},
 
-        {VK_CARET, VK_A, VK_CARET_A},
-        {VK_CARET, VK_E, VK_CARET_E},
-        {VK_CARET, VK_I, VK_CARET_I},
-        {VK_CARET, VK_O, VK_CARET_O},
-        {VK_CARET, VK_U, VK_CARET_U},
+        {vk_caret, vk_A, vk_caret_A},
+        {vk_caret, vk_E, vk_caret_E},
+        {vk_caret, vk_I, vk_caret_I},
+        {vk_caret, vk_O, vk_caret_O},
+        {vk_caret, vk_U, vk_caret_U},
 
-        {VK_DIAERESIS, VK_a, VK_UMLAUT_a},
-        {VK_DIAERESIS, VK_e, VK_UMLAUT_e},
-        {VK_DIAERESIS, VK_i, VK_UMLAUT_i},
-        {VK_DIAERESIS, VK_o, VK_UMLAUT_o},
-        {VK_DIAERESIS, VK_u, VK_UMLAUT_u},
+        {vk_diaeresis, vk_a, vk_umlaut_a},
+        {vk_diaeresis, vk_e, vk_umlaut_e},
+        {vk_diaeresis, vk_i, vk_umlaut_i},
+        {vk_diaeresis, vk_o, vk_umlaut_o},
+        {vk_diaeresis, vk_u, vk_umlaut_u},
 
-        {VK_DIAERESIS, VK_A, VK_UMLAUT_A},
-        {VK_DIAERESIS, VK_E, VK_UMLAUT_E},
-        {VK_DIAERESIS, VK_I, VK_UMLAUT_I},
-        {VK_DIAERESIS, VK_O, VK_UMLAUT_O},
-        {VK_DIAERESIS, VK_U, VK_UMLAUT_U},
+        {vk_diaeresis, vk_A, vk_umlaut_A},
+        {vk_diaeresis, vk_E, vk_umlaut_E},
+        {vk_diaeresis, vk_I, vk_umlaut_I},
+        {vk_diaeresis, vk_O, vk_umlaut_O},
+        {vk_diaeresis, vk_U, vk_umlaut_U},
     },
 };
 
@@ -543,7 +543,7 @@ const KeyboardLayout SpanishLayout{
 /*      Alain Trentin                                                                 */
 /*      Denis Bodor (https://github.com/0xDRRB)                                       */
 /**************************************************************************************/
-const KeyboardLayout FrenchLayout{
+const keyboard_layout FRENCH_LAYOUT{
     // name
     "FR",
 
@@ -551,21 +551,21 @@ const KeyboardLayout FrenchLayout{
     "French",
 
     // inherited layout
-    &USLayout,
+    &US_LAYOUT,
 
     // single byte scancodes
     {
-        {0x0E, VK_SQUARE},     {0x16, VK_AMPERSAND}, {0x1E, VK_ACUTE_e},     {0x26, VK_QUOTEDBL},
-        {0x25, VK_QUOTE},      {0x2E, VK_LEFTPAREN}, {0x36, VK_MINUS},       {0x3D, VK_GRAVE_e},
-        {0x3E, VK_UNDERSCORE}, {0x46, VK_CEDILLA_c}, {0x45, VK_GRAVE_a},     {0x4E, VK_RIGHTPAREN},
-        {0x79, VK_EQUALS},
+        {0x0E, vk_square},     {0x16, vk_ampersand}, {0x1E, vk_acute_e},     {0x26, vk_quotedbl},
+        {0x25, vk_quote},      {0x2E, vk_leftparen}, {0x36, vk_minus},       {0x3D, vk_grave_e},
+        {0x3E, vk_underscore}, {0x46, vk_cedilla_c}, {0x45, vk_grave_a},     {0x4E, vk_rightparen},
+        {0x79, vk_equals},
 
-        {0x15, VK_a},          {0x1D, VK_z},         {0x54, VK_CARET},       {0x5B, VK_DOLLAR},
+        {0x15, vk_a},          {0x1D, vk_z},         {0x54, vk_caret},       {0x5B, vk_dollar},
 
-        {0x1C, VK_q},          {0x4C, VK_m},         {0x52, VK_GRAVE_u},     {0x5D, VK_ASTERISK},
+        {0x1C, vk_q},          {0x4C, vk_m},         {0x52, vk_grave_u},     {0x5D, vk_asterisk},
 
-        {0x61, VK_LESS},       {0x1A, VK_w},         {0x3A, VK_COMMA},       {0x41, VK_SEMICOLON},
-        {0x49, VK_COLON},      {0x4A, VK_EXCLAIM},   {0x55, VK_EXCLAIM_INV},
+        {0x61, vk_less},       {0x1A, vk_w},         {0x3A, vk_comma},       {0x41, vk_semicolon},
+        {0x49, vk_colon},      {0x4A, vk_exclaim},   {0x55, vk_exclaim_inv},
 
     },
 
@@ -575,71 +575,71 @@ const KeyboardLayout FrenchLayout{
     // virtual keys generated by other virtual keys combinations
     //  in_key, { CTRL, LALT, RALT, SHIFT }, out_key
     {
-        {VK_AMPERSAND, {0, 0, 0, 1}, VK_1}, // SHIFT "&" = "1"
-        {VK_ACUTE_e, {0, 0, 0, 1}, VK_2}, // SHIFT "é" = "2"
-        {VK_QUOTEDBL, {0, 0, 0, 1}, VK_3}, // SHIFT """ = "3"
-        {VK_QUOTE, {0, 0, 0, 1}, VK_4}, // SHIFT "'" = "4"
-        {VK_LEFTPAREN, {0, 0, 0, 1}, VK_5}, // SHIFT "(" = "5"
-        {VK_MINUS, {0, 0, 0, 1}, VK_6}, // SHIFT "-" = "6"
-        {VK_GRAVE_e, {0, 0, 0, 1}, VK_7}, // SHIFT "è" = "7"
-        {VK_UNDERSCORE, {0, 0, 0, 1}, VK_8}, // SHIFT "_" = "8"
-        {VK_CEDILLA_c, {0, 0, 0, 1}, VK_9}, // SHIFT "ç" = "9"
-        {VK_GRAVE_a, {0, 0, 0, 1}, VK_0}, // SHIFT "à" = "0"
-        {VK_RIGHTPAREN, {0, 0, 0, 1}, VK_DEGREE}, // SHIFT ")" = "°"
-        {VK_EQUALS, {0, 0, 0, 1}, VK_PLUS}, // SHIFT "=" = "+"
-        {VK_AMPERSAND, {0, 0, 1, 0}, VK_NONE}, // ALTGR "&" = ""
-        {VK_ACUTE_e, {0, 0, 1, 0}, VK_TILDE}, // ALTGR "é" = "~"
-        {VK_QUOTEDBL, {0, 0, 1, 0}, VK_HASH}, // ALTGR """ = "#"
-        {VK_QUOTE, {0, 0, 1, 0}, VK_LEFTBRACE}, // ALTGR "'" = "{"
-        {VK_LEFTPAREN, {0, 0, 1, 0}, VK_LEFTBRACKET}, // ALTGR "(" = "["
-        {VK_MINUS, {0, 0, 1, 0}, VK_VERTICALBAR}, // ALTGR "-" = "|"
-        {VK_GRAVE_e, {0, 0, 1, 0}, VK_GRAVEACCENT}, // ALTGR "è" = "`"
-        {VK_UNDERSCORE, {0, 0, 1, 0}, VK_BACKSLASH}, // ALTGR "_" = "\"
-        {VK_CEDILLA_c, {0, 0, 1, 0}, VK_CARET}, // ALTGR "ç" = "^"
-        {VK_GRAVE_a, {0, 0, 1, 0}, VK_AT}, // ALTGR "à" = "@"
-        {VK_RIGHTPAREN, {0, 0, 1, 0}, VK_RIGHTBRACKET}, // ALTGR ")" = "]"
-        {VK_EQUALS, {0, 0, 1, 0}, VK_RIGHTBRACE}, // ALTGR "=" = "}"
-        {VK_CARET, {0, 0, 0, 1}, VK_DIAERESIS}, // SHIFT "^" = "¨"
-        {VK_DOLLAR, {0, 0, 0, 1}, VK_POUND}, // SHIFT "$" = "£"
-        {VK_DOLLAR, {0, 0, 1, 0}, VK_CURRENCY}, // ALTGR "$" = "¤"
-        {VK_GRAVE_u, {0, 0, 0, 1}, VK_PERCENT}, // SHIFT "ù" = "%"
-        {VK_ASTERISK, {0, 0, 0, 1}, VK_MU}, // SHIFT "*" = "µ"
-        {VK_LESS, {0, 0, 0, 1}, VK_GREATER}, // SHIFT "<" = ">"
-        {VK_COMMA, {0, 0, 0, 1}, VK_QUESTION}, // SHIFT "," = "?"
-        {VK_SEMICOLON, {0, 0, 0, 1}, VK_PERIOD}, // SHIFT ";" = "."
-        {VK_COLON, {0, 0, 0, 1}, VK_SLASH}, // SHIFT ":" = "/"
-        {VK_EXCLAIM, {0, 0, 0, 1}, VK_SECTION}, // SHIFT "!" = "§"
-        {VK_e, {0, 0, 1, 0}, VK_EURO}, // ALTGR "e" = "€"
+        {vk_ampersand, {0, 0, 0, 1}, vk_1}, // SHIFT "&" = "1"
+        {vk_acute_e, {0, 0, 0, 1}, vk_2}, // SHIFT "é" = "2"
+        {vk_quotedbl, {0, 0, 0, 1}, vk_3}, // SHIFT """ = "3"
+        {vk_quote, {0, 0, 0, 1}, vk_4}, // SHIFT "'" = "4"
+        {vk_leftparen, {0, 0, 0, 1}, vk_5}, // SHIFT "(" = "5"
+        {vk_minus, {0, 0, 0, 1}, vk_6}, // SHIFT "-" = "6"
+        {vk_grave_e, {0, 0, 0, 1}, vk_7}, // SHIFT "è" = "7"
+        {vk_underscore, {0, 0, 0, 1}, vk_8}, // SHIFT "_" = "8"
+        {vk_cedilla_c, {0, 0, 0, 1}, vk_9}, // SHIFT "ç" = "9"
+        {vk_grave_a, {0, 0, 0, 1}, vk_0}, // SHIFT "à" = "0"
+        {vk_rightparen, {0, 0, 0, 1}, vk_degree}, // SHIFT ")" = "°"
+        {vk_equals, {0, 0, 0, 1}, vk_plus}, // SHIFT "=" = "+"
+        {vk_ampersand, {0, 0, 1, 0}, vk_none}, // ALTGR "&" = ""
+        {vk_acute_e, {0, 0, 1, 0}, vk_tilde}, // ALTGR "é" = "~"
+        {vk_quotedbl, {0, 0, 1, 0}, vk_hash}, // ALTGR """ = "#"
+        {vk_quote, {0, 0, 1, 0}, vk_leftbrace}, // ALTGR "'" = "{"
+        {vk_leftparen, {0, 0, 1, 0}, vk_leftbracket}, // ALTGR "(" = "["
+        {vk_minus, {0, 0, 1, 0}, vk_verticalbar}, // ALTGR "-" = "|"
+        {vk_grave_e, {0, 0, 1, 0}, vk_graveaccent}, // ALTGR "è" = "`"
+        {vk_underscore, {0, 0, 1, 0}, vk_backslash}, // ALTGR "_" = "\"
+        {vk_cedilla_c, {0, 0, 1, 0}, vk_caret}, // ALTGR "ç" = "^"
+        {vk_grave_a, {0, 0, 1, 0}, vk_at}, // ALTGR "à" = "@"
+        {vk_rightparen, {0, 0, 1, 0}, vk_rightbracket}, // ALTGR ")" = "]"
+        {vk_equals, {0, 0, 1, 0}, vk_rightbrace}, // ALTGR "=" = "}"
+        {vk_caret, {0, 0, 0, 1}, vk_diaeresis}, // SHIFT "^" = "¨"
+        {vk_dollar, {0, 0, 0, 1}, vk_pound}, // SHIFT "$" = "£"
+        {vk_dollar, {0, 0, 1, 0}, vk_currency}, // ALTGR "$" = "¤"
+        {vk_grave_u, {0, 0, 0, 1}, vk_percent}, // SHIFT "ù" = "%"
+        {vk_asterisk, {0, 0, 0, 1}, vk_mu}, // SHIFT "*" = "µ"
+        {vk_less, {0, 0, 0, 1}, vk_greater}, // SHIFT "<" = ">"
+        {vk_comma, {0, 0, 0, 1}, vk_question}, // SHIFT "," = "?"
+        {vk_semicolon, {0, 0, 0, 1}, vk_period}, // SHIFT ";" = "."
+        {vk_colon, {0, 0, 0, 1}, vk_slash}, // SHIFT ":" = "/"
+        {vk_exclaim, {0, 0, 0, 1}, vk_section}, // SHIFT "!" = "§"
+        {vk_e, {0, 0, 1, 0}, vk_euro}, // ALTGR "e" = "€"
     },
 
     // deadkeys
-    {VK_CARET, VK_DIAERESIS},
+    {vk_caret, vk_diaeresis},
 
     // deadkeys translation
     {
-        {VK_CARET, VK_a, VK_CARET_a}, // "â"
-        {VK_CARET, VK_e, VK_CARET_e}, // "ê"
-        {VK_CARET, VK_i, VK_CARET_i}, // "î"
-        {VK_CARET, VK_o, VK_CARET_o}, // "ô"
-        {VK_CARET, VK_u, VK_CARET_u}, // "û"
+        {vk_caret, vk_a, vk_caret_a}, // "â"
+        {vk_caret, vk_e, vk_caret_e}, // "ê"
+        {vk_caret, vk_i, vk_caret_i}, // "î"
+        {vk_caret, vk_o, vk_caret_o}, // "ô"
+        {vk_caret, vk_u, vk_caret_u}, // "û"
 
-        {VK_CARET, VK_A, VK_CARET_A}, // "Â"
-        {VK_CARET, VK_E, VK_CARET_E}, // "Ê"
-        {VK_CARET, VK_I, VK_CARET_I}, // "Î"
-        {VK_CARET, VK_O, VK_CARET_O}, // "Ô"
-        {VK_CARET, VK_U, VK_CARET_U}, // "Û"
+        {vk_caret, vk_A, vk_caret_A}, // "Â"
+        {vk_caret, vk_E, vk_caret_E}, // "Ê"
+        {vk_caret, vk_I, vk_caret_I}, // "Î"
+        {vk_caret, vk_O, vk_caret_O}, // "Ô"
+        {vk_caret, vk_U, vk_caret_U}, // "Û"
 
-        {VK_DIAERESIS, VK_a, VK_CARET_a}, // "ä"
-        {VK_DIAERESIS, VK_e, VK_CARET_e}, // "ë"
-        {VK_DIAERESIS, VK_i, VK_CARET_i}, // "ï"
-        {VK_DIAERESIS, VK_o, VK_CARET_o}, // "ö"
-        {VK_DIAERESIS, VK_u, VK_CARET_u}, // "ü"
+        {vk_diaeresis, vk_a, vk_caret_a}, // "ä"
+        {vk_diaeresis, vk_e, vk_caret_e}, // "ë"
+        {vk_diaeresis, vk_i, vk_caret_i}, // "ï"
+        {vk_diaeresis, vk_o, vk_caret_o}, // "ö"
+        {vk_diaeresis, vk_u, vk_caret_u}, // "ü"
 
-        {VK_DIAERESIS, VK_A, VK_CARET_A}, // "Ä"
-        {VK_DIAERESIS, VK_E, VK_CARET_E}, // "Ë"
-        {VK_DIAERESIS, VK_I, VK_CARET_I}, // "Ï"
-        {VK_DIAERESIS, VK_O, VK_CARET_O}, // "Ö"
-        {VK_DIAERESIS, VK_U, VK_CARET_U} // "Ü"
+        {vk_diaeresis, vk_A, vk_caret_A}, // "Ä"
+        {vk_diaeresis, vk_E, vk_caret_E}, // "Ë"
+        {vk_diaeresis, vk_I, vk_caret_I}, // "Ï"
+        {vk_diaeresis, vk_O, vk_caret_O}, // "Ö"
+        {vk_diaeresis, vk_U, vk_caret_U} // "Ü"
     },
 };
 
@@ -649,7 +649,7 @@ const KeyboardLayout FrenchLayout{
 /*                                                                                    */
 /* Implemented by Michel Bernard (https://github.com/GmEsoft)                         */
 /**************************************************************************************/
-const KeyboardLayout BelgianLayout{
+const keyboard_layout BELGIAN_LAYOUT{
     // name
     "BE",
 
@@ -657,181 +657,181 @@ const KeyboardLayout BelgianLayout{
     "Belgian",
 
     // inherited layout
-    &USLayout,
+    &US_LAYOUT,
 
     // single byte scancodes
     {
-        {0x0E, VK_SQUARE}, // exponent 2
-        {0x16, VK_AMPERSAND}, // 1 -> &
-        {0x1E, VK_ACUTE_e}, // 2 -> é
-        {0x26, VK_QUOTEDBL}, // 3 -> "
-        {0x25, VK_QUOTE}, // 4 -> '
-        {0x2E, VK_LEFTPAREN}, // 5 -> (
-        {0x36, VK_SECTION}, // 6 -> §
-        {0x3D, VK_GRAVE_e}, // 7 -> è
-        {0x3E, VK_EXCLAIM}, // 8 -> !
-        {0x46, VK_CEDILLA_c}, // 9 -> ç
-        {0x45, VK_GRAVE_a}, // 0 -> à
+        {0x0E, vk_square}, // exponent 2
+        {0x16, vk_ampersand}, // 1 -> &
+        {0x1E, vk_acute_e}, // 2 -> é
+        {0x26, vk_quotedbl}, // 3 -> "
+        {0x25, vk_quote}, // 4 -> '
+        {0x2E, vk_leftparen}, // 5 -> (
+        {0x36, vk_section}, // 6 -> §
+        {0x3D, vk_grave_e}, // 7 -> è
+        {0x3E, vk_exclaim}, // 8 -> !
+        {0x46, vk_cedilla_c}, // 9 -> ç
+        {0x45, vk_grave_a}, // 0 -> à
 
-        {0x15, VK_a}, // q -> a
-        {0x1D, VK_z}, // w -> z
-        {0x1C, VK_q}, // a -> q
-        {0x1A, VK_w}, // z -> w
-        {0x3A, VK_COMMA}, // m -> ,
+        {0x15, vk_a}, // q -> a
+        {0x1D, vk_z}, // w -> z
+        {0x1C, vk_q}, // a -> q
+        {0x1A, vk_w}, // z -> w
+        {0x3A, vk_comma}, // m -> ,
 
-        {0x4E, VK_RIGHTPAREN}, // - -> )
-        {0x55, VK_MINUS}, // = -> -
-        {0x54, VK_CARET}, // [ -> ^ (dead)
-        {0x5B, VK_DOLLAR}, // ] -> $
+        {0x4E, vk_rightparen}, // - -> )
+        {0x55, vk_minus}, // = -> -
+        {0x54, vk_caret}, // [ -> ^ (dead)
+        {0x5B, vk_dollar}, // ] -> $
 
-        {0x5D, VK_MU}, // \ -> mu
-        {0x61, VK_LESS}, // UK \ -> <
+        {0x5D, vk_mu}, // \ -> mu
+        {0x61, vk_less}, // UK \ -> <
 
-        {0x4C, VK_m}, // ; -> m
-        {0x52, VK_GRAVE_u}, // ' -> ù
-        {0x41, VK_SEMICOLON}, // , -> ;
-        {0x49, VK_COLON}, // . -> :
-        {0x4A, VK_EQUALS}, // / -> =
+        {0x4C, vk_m}, // ; -> m
+        {0x52, vk_grave_u}, // ' -> ù
+        {0x41, vk_semicolon}, // , -> ;
+        {0x49, vk_colon}, // . -> :
+        {0x4A, vk_equals}, // / -> =
 
-        {0x00, VK_NONE} // END MARKER
+        {0x00, vk_none} // END MARKER
     },
 
     // extended scancodes (0xE0..)
     {
-        {0x00, VK_NONE} // END MARKER
+        {0x00, vk_none} // END MARKER
     },
 
     // virtual keys generated by other virtual keys combinations
     //  in_key, { CTRL, LALT, RALT, SHIFT }, out_key
     {
-        {VK_AMPERSAND, {0, 0, 0, 1}, VK_1}, // SHIFT "&" = "1"
-        {VK_ACUTE_e, {0, 0, 0, 1}, VK_2}, // SHIFT "é" = "2"
-        {VK_QUOTEDBL, {0, 0, 0, 1}, VK_3}, // SHIFT """ = "3"
-        {VK_QUOTE, {0, 0, 0, 1}, VK_4}, // SHIFT "'" = "4"
-        {VK_LEFTPAREN, {0, 0, 0, 1}, VK_5}, // SHIFT "(" = "5"
-        {VK_SECTION, {0, 0, 0, 1}, VK_6}, // SHIFT "§" = "6"
-        {VK_GRAVE_e, {0, 0, 0, 1}, VK_7}, // SHIFT "è" = "7"
-        {VK_EXCLAIM, {0, 0, 0, 1}, VK_8}, // SHIFT "!" = "8"
-        {VK_CEDILLA_c, {0, 0, 0, 1}, VK_9}, // SHIFT "ç" = "9"
-        {VK_GRAVE_a, {0, 0, 0, 1}, VK_0}, // SHIFT "à" = "0"
+        {vk_ampersand, {0, 0, 0, 1}, vk_1}, // SHIFT "&" = "1"
+        {vk_acute_e, {0, 0, 0, 1}, vk_2}, // SHIFT "é" = "2"
+        {vk_quotedbl, {0, 0, 0, 1}, vk_3}, // SHIFT """ = "3"
+        {vk_quote, {0, 0, 0, 1}, vk_4}, // SHIFT "'" = "4"
+        {vk_leftparen, {0, 0, 0, 1}, vk_5}, // SHIFT "(" = "5"
+        {vk_section, {0, 0, 0, 1}, vk_6}, // SHIFT "§" = "6"
+        {vk_grave_e, {0, 0, 0, 1}, vk_7}, // SHIFT "è" = "7"
+        {vk_exclaim, {0, 0, 0, 1}, vk_8}, // SHIFT "!" = "8"
+        {vk_cedilla_c, {0, 0, 0, 1}, vk_9}, // SHIFT "ç" = "9"
+        {vk_grave_a, {0, 0, 0, 1}, vk_0}, // SHIFT "à" = "0"
 
-        {VK_SQUARE, {0, 0, 0, 1}, VK_HASH}, // SHIFT "@" = "#" (Apple) or Cube (tbd)
-        {VK_RIGHTPAREN, {0, 0, 0, 1}, VK_DEGREE}, // SHIFT ")" = "°"
-        {VK_MINUS, {0, 0, 0, 1}, VK_UNDERSCORE}, // SHIFT "-" = "_"
-        {VK_CARET, {0, 0, 0, 1}, VK_DIAERESIS}, // SHIFT "^" = "¨"
-        {VK_DOLLAR, {0, 0, 0, 1}, VK_ASTERISK}, // SHIFT "$" = "*"
-        {VK_GRAVE_u, {0, 0, 0, 1}, VK_PERCENT}, // SHIFT "ù" = "%"
-        {VK_ESZETT, {0, 0, 0, 1}, VK_POUND}, // SHIFT "`" = "£"
-        {VK_LESS, {0, 0, 0, 1}, VK_GREATER}, // SHIFT "<" = ">"
-        {VK_COMMA, {0, 0, 0, 1}, VK_QUESTION}, // SHIFT "," = "?"
-        {VK_SEMICOLON, {0, 0, 0, 1}, VK_PERIOD}, // SHIFT ";" = "."
-        {VK_COLON, {0, 0, 0, 1}, VK_SLASH}, // SHIFT ":" = "/"
-        {VK_EQUALS, {0, 0, 0, 1}, VK_PLUS}, // SHIFT "=" = "+"
+        {vk_square, {0, 0, 0, 1}, vk_hash}, // SHIFT "@" = "#" (Apple) or Cube (tbd)
+        {vk_rightparen, {0, 0, 0, 1}, vk_degree}, // SHIFT ")" = "°"
+        {vk_minus, {0, 0, 0, 1}, vk_underscore}, // SHIFT "-" = "_"
+        {vk_caret, {0, 0, 0, 1}, vk_diaeresis}, // SHIFT "^" = "¨"
+        {vk_dollar, {0, 0, 0, 1}, vk_asterisk}, // SHIFT "$" = "*"
+        {vk_grave_u, {0, 0, 0, 1}, vk_percent}, // SHIFT "ù" = "%"
+        {vk_eszett, {0, 0, 0, 1}, vk_pound}, // SHIFT "`" = "£"
+        {vk_less, {0, 0, 0, 1}, vk_greater}, // SHIFT "<" = ">"
+        {vk_comma, {0, 0, 0, 1}, vk_question}, // SHIFT "," = "?"
+        {vk_semicolon, {0, 0, 0, 1}, vk_period}, // SHIFT ";" = "."
+        {vk_colon, {0, 0, 0, 1}, vk_slash}, // SHIFT ":" = "/"
+        {vk_equals, {0, 0, 0, 1}, vk_plus}, // SHIFT "=" = "+"
 
-        {VK_AMPERSAND, {0, 0, 1, 0}, VK_VERTICALBAR}, // ALTGR "&" = "|"
-        {VK_ACUTE_e, {0, 0, 1, 0}, VK_AT}, // ALTGR "é" = "@"
-        {VK_QUOTEDBL, {0, 0, 1, 0}, VK_HASH}, // ALTGR """ = "#"
-        {VK_QUOTE, {0, 0, 1, 0}, VK_LEFTBRACE}, // ALTGR "'" = "{" (add-on)
-        {VK_LEFTPAREN, {0, 0, 1, 0}, VK_LEFTBRACKET}, // ALTGR "(" = "[" (add-on)
-        {VK_SECTION, {0, 0, 1, 0}, VK_CARET}, // ALTGR "§" = "^" (should not be dead...)
-        {VK_CEDILLA_c, {0, 0, 1, 0}, VK_LEFTBRACE}, // ALTGR "ç" = "{"
-        {VK_GRAVE_a, {0, 0, 1, 0}, VK_RIGHTBRACE}, // ALTGR "à" = "}"
-        {VK_RIGHTPAREN, {0, 0, 1, 0}, VK_RIGHTBRACKET}, // ALTGR "à" = "]" (add-on)
-        {VK_GRAVE_a, {0, 0, 1, 0}, VK_RIGHTBRACE}, // ALTGR "-" = "}" (add-on)
+        {vk_ampersand, {0, 0, 1, 0}, vk_verticalbar}, // ALTGR "&" = "|"
+        {vk_acute_e, {0, 0, 1, 0}, vk_at}, // ALTGR "é" = "@"
+        {vk_quotedbl, {0, 0, 1, 0}, vk_hash}, // ALTGR """ = "#"
+        {vk_quote, {0, 0, 1, 0}, vk_leftbrace}, // ALTGR "'" = "{" (add-on)
+        {vk_leftparen, {0, 0, 1, 0}, vk_leftbracket}, // ALTGR "(" = "[" (add-on)
+        {vk_section, {0, 0, 1, 0}, vk_caret}, // ALTGR "§" = "^" (should not be dead...)
+        {vk_cedilla_c, {0, 0, 1, 0}, vk_leftbrace}, // ALTGR "ç" = "{"
+        {vk_grave_a, {0, 0, 1, 0}, vk_rightbrace}, // ALTGR "à" = "}"
+        {vk_rightparen, {0, 0, 1, 0}, vk_rightbracket}, // ALTGR "à" = "]" (add-on)
+        {vk_grave_a, {0, 0, 1, 0}, vk_rightbrace}, // ALTGR "-" = "}" (add-on)
 
-        {VK_e, {0, 0, 1, 0}, VK_EURO}, // ALTGR "e" = "€"
-        {VK_CARET, {0, 0, 1, 0}, VK_LEFTBRACKET}, // ALTGR "^" = "["
-        {VK_DOLLAR, {0, 0, 1, 0}, VK_RIGHTBRACKET}, // ALTGR "$" = "]"
-        {VK_GRAVE_u, {0, 0, 1, 0}, VK_ACUTEACCENT}, // ALTGR "ù" = "´"
-        {VK_MU, {0, 0, 1, 0}, VK_GRAVEACCENT}, // ALTGR "mu" = "`"
-        {VK_LESS, {0, 0, 1, 0}, VK_BACKSLASH}, // ALTGR "<" = "\"
-        {VK_EQUALS, {0, 0, 1, 0}, VK_TILDE}, // ALTGR "=" = "~"
+        {vk_e, {0, 0, 1, 0}, vk_euro}, // ALTGR "e" = "€"
+        {vk_caret, {0, 0, 1, 0}, vk_leftbracket}, // ALTGR "^" = "["
+        {vk_dollar, {0, 0, 1, 0}, vk_rightbracket}, // ALTGR "$" = "]"
+        {vk_grave_u, {0, 0, 1, 0}, vk_acuteaccent}, // ALTGR "ù" = "´"
+        {vk_mu, {0, 0, 1, 0}, vk_graveaccent}, // ALTGR "mu" = "`"
+        {vk_less, {0, 0, 1, 0}, vk_backslash}, // ALTGR "<" = "\"
+        {vk_equals, {0, 0, 1, 0}, vk_tilde}, // ALTGR "=" = "~"
 
-        {VK_NONE, {0, 0, 0, 0}, VK_NONE} // END MARKER
+        {vk_none, {0, 0, 0, 0}, vk_none} // END MARKER
     },
 
     // deadkeys
     {
-        VK_GRAVEACCENT, // `
-        VK_ACUTEACCENT, // ´
-        VK_DIAERESIS, // ¨
-        VK_CARET, // ^
-        VK_TILDE, // ~
-        VK_NONE // END MARKER
+        vk_graveaccent, // `
+        vk_acuteaccent, // ´
+        vk_diaeresis, // ¨
+        vk_caret, // ^
+        vk_tilde, // ~
+        vk_none // END MARKER
     },
 
     // deadkeys translation
     {
-        {VK_GRAVEACCENT, VK_SPACE, VK_GRAVEACCENT},
-        {VK_ACUTEACCENT, VK_SPACE, VK_ACUTEACCENT},
-        {VK_DIAERESIS, VK_SPACE, VK_DIAERESIS},
-        {VK_CARET, VK_SPACE, VK_CARET},
-        {VK_TILDE, VK_SPACE, VK_TILDE},
+        {vk_graveaccent, vk_space, vk_graveaccent},
+        {vk_acuteaccent, vk_space, vk_acuteaccent},
+        {vk_diaeresis, vk_space, vk_diaeresis},
+        {vk_caret, vk_space, vk_caret},
+        {vk_tilde, vk_space, vk_tilde},
 
-        {VK_TILDE, VK_n, VK_TILDE_n},
-        {VK_TILDE, VK_N, VK_TILDE_N},
-        {VK_TILDE, VK_a, VK_TILDE_a},
-        {VK_TILDE, VK_A, VK_TILDE_A},
-        {VK_TILDE, VK_o, VK_TILDE_o},
-        {VK_TILDE, VK_O, VK_TILDE_O},
+        {vk_tilde, vk_n, vk_tilde_n},
+        {vk_tilde, vk_N, vk_tilde_N},
+        {vk_tilde, vk_a, vk_tilde_a},
+        {vk_tilde, vk_A, vk_tilde_A},
+        {vk_tilde, vk_o, vk_tilde_o},
+        {vk_tilde, vk_O, vk_tilde_O},
 
-        {VK_GRAVEACCENT, VK_a, VK_GRAVE_a},
-        {VK_GRAVEACCENT, VK_e, VK_GRAVE_e},
-        {VK_GRAVEACCENT, VK_i, VK_GRAVE_i},
-        {VK_GRAVEACCENT, VK_o, VK_GRAVE_o},
-        {VK_GRAVEACCENT, VK_u, VK_GRAVE_u},
-        {VK_GRAVEACCENT, VK_y, VK_GRAVE_y},
+        {vk_graveaccent, vk_a, vk_grave_a},
+        {vk_graveaccent, vk_e, vk_grave_e},
+        {vk_graveaccent, vk_i, vk_grave_i},
+        {vk_graveaccent, vk_o, vk_grave_o},
+        {vk_graveaccent, vk_u, vk_grave_u},
+        {vk_graveaccent, vk_y, vk_grave_y},
 
-        {VK_GRAVEACCENT, VK_A, VK_GRAVE_A},
-        {VK_GRAVEACCENT, VK_E, VK_GRAVE_E},
-        {VK_GRAVEACCENT, VK_I, VK_GRAVE_I},
-        {VK_GRAVEACCENT, VK_O, VK_GRAVE_O},
-        {VK_GRAVEACCENT, VK_U, VK_GRAVE_U},
-        {VK_GRAVEACCENT, VK_Y, VK_GRAVE_Y},
+        {vk_graveaccent, vk_A, vk_grave_A},
+        {vk_graveaccent, vk_E, vk_grave_E},
+        {vk_graveaccent, vk_I, vk_grave_I},
+        {vk_graveaccent, vk_O, vk_grave_O},
+        {vk_graveaccent, vk_U, vk_grave_U},
+        {vk_graveaccent, vk_Y, vk_grave_Y},
 
-        {VK_ACUTEACCENT, VK_a, VK_ACUTE_a},
-        {VK_ACUTEACCENT, VK_e, VK_ACUTE_e},
-        {VK_ACUTEACCENT, VK_i, VK_ACUTE_i},
-        {VK_ACUTEACCENT, VK_o, VK_ACUTE_o},
-        {VK_ACUTEACCENT, VK_u, VK_ACUTE_u},
-        {VK_ACUTEACCENT, VK_y, VK_ACUTE_y},
+        {vk_acuteaccent, vk_a, vk_acute_a},
+        {vk_acuteaccent, vk_e, vk_acute_e},
+        {vk_acuteaccent, vk_i, vk_acute_i},
+        {vk_acuteaccent, vk_o, vk_acute_o},
+        {vk_acuteaccent, vk_u, vk_acute_u},
+        {vk_acuteaccent, vk_y, vk_acute_y},
 
-        {VK_ACUTEACCENT, VK_A, VK_ACUTE_A},
-        {VK_ACUTEACCENT, VK_E, VK_ACUTE_E},
-        {VK_ACUTEACCENT, VK_I, VK_ACUTE_I},
-        {VK_ACUTEACCENT, VK_O, VK_ACUTE_O},
-        {VK_ACUTEACCENT, VK_U, VK_ACUTE_U},
-        {VK_ACUTEACCENT, VK_Y, VK_ACUTE_Y},
+        {vk_acuteaccent, vk_A, vk_acute_A},
+        {vk_acuteaccent, vk_E, vk_acute_E},
+        {vk_acuteaccent, vk_I, vk_acute_I},
+        {vk_acuteaccent, vk_O, vk_acute_O},
+        {vk_acuteaccent, vk_U, vk_acute_U},
+        {vk_acuteaccent, vk_Y, vk_acute_Y},
 
-        {VK_CARET, VK_a, VK_CARET_a},
-        {VK_CARET, VK_e, VK_CARET_e},
-        {VK_CARET, VK_i, VK_CARET_i},
-        {VK_CARET, VK_o, VK_CARET_o},
-        {VK_CARET, VK_u, VK_CARET_u},
-        {VK_CARET, VK_y, VK_CARET_y},
+        {vk_caret, vk_a, vk_caret_a},
+        {vk_caret, vk_e, vk_caret_e},
+        {vk_caret, vk_i, vk_caret_i},
+        {vk_caret, vk_o, vk_caret_o},
+        {vk_caret, vk_u, vk_caret_u},
+        {vk_caret, vk_y, vk_caret_y},
 
-        {VK_CARET, VK_A, VK_CARET_A},
-        {VK_CARET, VK_E, VK_CARET_E},
-        {VK_CARET, VK_I, VK_CARET_I},
-        {VK_CARET, VK_O, VK_CARET_O},
-        {VK_CARET, VK_U, VK_CARET_U},
-        {VK_CARET, VK_Y, VK_CARET_Y},
+        {vk_caret, vk_A, vk_caret_A},
+        {vk_caret, vk_E, vk_caret_E},
+        {vk_caret, vk_I, vk_caret_I},
+        {vk_caret, vk_O, vk_caret_O},
+        {vk_caret, vk_U, vk_caret_U},
+        {vk_caret, vk_Y, vk_caret_Y},
 
-        {VK_DIAERESIS, VK_a, VK_UMLAUT_a},
-        {VK_DIAERESIS, VK_e, VK_UMLAUT_e},
-        {VK_DIAERESIS, VK_i, VK_UMLAUT_i},
-        {VK_DIAERESIS, VK_o, VK_UMLAUT_o},
-        {VK_DIAERESIS, VK_u, VK_UMLAUT_u},
-        {VK_DIAERESIS, VK_y, VK_UMLAUT_y},
+        {vk_diaeresis, vk_a, vk_umlaut_a},
+        {vk_diaeresis, vk_e, vk_umlaut_e},
+        {vk_diaeresis, vk_i, vk_umlaut_i},
+        {vk_diaeresis, vk_o, vk_umlaut_o},
+        {vk_diaeresis, vk_u, vk_umlaut_u},
+        {vk_diaeresis, vk_y, vk_umlaut_y},
 
-        {VK_DIAERESIS, VK_A, VK_UMLAUT_A},
-        {VK_DIAERESIS, VK_E, VK_UMLAUT_E},
-        {VK_DIAERESIS, VK_I, VK_UMLAUT_I},
-        {VK_DIAERESIS, VK_O, VK_UMLAUT_O},
-        {VK_DIAERESIS, VK_U, VK_UMLAUT_U},
-        {VK_DIAERESIS, VK_Y, VK_UMLAUT_Y},
+        {vk_diaeresis, vk_A, vk_umlaut_A},
+        {vk_diaeresis, vk_E, vk_umlaut_E},
+        {vk_diaeresis, vk_I, vk_umlaut_I},
+        {vk_diaeresis, vk_O, vk_umlaut_O},
+        {vk_diaeresis, vk_U, vk_umlaut_U},
+        {vk_diaeresis, vk_Y, vk_umlaut_Y},
 
-        {VK_NONE, VK_NONE, VK_NONE} // END MARKER
+        {vk_none, vk_none, vk_none} // END MARKER
 
     },
 };
@@ -842,7 +842,7 @@ const KeyboardLayout BelgianLayout{
 /*                                                                                    */
 /* Implemented by Knut Zakariassen (https://github.com/zakariassen)                   */
 /**************************************************************************************/
-const KeyboardLayout NorwegianLayout{
+const keyboard_layout NORWEGIAN_LAYOUT{
     // name
     "NO",
 
@@ -850,20 +850,20 @@ const KeyboardLayout NorwegianLayout{
     "Norwegian",
 
     // inherited layout
-    &USLayout,
+    &US_LAYOUT,
 
     // single byte scancodes
     {
-        {0x0E, VK_VERTICALBAR}, //
-        {0x4E, VK_PLUS}, //
-        {0x55, VK_BACKSLASH}, //
-        {0x54, VK_aring}, // å
-        {0x5B, VK_CARET}, //
-        {0x4C, VK_oslash}, // ø
-        {0x52, VK_aelig}, // æ
-        {0x5D, VK_QUOTE}, //
-        {0x61, VK_LESS}, //
-        {0x4A, VK_MINUS}, //
+        {0x0E, vk_verticalbar}, //
+        {0x4E, vk_plus}, //
+        {0x55, vk_backslash}, //
+        {0x54, vk_aring}, // å
+        {0x5B, vk_caret}, //
+        {0x4C, vk_oslash}, // ø
+        {0x52, vk_aelig}, // æ
+        {0x5D, vk_quote}, //
+        {0x61, vk_less}, //
+        {0x4A, vk_minus}, //
 
     },
 
@@ -873,120 +873,120 @@ const KeyboardLayout NorwegianLayout{
     // virtual keys generated by other virtual keys combinations
     //  in_key, { CTRL, LALT, RALT, SHIFT }, out_key
     {
-        {VK_VERTICALBAR, {0, 0, 0, 1}, VK_SECTION}, // SHIFT "|" = "§"
-        {VK_2, {0, 0, 0, 1}, VK_QUOTEDBL}, // SHIFT "2" = """
-        {VK_4, {0, 0, 0, 1}, VK_CURRENCY}, // SHIFT "4" = "¤"
-        {VK_6, {0, 0, 0, 1}, VK_AMPERSAND}, // SHIFT "6" = "&"
-        {VK_7, {0, 0, 0, 1}, VK_SLASH}, // SHIFT "7" = "/"
-        {VK_8, {0, 0, 0, 1}, VK_LEFTPAREN}, // SHIFT "8" = "("
-        {VK_9, {0, 0, 0, 1}, VK_RIGHTPAREN}, // SHIFT "9" = ")"
-        {VK_0, {0, 0, 0, 1}, VK_EQUALS}, // SHIFT "0" = "="
-        {VK_PLUS, {0, 0, 0, 1}, VK_QUESTION}, // SHIFT "+" = "?"
-        {VK_BACKSLASH, {0, 0, 0, 1}, VK_GRAVEACCENT}, // SHIFT "\" = "`"
-        {VK_aring, {0, 0, 0, 1}, VK_ARING}, // SHIFT "å" = "Å"
-        {VK_DIAERESIS, {0, 0, 0, 1}, VK_CARET}, // SHIFT "¨" = "^"
-        {VK_oslash, {0, 0, 0, 1}, VK_OSLASH}, // SHIFT "ø" = "Ø"
-        {VK_aelig, {0, 0, 0, 1}, VK_AELIG}, // SHIFT "æ" = "Æ"
-        {VK_QUOTE, {0, 0, 0, 1}, VK_ASTERISK}, // SHIFT "'" = "*"
-        {VK_LESS, {0, 0, 0, 1}, VK_GREATER}, // SHIFT "<" = ">"
-        {VK_COMMA, {0, 0, 0, 1}, VK_SEMICOLON}, // SHIFT "," = ";"
-        {VK_PERIOD, {0, 0, 0, 1}, VK_COLON}, // SHIFT "." = ":"
-        {VK_MINUS, {0, 0, 0, 1}, VK_UNDERSCORE}, // SHIFT "-" = "_"
-        {VK_BACKSLASH, {0, 0, 0, 1}, VK_GRAVEACCENT}, // SHIFT "\" = "`"
+        {vk_verticalbar, {0, 0, 0, 1}, vk_section}, // SHIFT "|" = "§"
+        {vk_2, {0, 0, 0, 1}, vk_quotedbl}, // SHIFT "2" = """
+        {vk_4, {0, 0, 0, 1}, vk_currency}, // SHIFT "4" = "¤"
+        {vk_6, {0, 0, 0, 1}, vk_ampersand}, // SHIFT "6" = "&"
+        {vk_7, {0, 0, 0, 1}, vk_slash}, // SHIFT "7" = "/"
+        {vk_8, {0, 0, 0, 1}, vk_leftparen}, // SHIFT "8" = "("
+        {vk_9, {0, 0, 0, 1}, vk_rightparen}, // SHIFT "9" = ")"
+        {vk_0, {0, 0, 0, 1}, vk_equals}, // SHIFT "0" = "="
+        {vk_plus, {0, 0, 0, 1}, vk_question}, // SHIFT "+" = "?"
+        {vk_backslash, {0, 0, 0, 1}, vk_graveaccent}, // SHIFT "\" = "`"
+        {vk_aring, {0, 0, 0, 1}, vk_ARING}, // SHIFT "å" = "Å"
+        {vk_diaeresis, {0, 0, 0, 1}, vk_caret}, // SHIFT "¨" = "^"
+        {vk_oslash, {0, 0, 0, 1}, vk_OSLASH}, // SHIFT "ø" = "Ø"
+        {vk_aelig, {0, 0, 0, 1}, vk_AELIG}, // SHIFT "æ" = "Æ"
+        {vk_quote, {0, 0, 0, 1}, vk_asterisk}, // SHIFT "'" = "*"
+        {vk_less, {0, 0, 0, 1}, vk_greater}, // SHIFT "<" = ">"
+        {vk_comma, {0, 0, 0, 1}, vk_semicolon}, // SHIFT "," = ";"
+        {vk_period, {0, 0, 0, 1}, vk_colon}, // SHIFT "." = ":"
+        {vk_minus, {0, 0, 0, 1}, vk_underscore}, // SHIFT "-" = "_"
+        {vk_backslash, {0, 0, 0, 1}, vk_graveaccent}, // SHIFT "\" = "`"
 
-        {VK_2, {0, 0, 1, 0}, VK_AT}, // ALTGR "2" = "@"
-        {VK_3, {0, 0, 1, 0}, VK_POUND}, // ALTGR "3" = "£"
-        {VK_4, {0, 0, 1, 0}, VK_DOLLAR}, // ALTGR "4" = "$"
-        {VK_5, {0, 0, 1, 0}, VK_EURO}, // ALTGR "5" = "€"
-        {VK_7, {0, 0, 1, 0}, VK_LEFTBRACE}, // ALTGR "7" = "{"
-        {VK_8, {0, 0, 1, 0}, VK_LEFTBRACKET}, // ALTGR "8" = "["
-        {VK_9, {0, 0, 1, 0}, VK_RIGHTBRACKET}, // ALTGR "9" = "]"
-        {VK_0, {0, 0, 1, 0}, VK_RIGHTBRACE}, // ALTGR "0" = "}"
-        {VK_BACKSLASH, {0, 0, 1, 0}, VK_ACUTEACCENT}, // ALTGR "\" = "´"
-        {VK_DIAERESIS, {0, 0, 1, 0}, VK_TILDE}, // ALTGR "¨" = "~"
-        {VK_e, {0, 0, 1, 0}, VK_EURO}, // ALTGR "e" = "€"
-        {VK_m, {0, 0, 1, 0}, VK_MU}, // ALTGR "m" = "µ"
+        {vk_2, {0, 0, 1, 0}, vk_at}, // ALTGR "2" = "@"
+        {vk_3, {0, 0, 1, 0}, vk_pound}, // ALTGR "3" = "£"
+        {vk_4, {0, 0, 1, 0}, vk_dollar}, // ALTGR "4" = "$"
+        {vk_5, {0, 0, 1, 0}, vk_euro}, // ALTGR "5" = "€"
+        {vk_7, {0, 0, 1, 0}, vk_leftbrace}, // ALTGR "7" = "{"
+        {vk_8, {0, 0, 1, 0}, vk_leftbracket}, // ALTGR "8" = "["
+        {vk_9, {0, 0, 1, 0}, vk_rightbracket}, // ALTGR "9" = "]"
+        {vk_0, {0, 0, 1, 0}, vk_rightbrace}, // ALTGR "0" = "}"
+        {vk_backslash, {0, 0, 1, 0}, vk_acuteaccent}, // ALTGR "\" = "´"
+        {vk_diaeresis, {0, 0, 1, 0}, vk_tilde}, // ALTGR "¨" = "~"
+        {vk_e, {0, 0, 1, 0}, vk_euro}, // ALTGR "e" = "€"
+        {vk_m, {0, 0, 1, 0}, vk_mu}, // ALTGR "m" = "µ"
 
     },
 
     // deadkeys
     {
-        VK_GRAVEACCENT, // `
-        VK_ACUTEACCENT, // ´
-        VK_DIAERESIS, // ¨
-        VK_CARET, // ^
-        VK_TILDE, // ~
-        VK_NONE // END MARKER
+        vk_graveaccent, // `
+        vk_acuteaccent, // ´
+        vk_diaeresis, // ¨
+        vk_caret, // ^
+        vk_tilde, // ~
+        vk_none // END MARKER
     },
 
     // deadkeys translation
     {
-        {VK_GRAVEACCENT, VK_SPACE, VK_GRAVEACCENT},
-        {VK_ACUTEACCENT, VK_SPACE, VK_ACUTEACCENT},
-        {VK_DIAERESIS, VK_SPACE, VK_DIAERESIS},
-        {VK_CARET, VK_SPACE, VK_CARET},
-        {VK_TILDE, VK_SPACE, VK_TILDE},
+        {vk_graveaccent, vk_space, vk_graveaccent},
+        {vk_acuteaccent, vk_space, vk_acuteaccent},
+        {vk_diaeresis, vk_space, vk_diaeresis},
+        {vk_caret, vk_space, vk_caret},
+        {vk_tilde, vk_space, vk_tilde},
 
-        {VK_GRAVEACCENT, VK_a, VK_GRAVE_a},
-        {VK_GRAVEACCENT, VK_e, VK_GRAVE_e},
-        {VK_GRAVEACCENT, VK_i, VK_GRAVE_i},
-        {VK_GRAVEACCENT, VK_o, VK_GRAVE_o},
-        {VK_GRAVEACCENT, VK_u, VK_GRAVE_u},
+        {vk_graveaccent, vk_a, vk_grave_a},
+        {vk_graveaccent, vk_e, vk_grave_e},
+        {vk_graveaccent, vk_i, vk_grave_i},
+        {vk_graveaccent, vk_o, vk_grave_o},
+        {vk_graveaccent, vk_u, vk_grave_u},
 
-        {VK_GRAVEACCENT, VK_A, VK_GRAVE_A},
-        {VK_GRAVEACCENT, VK_E, VK_GRAVE_E},
-        {VK_GRAVEACCENT, VK_I, VK_GRAVE_I},
-        {VK_GRAVEACCENT, VK_O, VK_GRAVE_O},
-        {VK_GRAVEACCENT, VK_U, VK_GRAVE_U},
+        {vk_graveaccent, vk_A, vk_grave_A},
+        {vk_graveaccent, vk_E, vk_grave_E},
+        {vk_graveaccent, vk_I, vk_grave_I},
+        {vk_graveaccent, vk_O, vk_grave_O},
+        {vk_graveaccent, vk_U, vk_grave_U},
 
-        {VK_ACUTEACCENT, VK_a, VK_ACUTE_a},
-        {VK_ACUTEACCENT, VK_e, VK_ACUTE_e},
-        {VK_ACUTEACCENT, VK_i, VK_ACUTE_i},
-        {VK_ACUTEACCENT, VK_o, VK_ACUTE_o},
-        {VK_ACUTEACCENT, VK_u, VK_ACUTE_u},
-        {VK_ACUTEACCENT, VK_y, VK_ACUTE_y},
+        {vk_acuteaccent, vk_a, vk_acute_a},
+        {vk_acuteaccent, vk_e, vk_acute_e},
+        {vk_acuteaccent, vk_i, vk_acute_i},
+        {vk_acuteaccent, vk_o, vk_acute_o},
+        {vk_acuteaccent, vk_u, vk_acute_u},
+        {vk_acuteaccent, vk_y, vk_acute_y},
 
-        {VK_ACUTEACCENT, VK_A, VK_ACUTE_A},
-        {VK_ACUTEACCENT, VK_E, VK_ACUTE_E},
-        {VK_ACUTEACCENT, VK_I, VK_ACUTE_I},
-        {VK_ACUTEACCENT, VK_O, VK_ACUTE_O},
-        {VK_ACUTEACCENT, VK_U, VK_ACUTE_U},
-        {VK_ACUTEACCENT, VK_Y, VK_ACUTE_Y},
+        {vk_acuteaccent, vk_A, vk_acute_A},
+        {vk_acuteaccent, vk_E, vk_acute_E},
+        {vk_acuteaccent, vk_I, vk_acute_I},
+        {vk_acuteaccent, vk_O, vk_acute_O},
+        {vk_acuteaccent, vk_U, vk_acute_U},
+        {vk_acuteaccent, vk_Y, vk_acute_Y},
 
-        {VK_DIAERESIS, VK_a, VK_UMLAUT_a},
-        {VK_DIAERESIS, VK_e, VK_UMLAUT_e},
-        {VK_DIAERESIS, VK_i, VK_UMLAUT_i},
-        {VK_DIAERESIS, VK_o, VK_UMLAUT_o},
-        {VK_DIAERESIS, VK_u, VK_UMLAUT_u},
-        {VK_DIAERESIS, VK_y, VK_UMLAUT_y},
+        {vk_diaeresis, vk_a, vk_umlaut_a},
+        {vk_diaeresis, vk_e, vk_umlaut_e},
+        {vk_diaeresis, vk_i, vk_umlaut_i},
+        {vk_diaeresis, vk_o, vk_umlaut_o},
+        {vk_diaeresis, vk_u, vk_umlaut_u},
+        {vk_diaeresis, vk_y, vk_umlaut_y},
 
-        {VK_DIAERESIS, VK_A, VK_UMLAUT_A},
-        {VK_DIAERESIS, VK_E, VK_UMLAUT_E},
-        {VK_DIAERESIS, VK_I, VK_UMLAUT_I},
-        {VK_DIAERESIS, VK_O, VK_UMLAUT_O},
-        {VK_DIAERESIS, VK_U, VK_UMLAUT_U},
-        {VK_DIAERESIS, VK_Y, VK_UMLAUT_Y},
+        {vk_diaeresis, vk_A, vk_umlaut_A},
+        {vk_diaeresis, vk_E, vk_umlaut_E},
+        {vk_diaeresis, vk_I, vk_umlaut_I},
+        {vk_diaeresis, vk_O, vk_umlaut_O},
+        {vk_diaeresis, vk_U, vk_umlaut_U},
+        {vk_diaeresis, vk_Y, vk_umlaut_Y},
 
-        {VK_CARET, VK_a, VK_CARET_a},
-        {VK_CARET, VK_e, VK_CARET_e},
-        {VK_CARET, VK_i, VK_CARET_i},
-        {VK_CARET, VK_o, VK_CARET_o},
-        {VK_CARET, VK_u, VK_CARET_u},
+        {vk_caret, vk_a, vk_caret_a},
+        {vk_caret, vk_e, vk_caret_e},
+        {vk_caret, vk_i, vk_caret_i},
+        {vk_caret, vk_o, vk_caret_o},
+        {vk_caret, vk_u, vk_caret_u},
 
-        {VK_CARET, VK_A, VK_CARET_A},
-        {VK_CARET, VK_E, VK_CARET_E},
-        {VK_CARET, VK_I, VK_CARET_I},
-        {VK_CARET, VK_O, VK_CARET_O},
-        {VK_CARET, VK_U, VK_CARET_U},
+        {vk_caret, vk_A, vk_caret_A},
+        {vk_caret, vk_E, vk_caret_E},
+        {vk_caret, vk_I, vk_caret_I},
+        {vk_caret, vk_O, vk_caret_O},
+        {vk_caret, vk_U, vk_caret_U},
 
-        {VK_TILDE, VK_n, VK_TILDE_n},
-        {VK_TILDE, VK_N, VK_TILDE_N},
-        {VK_TILDE, VK_a, VK_TILDE_a},
-        {VK_TILDE, VK_A, VK_TILDE_A},
-        {VK_TILDE, VK_o, VK_TILDE_o},
-        {VK_TILDE, VK_O, VK_TILDE_O},
+        {vk_tilde, vk_n, vk_tilde_n},
+        {vk_tilde, vk_N, vk_tilde_N},
+        {vk_tilde, vk_a, vk_tilde_a},
+        {vk_tilde, vk_A, vk_tilde_A},
+        {vk_tilde, vk_o, vk_tilde_o},
+        {vk_tilde, vk_O, vk_tilde_O},
 
-        {VK_NONE, VK_NONE, VK_NONE} // END MARKER
+        {vk_none, vk_none, vk_none} // END MARKER
     },
 };
 
@@ -995,7 +995,7 @@ const KeyboardLayout NorwegianLayout{
 /* Japanese LAYOUT                                                                    */
 /* Credits: https://github.com/bellTanTan/fabglKeyboardJapaneseLayout                 */
 /**************************************************************************************/
-const KeyboardLayout JapaneseLayout{
+const keyboard_layout JAPANESE_LAYOUT{
     // name
     "JP",
 
@@ -1003,21 +1003,21 @@ const KeyboardLayout JapaneseLayout{
     "Japanese",
 
     // inherited layout
-    &USLayout,
+    &US_LAYOUT,
 
     // single byte scancodes
     {
-        {0x0E, VK_HANKAKU_ZENKAKU_KANJI},
-        {0x55, VK_CARET},
-        {0x54, VK_AT},
-        {0x5B, VK_LEFTBRACKET},
-        {0x5D, VK_RIGHTBRACKET},
-        {0x52, VK_COLON},
-        {0x6A, VK_YEN},
-        {0x51, VK_BACKSLASH},
-        {0x67, VK_MUHENKAN},
-        {0x64, VK_HENKAN},
-        {0x13, VK_KATAKANA_HIRAGANA_ROMAJI},
+        {0x0E, vk_hankaku_zenkaku_kanji},
+        {0x55, vk_caret},
+        {0x54, vk_at},
+        {0x5B, vk_leftbracket},
+        {0x5D, vk_rightbracket},
+        {0x52, vk_colon},
+        {0x6A, vk_yen},
+        {0x51, vk_backslash},
+        {0x67, vk_muhenkan},
+        {0x64, vk_henkan},
+        {0x13, vk_katakana_hiragana_romaji},
     },
 
     // extended scancodes (0xE0..)
@@ -1026,19 +1026,19 @@ const KeyboardLayout JapaneseLayout{
     // virtual keys generated by other virtual keys combinations
     //  in_key, { CTRL, LALT, RALT, SHIFT }, out_key
     {
-        {VK_2, {0, 0, 0, 1}, VK_QUOTEDBL}, // SHIFT "2" = """
-        {VK_6, {0, 0, 0, 1}, VK_AMPERSAND}, // SHIFT "6" = "&"
-        {VK_7, {0, 0, 0, 1}, VK_QUOTE}, // SHIFT "7" = "'"
-        {VK_8, {0, 0, 0, 1}, VK_LEFTPAREN}, // SHIFT "8" = "("
-        {VK_9, {0, 0, 0, 1}, VK_RIGHTPAREN}, // SHIFT "9" = ")"
-        {VK_0, {0, 0, 0, 1}, VK_SHIFT_0}, // SHIFT "0" = ""
-        {VK_MINUS, {0, 0, 0, 1}, VK_EQUALS}, // SHIFT "-" = "="
-        {VK_CARET, {0, 0, 0, 1}, VK_TILDE}, // SHIFT "^" = "~"
-        {VK_YEN, {0, 0, 0, 1}, VK_VERTICALBAR}, // SHIFT "￥" = "|"
-        {VK_AT, {0, 0, 0, 1}, VK_GRAVEACCENT}, // SHIFT "@" = "`"
-        {VK_SEMICOLON, {0, 0, 0, 1}, VK_PLUS}, // SHIFT ";" = "+"
-        {VK_COLON, {0, 0, 0, 1}, VK_ASTERISK}, // SHIFT ":" = "*"
-        {VK_BACKSLASH, {0, 0, 0, 1}, VK_UNDERSCORE}, // SHIFT "\" = "_"
+        {vk_2, {0, 0, 0, 1}, vk_quotedbl}, // SHIFT "2" = """
+        {vk_6, {0, 0, 0, 1}, vk_ampersand}, // SHIFT "6" = "&"
+        {vk_7, {0, 0, 0, 1}, vk_quote}, // SHIFT "7" = "'"
+        {vk_8, {0, 0, 0, 1}, vk_leftparen}, // SHIFT "8" = "("
+        {vk_9, {0, 0, 0, 1}, vk_rightparen}, // SHIFT "9" = ")"
+        {vk_0, {0, 0, 0, 1}, vk_shift_0}, // SHIFT "0" = ""
+        {vk_minus, {0, 0, 0, 1}, vk_equals}, // SHIFT "-" = "="
+        {vk_caret, {0, 0, 0, 1}, vk_tilde}, // SHIFT "^" = "~"
+        {vk_yen, {0, 0, 0, 1}, vk_verticalbar}, // SHIFT "￥" = "|"
+        {vk_at, {0, 0, 0, 1}, vk_graveaccent}, // SHIFT "@" = "`"
+        {vk_semicolon, {0, 0, 0, 1}, vk_plus}, // SHIFT ";" = "+"
+        {vk_colon, {0, 0, 0, 1}, vk_asterisk}, // SHIFT ":" = "*"
+        {vk_backslash, {0, 0, 0, 1}, vk_underscore}, // SHIFT "\" = "_"
     },
 
     // deadkeys

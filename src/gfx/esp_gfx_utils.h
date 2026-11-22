@@ -47,41 +47,41 @@ namespace esp::gfx
  *
  * Coordinates start from 0.
  */
-struct Point
+struct point
 {
-    int16_t X; /**< Horizontal coordinate */
-    int16_t Y; /**< Vertical coordinate */
+    int16_t x; /**< Horizontal coordinate */
+    int16_t y; /**< Vertical coordinate */
 
-    Point()
-        : X(0)
-        , Y(0)
+    point()
+        : x(0)
+        , y(0)
     {
     }
-    Point(int X_, int Y_)
-        : X(X_)
-        , Y(Y_)
+    point(int x_, int y_)
+        : x(x_)
+        , y(y_)
     {
     }
 
-    Point add(Point const &p) const
+    point add(point const &p) const
     {
-        return Point(X + p.X, Y + p.Y);
+        return point(x + p.x, y + p.y);
     }
-    Point sub(Point const &p) const
+    point sub(point const &p) const
     {
-        return Point(X - p.X, Y - p.Y);
+        return point(x - p.x, y - p.y);
     }
-    Point neg() const
+    point neg() const
     {
-        return Point(-X, -Y);
+        return point(-x, -y);
     }
-    bool operator==(Point const &r)
+    bool operator==(point const &r)
     {
-        return X == r.X && Y == r.Y;
+        return x == r.x && y == r.y;
     }
-    bool operator!=(Point const &r)
+    bool operator!=(point const &r)
     {
-        return X != r.X || Y != r.Y;
+        return x != r.x || y != r.y;
     }
 } __attribute__((packed));
 
@@ -89,26 +89,26 @@ struct Point
 /**
  * @brief Represents a bidimensional size.
  */
-struct Size
+struct size
 {
     int16_t width; /**< Horizontal size */
     int16_t height; /**< Vertical size */
 
-    Size()
+    size()
         : width(0)
         , height(0)
     {
     }
-    Size(int width_, int height_)
+    size(int width_, int height_)
         : width(width_)
         , height(height_)
     {
     }
-    bool operator==(Size const &r)
+    bool operator==(size const &r)
     {
         return width == r.width && height == r.height;
     }
-    bool operator!=(Size const &r)
+    bool operator!=(size const &r)
     {
         return width != r.width || height != r.height;
     }
@@ -120,114 +120,114 @@ struct Size
  *
  * Top and Left coordinates start from 0.
  */
-struct Rect
+struct rect
 {
-    int16_t X1; /**< Horizontal top-left coordinate */
-    int16_t Y1; /**< Vertical top-left coordinate */
-    int16_t X2; /**< Horizontal bottom-right coordinate */
-    int16_t Y2; /**< Vertical bottom-right coordinate */
+    int16_t x1; /**< Horizontal top-left coordinate */
+    int16_t y1; /**< Vertical top-left coordinate */
+    int16_t x2; /**< Horizontal bottom-right coordinate */
+    int16_t y2; /**< Vertical bottom-right coordinate */
 
-    Rect()
-        : X1(0)
-        , Y1(0)
-        , X2(0)
-        , Y2(0)
+    rect()
+        : x1(0)
+        , y1(0)
+        , x2(0)
+        , y2(0)
     {
     }
-    Rect(int X1_, int Y1_, int X2_, int Y2_)
-        : X1(X1_)
-        , Y1(Y1_)
-        , X2(X2_)
-        , Y2(Y2_)
+    rect(int x1_, int y1_, int x2_, int y2_)
+        : x1(x1_)
+        , y1(y1_)
+        , x2(x2_)
+        , y2(y2_)
     {
     }
-    Rect(Rect const &r)
+    rect(rect const &r)
     {
-        X1 = r.X1;
-        Y1 = r.Y1;
-        X2 = r.X2;
-        Y2 = r.Y2;
+        x1 = r.x1;
+        y1 = r.y1;
+        x2 = r.x2;
+        y2 = r.y2;
     }
-    Rect &operator=(Rect const &r) = default;
+    rect &operator=(rect const &r) = default;
 
-    bool operator==(Rect const &r)
+    bool operator==(rect const &r)
     {
-        return X1 == r.X1 && Y1 == r.Y1 && X2 == r.X2 && Y2 == r.Y2;
+        return x1 == r.x1 && y1 == r.y1 && x2 == r.x2 && y2 == r.y2;
     }
-    bool operator!=(Rect const &r)
+    bool operator!=(rect const &r)
     {
-        return X1 != r.X1 || Y1 != r.Y1 || X2 != r.X2 || Y2 != r.Y2;
+        return x1 != r.x1 || y1 != r.y1 || x2 != r.x2 || y2 != r.y2;
     }
-    Point pos() const
+    point pos() const
     {
-        return Point(X1, Y1);
+        return point(x1, y1);
     }
-    Size size() const
+    esp::gfx::size size() const
     {
-        return Size(X2 - X1 + 1, Y2 - Y1 + 1);
+        return esp::gfx::size(x2 - x1 + 1, y2 - y1 + 1);
     }
     int width() const
     {
-        return X2 - X1 + 1;
+        return x2 - x1 + 1;
     }
     int height() const
     {
-        return Y2 - Y1 + 1;
+        return y2 - y1 + 1;
     }
-    Rect translate(int offsetX, int offsetY) const
+    rect translate(int offset_x, int offset_y) const
     {
-        return Rect(X1 + offsetX, Y1 + offsetY, X2 + offsetX, Y2 + offsetY);
+        return rect(x1 + offset_x, y1 + offset_y, x2 + offset_x, y2 + offset_y);
     }
-    Rect translate(Point const &offset) const
+    rect translate(point const &offset) const
     {
-        return Rect(X1 + offset.X, Y1 + offset.Y, X2 + offset.X, Y2 + offset.Y);
+        return rect(x1 + offset.x, y1 + offset.y, x2 + offset.x, y2 + offset.y);
     }
-    Rect move(Point const &position) const
+    rect move(point const &position) const
     {
-        return Rect(position.X, position.Y, position.X + width() - 1, position.Y + height() - 1);
+        return rect(position.x, position.y, position.x + width() - 1, position.y + height() - 1);
     }
-    Rect move(int x, int y) const
+    rect move(int x, int y) const
     {
-        return Rect(x, y, x + width() - 1, y + height() - 1);
+        return rect(x, y, x + width() - 1, y + height() - 1);
     }
-    Rect shrink(int value) const
+    rect shrink(int value) const
     {
-        return Rect(X1 + value, Y1 + value, X2 - value, Y2 - value);
+        return rect(x1 + value, y1 + value, x2 - value, y2 - value);
     }
-    Rect hShrink(int value) const
+    rect h_shrink(int value) const
     {
-        return Rect(X1 + value, Y1, X2 - value, Y2);
+        return rect(x1 + value, y1, x2 - value, y2);
     }
-    Rect vShrink(int value) const
+    rect v_shrink(int value) const
     {
-        return Rect(X1, Y1 + value, X2, Y2 - value);
+        return rect(x1, y1 + value, x2, y2 - value);
     }
-    Rect resize(int width, int height) const
+    rect resize(int width, int height) const
     {
-        return Rect(X1, Y1, X1 + width - 1, Y1 + height - 1);
+        return rect(x1, y1, x1 + width - 1, y1 + height - 1);
     }
-    Rect resize(Size size) const
+    rect resize(esp::gfx::size size) const
     {
-        return Rect(X1, Y1, X1 + size.width - 1, Y1 + size.height - 1);
+        return rect(x1, y1, x1 + size.width - 1, y1 + size.height - 1);
     }
-    Rect intersection(Rect const &rect) const;
-    bool intersects(Rect const &rect) const
+    rect intersection(rect const &rect) const;
+    bool intersects(rect const &rect) const
     {
-        return X1 <= rect.X2 && X2 >= rect.X1 && Y1 <= rect.Y2 && Y2 >= rect.Y1;
+        return x1 <= rect.x2 && x2 >= rect.x1 && y1 <= rect.y2 && y2 >= rect.y1;
     }
-    bool contains(Rect const &rect) const
+    bool contains(rect const &rect) const
     {
-        return (rect.X1 >= X1) && (rect.Y1 >= Y1) && (rect.X2 <= X2) && (rect.Y2 <= Y2);
+        return (rect.x1 >= x1) && (rect.y1 >= y1) && (rect.x2 <= x2) && (rect.y2 <= y2);
     }
-    bool contains(Point const &point) const
+    bool contains(point const &point) const
     {
-        return point.X >= X1 && point.Y >= Y1 && point.X <= X2 && point.Y <= Y2;
+        return point.x >= x1 && point.y >= y1 && point.x <= x2 && point.y <= y2;
     }
     bool contains(int x, int y) const
     {
-        return x >= X1 && y >= Y1 && x <= X2 && y <= Y2;
+        return x >= x1 && y >= y1 && x <= x2 && y <= y2;
     }
-    Rect merge(Rect const &rect) const;
+    rect merge(rect const &rect) const;
 } __attribute__((packed));
 
 
@@ -237,9 +237,9 @@ struct Rect
 #define FONTINFOFLAGS_VARWIDTH 8
 
 
-struct FontInfo
+struct font_info
 {
-    uint8_t pointSize;
+    uint8_t point_size;
     uint8_t width; // used only for fixed width fonts (FONTINFOFLAGS_VARWIDTH = 0)
     uint8_t height;
     uint8_t ascent;
@@ -266,40 +266,40 @@ struct FontInfo
 // The maximum size of a block is 32767 bytes.
 // free() just marks the block header as free.
 
-class LightMemoryPool
+class light_memory_pool
 {
 public:
 
-    LightMemoryPool(int poolSize);
-    ~LightMemoryPool();
+    light_memory_pool(int pool_size);
+    ~light_memory_pool();
     void *alloc(int size);
     void free(void *mem)
     {
         if (mem)
-            markFree((uint8_t *)mem - m_mem - 2);
+            mark_free((uint8_t *)mem - _mem - 2);
     }
 
-    bool memCheck();
-    int totFree(); // get total free memory
-    int totAllocated(); // get total allocated memory
-    int largestFree();
+    bool mem_check();
+    int tot_free(); // get total free memory
+    int tot_allocated(); // get total allocated memory
+    int largest_free();
 
 private:
 
     void mark(int pos, int16_t size, bool allocated);
-    void markFree(int pos)
+    void mark_free(int pos)
     {
-        m_mem[pos + 1] &= 0x7f;
+        _mem[pos + 1] &= 0x7f;
     }
-    int16_t getSize(int pos);
-    bool isFree(int pos);
+    int16_t get_size(int pos);
+    bool is_free(int pos);
 
-    uint8_t *m_mem;
-    int m_poolSize;
+    uint8_t *_mem;
+    int _pool_size;
 };
 
 
-bool clipLine(int &x1, int &y1, int &x2, int &y2, Rect const &clipRect, bool checkOnly);
+bool clip_line(int &x1, int &y1, int &x2, int &y2, rect const &clip_rect, bool check_only);
 
 
 } // end of namespace

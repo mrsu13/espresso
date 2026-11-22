@@ -63,13 +63,13 @@
 // byte  : 2  3  0  1  6  7  4  5 10 11  8  9 ...etc...
 // dword : 0           1           2          ...etc...
 // Thanks to https://github.com/paulscottrobson for the new macro. Before was: (row[((X) & 0xFFFC) + ((2 + (X)) & 3)])
-#define VGA_PIXELINROW(row, X) (row[(X) ^ 2])
+#define VGA_PIXELINROW(row, x) (row[(x) ^ 2])
 
 // requires variables: m_viewPort
-#define VGA_PIXEL(X, Y) VGA_PIXELINROW(m_viewPort[(Y)], X)
-#define VGA_INVERT_PIXEL(X, Y) \
+#define VGA_PIXEL(x, y) VGA_PIXELINROW(_view_port[(y)], x)
+#define VGA_INVERT_PIXEL(x, y) \
     { \
-        auto px = &VGA_PIXEL((X), (Y)); \
+        auto px = &VGA_PIXEL((x), (y)); \
         *px = ~(*px ^ VGA_SYNC_MASK); \
     }
 
@@ -86,49 +86,49 @@ extern volatile uint64_t s_vgapalctrlcycles;
 /** \ingroup Enumerations
  * @brief Represents one of the four blocks of horizontal or vertical line
  */
-enum VGAScanStart
+enum vga_scan_start
 {
-    FrontPorch, /**< Horizontal line sequence is: FRONTPORCH -> SYNC -> BACKPORCH -> VISIBLEAREA */
-    Sync, /**< Horizontal line sequence is: SYNC -> BACKPORCH -> VISIBLEAREA -> FRONTPORCH */
-    BackPorch, /**< Horizontal line sequence is: BACKPORCH -> VISIBLEAREA -> FRONTPORCH -> SYNC */
-    VisibleArea /**< Horizontal line sequence is: VISIBLEAREA -> FRONTPORCH -> SYNC -> BACKPORCH */
+    front_porch, /**< Horizontal line sequence is: FRONTPORCH -> SYNC -> BACKPORCH -> VISIBLEAREA */
+    sync, /**< Horizontal line sequence is: SYNC -> BACKPORCH -> VISIBLEAREA -> FRONTPORCH */
+    back_porch, /**< Horizontal line sequence is: BACKPORCH -> VISIBLEAREA -> FRONTPORCH -> SYNC */
+    visible_area /**< Horizontal line sequence is: VISIBLEAREA -> FRONTPORCH -> SYNC -> BACKPORCH */
 };
 
 
 /** @brief Specifies the VGA timings. This is a modeline decoded. */
-struct VGATimings
+struct vga_timings
 {
     char label[22]; /**< Resolution text description */
     int frequency; /**< Pixel frequency (in Hz) */
-    int16_t HVisibleArea; /**< Horizontal visible area length in pixels */
-    int16_t HFrontPorch; /**< Horizontal Front Porch duration in pixels */
-    int16_t HSyncPulse; /**< Horizontal Sync Pulse duration in pixels */
-    int16_t HBackPorch; /**< Horizontal Back Porch duration in pixels */
-    int16_t VVisibleArea; /**< Vertical number of visible lines */
-    int16_t VFrontPorch; /**< Vertical Front Porch duration in lines */
-    int16_t VSyncPulse; /**< Vertical Sync Pulse duration in lines */
-    int16_t VBackPorch; /**< Vertical Back Porch duration in lines */
-    char HSyncLogic; /**< Horizontal Sync polarity '+' or '-' */
-    char VSyncLogic; /**< Vertical Sync polarity '+' or '-' */
+    int16_t h_visible_area; /**< Horizontal visible area length in pixels */
+    int16_t h_front_porch; /**< Horizontal Front Porch duration in pixels */
+    int16_t h_sync_pulse; /**< Horizontal Sync Pulse duration in pixels */
+    int16_t h_back_porch; /**< Horizontal Back Porch duration in pixels */
+    int16_t v_visible_area; /**< Vertical number of visible lines */
+    int16_t v_front_porch; /**< Vertical Front Porch duration in lines */
+    int16_t v_sync_pulse; /**< Vertical Sync Pulse duration in lines */
+    int16_t v_back_porch; /**< Vertical Back Porch duration in lines */
+    char h_sync_logic; /**< Horizontal Sync polarity '+' or '-' */
+    char v_sync_logic; /**< Vertical Sync polarity '+' or '-' */
     uint8_t
-        scanCount; /**< Scan count. 1 = single scan, 2 = double scan (allowing low resolutions like 320x240...) */
+        scan_count; /**< Scan count. 1 = single scan, 2 = double scan (allowing low resolutions like 320x240...) */
     uint8_t
-        multiScanBlack; /**< 0 = Additional rows are the repetition of the first. 1 = Additional rows are blank. */
-    VGAScanStart
-        HStartingBlock; /**< Horizontal starting block. DetermineshHorizontal order of signals */
+        multi_scan_black; /**< 0 = Additional rows are the repetition of the first. 1 = Additional rows are blank. */
+    vga_scan_start
+        h_starting_block; /**< Horizontal starting block. DetermineshHorizontal order of signals */
 };
 
 
-class VGABaseController : public esp::gfx::GenericBitmappedDisplayController
+class vga_base_controller : public esp::gfx::generic_bitmapped_display_controller
 {
 
 public:
 
-    VGABaseController();
+    vga_base_controller();
 
     // unwanted methods
-    VGABaseController(VGABaseController const &) = delete;
-    void operator=(VGABaseController const &) = delete;
+    vga_base_controller(vga_base_controller const &) = delete;
+    void operator=(vga_base_controller const &) = delete;
 
     /**
    * @brief This is the 8 colors (5 GPIOs) initializer.
@@ -146,8 +146,8 @@ public:
    *     // Use GPIO 22 for red, GPIO 19 for green, GPIO 5 for blue, GPIO 23 for HSync and GPIO 15 for VSync
    *     VGAController.begin(GPIO_NUM_22, GPIO_NUM_19, GPIO_NUM_5, GPIO_NUM_23, GPIO_NUM_15);
    */
-    void begin(gpio_num_t redGPIO, gpio_num_t greenGPIO, gpio_num_t blueGPIO, gpio_num_t HSyncGPIO,
-               gpio_num_t VSyncGPIO);
+    void begin(gpio_num_t red_gpio, gpio_num_t green_gpio, gpio_num_t blue_gpio,
+               gpio_num_t h_sync_gpio, gpio_num_t v_sync_gpio);
 
     /**
    * @brief This is the 64 colors (8 GPIOs) initializer.
@@ -168,9 +168,9 @@ public:
    *     // Use GPIO 22-21 for red, GPIO 19-18 for green, GPIO 5-4 for blue, GPIO 23 for HSync and GPIO 15 for VSync
    *     VGAController.begin(GPIO_NUM_22, GPIO_NUM_21, GPIO_NUM_19, GPIO_NUM_18, GPIO_NUM_5, GPIO_NUM_4, GPIO_NUM_23, GPIO_NUM_15);
    */
-    void begin(gpio_num_t red1GPIO, gpio_num_t red0GPIO, gpio_num_t green1GPIO,
-               gpio_num_t green0GPIO, gpio_num_t blue1GPIO, gpio_num_t blue0GPIO,
-               gpio_num_t HSyncGPIO, gpio_num_t VSyncGPIO);
+    void begin(gpio_num_t red_1gpio, gpio_num_t red_0gpio, gpio_num_t green_1gpio,
+               gpio_num_t green_0gpio, gpio_num_t blue_1gpio, gpio_num_t blue_0gpio,
+               gpio_num_t h_sync_gpio, gpio_num_t v_sync_gpio);
 
     /**
    * @brief This is the 64 colors (8 GPIOs) initializer using default pinout.
@@ -186,13 +186,13 @@ public:
 
     virtual void end();
 
-    static bool convertModelineToTimings(char const *modeline, VGATimings *timings);
+    static bool convert_modeline_to_timings(char const *modeline, vga_timings *timings);
 
     // abstract method of BitmappedDisplayController
-    virtual void suspendBackgroundPrimitiveExecution();
+    virtual void suspend_background_primitive_execution();
 
     // abstract method of BitmappedDisplayController
-    virtual void resumeBackgroundPrimitiveExecution();
+    virtual void resume_background_primitive_execution();
 
     /**
    * @brief Sets current resolution using linux-like modeline.
@@ -221,20 +221,20 @@ public:
    *     VGAController.setResolution(VGA_640x382_60Hz, 640, 350);
    *
    */
-    void setResolution(char const *modeline, int viewPortWidth = -1, int viewPortHeight = -1,
-                       bool doubleBuffered = false);
+    void set_resolution(char const *modeline, int view_port_width = -1, int view_port_height = -1,
+                        bool double_buffered = false);
 
-    virtual void setResolution(VGATimings const &timings, int viewPortWidth = -1,
-                               int viewPortHeight = -1, bool doubleBuffered = false);
+    virtual void set_resolution(vga_timings const &timings, int view_port_width = -1,
+                                int view_port_height = -1, bool double_buffered = false);
 
     /**
    * @brief Determines horizontal position of the viewport.
    *
    * @return Horizontal position of the viewport (in case viewport width is less than screen width).
    */
-    int getViewPortCol()
+    int view_port_col()
     {
-        return m_viewPortCol;
+        return _view_port_col;
     }
 
     /**
@@ -242,9 +242,9 @@ public:
    *
    * @return Vertical position of the viewport (in case viewport height is less than screen height).
    */
-    int getViewPortRow()
+    int view_port_row()
     {
-        return m_viewPortRow;
+        return _view_port_row;
     }
 
     /**
@@ -260,7 +260,7 @@ public:
    *     // Move screen 4 pixels right, 1 pixel left
    *     VGAController.moveScreen(4, -1);
    */
-    void moveScreen(int offsetX, int offsetY);
+    void move_screen(int offset_x, int offset_y);
 
     /**
    * @brief Reduces or expands screen size by the specified horizontal and vertical offset.
@@ -276,11 +276,11 @@ public:
    *     VGAController.shrinkScreen(8, 0);
    *     VGAController.moveScreen(8, 0);
    */
-    void shrinkScreen(int shrinkX, int shrinkY);
+    void shrink_screen(int shrink_x, int shrink_y);
 
-    VGATimings *getResolutionTimings()
+    vga_timings *resolution_timings()
     {
-        return &m_timings;
+        return &_timings;
     }
 
     /**
@@ -290,14 +290,14 @@ public:
    *
    * @return 1 (8 colors) or 2 (64 colors).
    */
-    uint8_t getBitsPerChannel()
+    uint8_t bits_per_channel()
     {
-        return m_bitsPerChannel;
+        return _bits_per_channel;
     }
 
-    virtual int colorsCount()
+    virtual int colors_count()
     {
-        return 1 << (3 * m_bitsPerChannel);
+        return 1 << (3 * _bits_per_channel);
     }
 
     /**
@@ -313,9 +313,9 @@ public:
    *
    * @param y Vertical scanline position (0 = top row)
    */
-    uint8_t *getScanline(int y)
+    uint8_t *scanline(int y)
     {
-        return (uint8_t *)m_viewPort[y];
+        return (uint8_t *)_view_port[y];
     }
 
     /**
@@ -330,96 +330,96 @@ public:
    *     // Set color of pixel at 100, 100
    *     VGAController.setRawPixel(100, 100, VGAController.createRawPixel(RGB222(3, 0, 0));
    */
-    uint8_t createRawPixel(esp::gfx::RGB222 rgb)
+    uint8_t create_raw_pixel(esp::gfx::rgb222 rgb)
     {
-        return preparePixel(rgb);
+        return prepare_pixel(rgb);
     }
 
-    uint8_t createBlankRawPixel()
+    uint8_t create_blank_raw_pixel()
     {
-        return m_HVSync;
+        return _hv_sync;
     }
 
-    virtual bool suspendDoubleBuffering(bool value);
+    virtual bool suspend_double_buffering(bool value);
 
 
 protected:
 
-    static void setupGPIO(gpio_num_t gpio, int bit, gpio_mode_t mode);
+    static void setup_gpio(gpio_num_t gpio, int bit, gpio_mode_t mode);
 
-    void startGPIOStream();
+    void start_gpio_stream();
 
-    void freeBuffers();
+    void free_buffers();
 
-    virtual void freeViewPort();
+    virtual void free_view_port();
 
     virtual void init();
 
-    bool setDMABuffersCount(int buffersCount);
+    bool set_dma_buffers_count(int buffers_count);
 
-    uint8_t packHVSync(bool HSync, bool VSync);
+    uint8_t pack_hv_sync(bool h_sync, bool v_sync);
 
-    uint8_t inline __attribute__((always_inline)) preparePixel(esp::gfx::RGB222 rgb)
+    uint8_t inline __attribute__((always_inline)) prepare_pixel(esp::gfx::rgb222 rgb)
     {
-        return m_HVSync | (rgb.B << VGA_BLUE_BIT) | (rgb.G << VGA_GREEN_BIT)
-            | (rgb.R << VGA_RED_BIT);
+        return _hv_sync | (rgb.b << VGA_BLUE_BIT) | (rgb.g << VGA_GREEN_BIT)
+            | (rgb.r << VGA_RED_BIT);
     }
 
-    uint8_t preparePixelWithSync(esp::gfx::RGB222 rgb, bool HSync, bool VSync);
+    uint8_t prepare_pixel_with_sync(esp::gfx::rgb222 rgb, bool h_sync, bool v_sync);
 
-    void fillVertBuffers(int offsetY);
+    void fill_vert_buffers(int offset_y);
 
-    void fillHorizBuffers(int offsetX);
+    void fill_horiz_buffers(int offset_x);
 
-    int fill(uint8_t volatile *buffer, int startPos, int length, uint8_t red, uint8_t green,
+    int fill(uint8_t volatile *buffer, int start_pos, int length, uint8_t red, uint8_t green,
              uint8_t blue, bool hsync, bool vsync);
 
-    int calcRequiredDMABuffersCount(int viewPortHeight);
+    int calc_required_dma_buffers_count(int view_port_height);
 
-    bool isMultiScanBlackLine(int scan);
+    bool is_multi_scan_black_line(int scan);
 
-    void setDMABufferBlank(int index, void volatile *address, int length, int scan,
-                           bool isStartOfVertFrontPorch);
-    void setDMABufferView(int index, int row, int scan, volatile uint8_t **viewPort,
-                          bool onVisibleDMA);
-    void setDMABufferView(int index, int row, int scan, bool isStartOfVertFrontPorch);
+    void set_dma_buffer_blank(int index, void volatile *address, int length, int scan,
+                              bool is_start_of_vert_front_porch);
+    void set_dma_buffer_view(int index, int row, int scan, volatile uint8_t **view_port,
+                             bool on_visible_dma);
+    void set_dma_buffer_view(int index, int row, int scan, bool is_start_of_vert_front_porch);
 
-    virtual void onSetupDMABuffer(lldesc_t volatile *buffer, bool isStartOfVertFrontPorch, int scan,
-                                  bool isVisible, int visibleRow) = 0;
+    virtual void on_setup_dma_buffer(lldesc_t volatile *buffer, bool is_start_of_vert_front_porch,
+                                     int scan, bool is_visible, int visible_row) = 0;
 
-    void volatile *getDMABuffer(int index, int *length);
+    void volatile *get_dma_buffer(int index, int *length);
 
-    void allocateViewPort(uint32_t allocCaps, int rowlen);
-    virtual void allocateViewPort() = 0;
-    virtual void checkViewPortSize() {};
+    void allocate_view_port(uint32_t alloc_caps, int rowlen);
+    virtual void allocate_view_port() = 0;
+    virtual void check_view_port_size() {};
 
     // abstract method of BitmappedDisplayController
-    virtual void swapBuffers();
+    virtual void swap_buffers();
 
 
     // when double buffer is enabled the "drawing" view port is always m_viewPort, while the "visible" view port is always m_viewPortVisible
     // when double buffer is not enabled then m_viewPort = m_viewPortVisible
-    volatile uint8_t **m_viewPort;
-    volatile uint8_t **m_viewPortVisible;
+    volatile uint8_t **_view_port;
+    volatile uint8_t **_view_port_visible;
 
     // screen buffers (m_viewPort and m_viewPortVisible contain these values)
-    volatile uint8_t **m_viewPorts[2];
+    volatile uint8_t **_view_ports[2];
 
     // true: double buffering is implemented in DMA
-    bool m_doubleBufferOverDMA;
+    bool _double_buffer_over_dma;
 
-    volatile int m_primitiveProcessingSuspended; // 0 = enabled, >0 suspended
+    volatile int _primitive_processing_suspended; // 0 = enabled, >0 suspended
 
-    intr_handle_t m_isr_handle;
+    intr_handle_t _isr_handle;
 
-    VGATimings m_timings;
-    int16_t m_HLineSize;
+    vga_timings _timings;
+    int16_t _h_line_size;
 
-    volatile int16_t m_viewPortCol;
-    volatile int16_t m_viewPortRow;
+    volatile int16_t _view_port_col;
+    volatile int16_t _view_port_row;
 
     // contains H and V signals for visible line
-    volatile uint8_t m_HVSync;
+    volatile uint8_t _hv_sync;
 
 
 private:
@@ -427,26 +427,26 @@ private:
 
     // bits per channel on VGA output
     // 1 = 8 colors, 2 = 64 colors, set by begin()
-    int m_bitsPerChannel;
+    int _bits_per_channel;
 
-    GPIOStream m_GPIOStream;
+    gpio_stream _gpio_stream;
 
-    lldesc_t volatile *m_DMABuffers;
-    int m_DMABuffersCount;
+    lldesc_t volatile *_dma_buffers;
+    int _dma_buffers_count;
 
     // when double buffer is enabled at DMA level the running DMA buffer is always m_DMABuffersVisible
     // when double buffer is not enabled then m_DMABuffers = m_DMABuffersVisible
-    lldesc_t volatile *m_DMABuffersHead;
-    lldesc_t volatile *m_DMABuffersVisible;
+    lldesc_t volatile *_dma_buffers_head;
+    lldesc_t volatile *_dma_buffers_visible;
 
     // These buffers contains a full line, with FrontPorch, Sync, BackPorch and blank visible area, in the
     // order specified by timings.HStartingBlock
-    volatile uint8_t *m_HBlankLine_withVSync;
-    volatile uint8_t *m_HBlankLine;
+    volatile uint8_t *_h_blank_line_with_v_sync;
+    volatile uint8_t *_h_blank_line;
 
-    uint8_t **m_viewPortMemoryPool; // array ends with nullptr
+    uint8_t **_view_port_memory_pool; // array ends with nullptr
 
-    int16_t m_rawFrameHeight;
+    int16_t _raw_frame_height;
 };
 
 

@@ -64,14 +64,15 @@ pixels: 55666777 23334445 00011122 ...
 bits24: 0                          1...
 */
 
-static inline __attribute__((always_inline)) void VGA8_SETPIXELINROW(uint8_t *row, int x, int value)
+static inline __attribute__((always_inline)) void vga8_set_pixel_in_row(uint8_t *row, int x,
+                                                                        int value)
 {
     uint32_t *bits24 = (uint32_t *)(row + (x >> 3) * 3); // x / 8 * 3
     int shift = 21 - (x & 7) * 3;
     *bits24 ^= ((value << shift) ^ *bits24) & (7 << shift);
 }
 
-static inline __attribute__((always_inline)) int VGA8_GETPIXELINROW(uint8_t *row, int x)
+static inline __attribute__((always_inline)) int vga8_get_pixel_in_row(uint8_t *row, int x)
 {
     uint32_t *bits24 = (uint32_t *)(row + (x >> 3) * 3); // x / 8 * 3
     int shift = 21 - (x & 7) * 3;
@@ -81,18 +82,19 @@ static inline __attribute__((always_inline)) int VGA8_GETPIXELINROW(uint8_t *row
 #define VGA8_INVERTPIXELINROW(row, x) \
     *((uint32_t *)(row + ((x) >> 3) * 3)) ^= 7 << (21 - ((x) & 7) * 3)
 
-static inline __attribute__((always_inline)) void VGA8_SETPIXEL(int x, int y, int value)
+static inline __attribute__((always_inline)) void vga8_set_pixel(int x, int y, int value)
 {
-    auto row = (uint8_t *)VGA8Controller::sgetScanline(y);
+    auto row = (uint8_t *)vga8_controller::sget_scanline(y);
     uint32_t *bits24 = (uint32_t *)(row + (x >> 3) * 3); // x / 8 * 3
     int shift = 21 - (x & 7) * 3;
     *bits24 ^= ((value << shift) ^ *bits24) & (7 << shift);
 }
 
-#define VGA8_GETPIXEL(x, y) VGA8_GETPIXELINROW((uint8_t *)VGA8Controller::s_viewPort[(y)], (x))
+#define VGA8_GETPIXEL(x, y) \
+    vga8_get_pixel_in_row((uint8_t *)vga8_controller::_isr_view_port[(y)], (x))
 
 #define VGA8_INVERT_PIXEL(x, y) \
-    VGA8_INVERTPIXELINROW((uint8_t *)VGA8Controller::s_viewPort[(y)], (x))
+    VGA8_INVERTPIXELINROW((uint8_t *)vga8_controller::_isr_view_port[(y)], (x))
 
 
 #define VGA8_COLUMNSQUANTUM 16
@@ -102,141 +104,142 @@ static inline __attribute__((always_inline)) void VGA8_SETPIXEL(int x, int y, in
 /* VGA8Controller definitions */
 
 
-VGA8Controller *VGA8Controller::s_instance = nullptr;
+vga8_controller *vga8_controller::_instance = nullptr;
 
 
-VGA8Controller::VGA8Controller()
-    : VGAPalettedController(VGA8_LinesCount, VGA8_COLUMNSQUANTUM,
-                            esp::gfx::NativePixelFormat::PALETTE8, 8, 3, ISRHandler)
+vga8_controller::vga8_controller()
+    : vga_paletted_controller(VGA8_LinesCount, VGA8_COLUMNSQUANTUM,
+                              esp::gfx::native_pixel_format::palette8, 8, 3, isr_handler)
 {
-    s_instance = this;
-    m_packedPaletteIndexPair_to_signals =
+    _instance = this;
+    _packed_palette_index_pair_to_signals =
         (uint16_t *)heap_caps_malloc(256 * sizeof(uint16_t), MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
 }
 
 
-VGA8Controller::~VGA8Controller()
+vga8_controller::~vga8_controller()
 {
-    heap_caps_free((void *)m_packedPaletteIndexPair_to_signals);
+    heap_caps_free((void *)_packed_palette_index_pair_to_signals);
 }
 
 
-void VGA8Controller::setupDefaultPalette()
+void vga8_controller::setup_default_palette()
 {
-    setPaletteItem(0, esp::gfx::RGB888(0, 0, 0)); // 0: black
-    setPaletteItem(1, esp::gfx::RGB888(128, 0, 0)); // 1: red
-    setPaletteItem(2, esp::gfx::RGB888(0, 128, 0)); // 2: green
-    setPaletteItem(3, esp::gfx::RGB888(0, 0, 128)); // 3: blue
-    setPaletteItem(4, esp::gfx::RGB888(255, 0, 0)); // 4: bright red
-    setPaletteItem(5, esp::gfx::RGB888(0, 255, 0)); // 5: bright green
-    setPaletteItem(6, esp::gfx::RGB888(0, 0, 255)); // 6: bright blue
-    setPaletteItem(7, esp::gfx::RGB888(255, 255, 255)); // 7: white
+    set_palette_item(0, esp::gfx::rgb888(0, 0, 0)); // 0: black
+    set_palette_item(1, esp::gfx::rgb888(128, 0, 0)); // 1: red
+    set_palette_item(2, esp::gfx::rgb888(0, 128, 0)); // 2: green
+    set_palette_item(3, esp::gfx::rgb888(0, 0, 128)); // 3: blue
+    set_palette_item(4, esp::gfx::rgb888(255, 0, 0)); // 4: bright red
+    set_palette_item(5, esp::gfx::rgb888(0, 255, 0)); // 5: bright green
+    set_palette_item(6, esp::gfx::rgb888(0, 0, 255)); // 6: bright blue
+    set_palette_item(7, esp::gfx::rgb888(255, 255, 255)); // 7: white
 }
 
 
-void VGA8Controller::setPaletteItem(int index, esp::gfx::RGB888 const &color)
+void vga8_controller::set_palette_item(int index, esp::gfx::rgb888 const &color)
 {
     index %= 8;
-    m_palette[index] = color;
-    auto packed222 = esp::gfx::RGB888toPackedRGB222(color);
+    _palette[index] = color;
+    auto packed222 = esp::gfx::rgb888_to_packed_rgb222(color);
     for (int i = 0; i < 8; ++i)
     {
-        m_packedPaletteIndexPair_to_signals[(index << 3) | i] &= 0xFF00;
-        m_packedPaletteIndexPair_to_signals[(index << 3) | i] |= (m_HVSync | packed222);
-        m_packedPaletteIndexPair_to_signals[(i << 3) | index] &= 0x00FF;
-        m_packedPaletteIndexPair_to_signals[(i << 3) | index] |= (m_HVSync | packed222) << 8;
+        _packed_palette_index_pair_to_signals[(index << 3) | i] &= 0xFF00;
+        _packed_palette_index_pair_to_signals[(index << 3) | i] |= (_hv_sync | packed222);
+        _packed_palette_index_pair_to_signals[(i << 3) | index] &= 0x00FF;
+        _packed_palette_index_pair_to_signals[(i << 3) | index] |= (_hv_sync | packed222) << 8;
     }
 }
 
 
-void VGA8Controller::setPixelAt(esp::gfx::PixelDesc const &pixelDesc, esp::gfx::Rect &updateRect)
+void vga8_controller::set_pixel_at(esp::gfx::pixel_desc const &pixel_desc,
+                                   esp::gfx::rect &update_rect)
 {
-    genericSetPixelAt(
-        pixelDesc, updateRect,
-        [&](esp::gfx::RGB888 const &color) { return RGB888toPaletteIndex(color); }, VGA8_SETPIXEL);
+    generic_set_pixel_at(
+        pixel_desc, update_rect, [&](esp::gfx::rgb888 const &color)
+        { return rgb888_to_palette_index(color); }, vga8_set_pixel);
 }
 
 
 // coordinates are absolute values (not relative to origin)
 // line clipped on current absolute clipping rectangle
-void VGA8Controller::absDrawLine(int X1, int Y1, int X2, int Y2, esp::gfx::RGB888 color)
+void vga8_controller::abs_draw_line(int x1, int y1, int x2, int y2, esp::gfx::rgb888 color)
 {
-    genericAbsDrawLine(
-        X1, Y1, X2, Y2, color,
-        [&](esp::gfx::RGB888 const &color) { return RGB888toPaletteIndex(color); },
-        [&](int Y, int X1, int X2, uint8_t colorIndex) { rawFillRow(Y, X1, X2, colorIndex); },
-        [&](int Y, int X1, int X2) { rawInvertRow(Y, X1, X2); }, VGA8_SETPIXEL,
-        [&](int X, int Y) { VGA8_INVERT_PIXEL(X, Y); });
+    generic_abs_draw_line(
+        x1, y1, x2, y2, color,
+        [&](esp::gfx::rgb888 const &color) { return rgb888_to_palette_index(color); },
+        [&](int y, int x1, int x2, uint8_t color_index) { raw_fill_row(y, x1, x2, color_index); },
+        [&](int y, int x1, int x2) { raw_invert_row(y, x1, x2); }, vga8_set_pixel,
+        [&](int x, int y) { VGA8_INVERT_PIXEL(x, y); });
 }
 
 
 // parameters not checked
-void VGA8Controller::rawFillRow(int y, int x1, int x2, esp::gfx::RGB888 color)
+void vga8_controller::raw_fill_row(int y, int x1, int x2, esp::gfx::rgb888 color)
 {
-    rawFillRow(y, x1, x2, RGB888toPaletteIndex(color));
+    raw_fill_row(y, x1, x2, rgb888_to_palette_index(color));
 }
 
 
 // parameters not checked
-void VGA8Controller::rawFillRow(int y, int x1, int x2, uint8_t colorIndex)
+void vga8_controller::raw_fill_row(int y, int x1, int x2, uint8_t color_index)
 {
-    uint8_t *row = (uint8_t *)m_viewPort[y];
+    uint8_t *row = (uint8_t *)_view_port[y];
     for (; x1 <= x2; ++x1)
-        VGA8_SETPIXELINROW(row, x1, colorIndex);
+        vga8_set_pixel_in_row(row, x1, color_index);
 }
 
 
 // parameters not checked
-void VGA8Controller::rawInvertRow(int y, int x1, int x2)
+void vga8_controller::raw_invert_row(int y, int x1, int x2)
 {
-    auto row = m_viewPort[y];
+    auto row = _view_port[y];
     for (int x = x1; x <= x2; ++x)
         VGA8_INVERTPIXELINROW(row, x);
 }
 
 
-void VGA8Controller::rawCopyRow(int x1, int x2, int srcY, int dstY)
+void vga8_controller::raw_copy_row(int x1, int x2, int src_y, int dst_y)
 {
-    auto srcRow = (uint8_t *)m_viewPort[srcY];
-    auto dstRow = (uint8_t *)m_viewPort[dstY];
+    auto src_row = (uint8_t *)_view_port[src_y];
+    auto dst_row = (uint8_t *)_view_port[dst_y];
     for (; x1 <= x2; ++x1)
-        VGA8_SETPIXELINROW(dstRow, x1, VGA8_GETPIXELINROW(srcRow, x1));
+        vga8_set_pixel_in_row(dst_row, x1, vga8_get_pixel_in_row(src_row, x1));
 }
 
 
-void VGA8Controller::swapRows(int yA, int yB, int x1, int x2)
+void vga8_controller::swap_rows(int y_a, int y_b, int x1, int x2)
 {
-    auto rowA = (uint8_t *)m_viewPort[yA];
-    auto rowB = (uint8_t *)m_viewPort[yB];
+    auto row_a = (uint8_t *)_view_port[y_a];
+    auto row_b = (uint8_t *)_view_port[y_b];
     for (; x1 <= x2; ++x1)
     {
-        uint8_t a = VGA8_GETPIXELINROW(rowA, x1);
-        uint8_t b = VGA8_GETPIXELINROW(rowB, x1);
-        VGA8_SETPIXELINROW(rowA, x1, b);
-        VGA8_SETPIXELINROW(rowB, x1, a);
+        uint8_t a = vga8_get_pixel_in_row(row_a, x1);
+        uint8_t b = vga8_get_pixel_in_row(row_b, x1);
+        vga8_set_pixel_in_row(row_a, x1, b);
+        vga8_set_pixel_in_row(row_b, x1, a);
     }
 }
 
 
-void VGA8Controller::drawEllipse(esp::gfx::Size const &size, esp::gfx::Rect &updateRect)
+void vga8_controller::draw_ellipse(esp::gfx::size const &size, esp::gfx::rect &update_rect)
 {
-    genericDrawEllipse(
-        size, updateRect,
-        [&](esp::gfx::RGB888 const &color) { return RGB888toPaletteIndex(color); }, VGA8_SETPIXEL);
+    generic_draw_ellipse(
+        size, update_rect, [&](esp::gfx::rgb888 const &color)
+        { return rgb888_to_palette_index(color); }, vga8_set_pixel);
 }
 
 
-void VGA8Controller::clear(esp::gfx::Rect &updateRect)
+void vga8_controller::clear(esp::gfx::rect &update_rect)
 {
-    hideSprites(updateRect);
-    uint8_t paletteIndex = RGB888toPaletteIndex(getActualBrushColor());
-    uint32_t pattern8 = (paletteIndex) | (paletteIndex << 3) | (paletteIndex << 6)
-        | (paletteIndex << 9) | (paletteIndex << 12) | (paletteIndex << 15) | (paletteIndex << 18)
-        | (paletteIndex << 21);
-    for (int y = 0; y < m_viewPortHeight; ++y)
+    hide_sprites(update_rect);
+    uint8_t palette_index = rgb888_to_palette_index(actual_brush_color());
+    uint32_t pattern8 = (palette_index) | (palette_index << 3) | (palette_index << 6)
+        | (palette_index << 9) | (palette_index << 12) | (palette_index << 15)
+        | (palette_index << 18) | (palette_index << 21);
+    for (int y = 0; y < _view_port_height; ++y)
     {
-        auto dest = (uint8_t *)m_viewPort[y];
-        for (int x = 0; x < m_viewPortWidth; x += 8, dest += 3)
+        auto dest = (uint8_t *)_view_port[y];
+        for (int x = 0; x < _view_port_width; x += 8, dest += 3)
             *((uint32_t *)dest) = (*((uint32_t *)dest) & 0xFF000000) | pattern8;
     }
 }
@@ -244,57 +247,57 @@ void VGA8Controller::clear(esp::gfx::Rect &updateRect)
 
 // scroll < 0 -> scroll UP
 // scroll > 0 -> scroll DOWN
-void VGA8Controller::VScroll(int scroll, esp::gfx::Rect &updateRect)
+void vga8_controller::v_scroll(int scroll, esp::gfx::rect &update_rect)
 {
-    genericVScroll(
-        scroll, updateRect,
-        [&](int yA, int yB, int x1, int x2) { swapRows(yA, yB, x1, x2); }, // swapRowsCopying
-        [&](int yA, int yB) { esp::tswap(m_viewPort[yA], m_viewPort[yB]); }, // swapRowsPointers
-        [&](int y, int x1, int x2, esp::gfx::RGB888 color)
-        { rawFillRow(y, x1, x2, color); } // rawFillRow
+    generic_v_scroll(
+        scroll, update_rect,
+        [&](int y_a, int y_b, int x1, int x2) { swap_rows(y_a, y_b, x1, x2); }, // swapRowsCopying
+        [&](int y_a, int y_b) { esp::tswap(_view_port[y_a], _view_port[y_b]); }, // swapRowsPointers
+        [&](int y, int x1, int x2, esp::gfx::rgb888 color)
+        { raw_fill_row(y, x1, x2, color); } // rawFillRow
     );
 }
 
 
 // todo: optimize!
-void VGA8Controller::HScroll(int scroll, esp::gfx::Rect &updateRect)
+void vga8_controller::h_scroll(int scroll, esp::gfx::rect &update_rect)
 {
-    hideSprites(updateRect);
-    uint8_t back = RGB888toPaletteIndex(getActualBrushColor());
+    hide_sprites(update_rect);
+    uint8_t back = rgb888_to_palette_index(actual_brush_color());
 
-    int Y1 = paintState().scrollingRegion.Y1;
-    int Y2 = paintState().scrollingRegion.Y2;
-    int X1 = paintState().scrollingRegion.X1;
-    int X2 = paintState().scrollingRegion.X2;
+    int y1 = paint_state().scrolling_region.y1;
+    int y2 = paint_state().scrolling_region.y2;
+    int x1 = paint_state().scrolling_region.x1;
+    int x2 = paint_state().scrolling_region.x2;
 
-    int width = X2 - X1 + 1;
-    bool HScrolllingRegionAligned = ((X1 & 7) == 0 && (width & 7) == 0); // 8 pixels aligned
+    int width = x2 - x1 + 1;
+    bool h_scrollling_region_aligned = ((x1 & 7) == 0 && (width & 7) == 0); // 8 pixels aligned
 
     if (scroll < 0)
     {
         // scroll left
-        for (int y = Y1; y <= Y2; ++y)
+        for (int y = y1; y <= y2; ++y)
         {
             for (int s = -scroll; s > 0;)
             {
-                if (HScrolllingRegionAligned && s >= 8)
+                if (h_scrollling_region_aligned && s >= 8)
                 {
                     // scroll left by multiplies of 8
-                    uint8_t *row = (uint8_t *)(m_viewPort[y]) + X1 / 8 * 3;
+                    uint8_t *row = (uint8_t *)(_view_port[y]) + x1 / 8 * 3;
                     auto sc = s & ~7;
                     auto sz = width & ~7;
                     memmove(row, row + sc / 8 * 3, (sz - sc) / 8 * 3);
-                    rawFillRow(y, X2 - sc + 1, X2, back);
+                    raw_fill_row(y, x2 - sc + 1, x2, back);
                     s -= sc;
                 }
                 else
                 {
                     // unaligned horizontal scrolling region, fallback to slow version
-                    auto row = (uint8_t *)m_viewPort[y];
-                    for (int x = X1; x <= X2 - s; ++x)
-                        VGA8_SETPIXELINROW(row, x, VGA8_GETPIXELINROW(row, x + s));
+                    auto row = (uint8_t *)_view_port[y];
+                    for (int x = x1; x <= x2 - s; ++x)
+                        vga8_set_pixel_in_row(row, x, vga8_get_pixel_in_row(row, x + s));
                     // fill right area with brush color
-                    rawFillRow(y, X2 - s + 1, X2, back);
+                    raw_fill_row(y, x2 - s + 1, x2, back);
                     s = 0;
                 }
             }
@@ -303,28 +306,28 @@ void VGA8Controller::HScroll(int scroll, esp::gfx::Rect &updateRect)
     else if (scroll > 0)
     {
         // scroll right
-        for (int y = Y1; y <= Y2; ++y)
+        for (int y = y1; y <= y2; ++y)
         {
             for (int s = scroll; s > 0;)
             {
-                if (HScrolllingRegionAligned && s >= 8)
+                if (h_scrollling_region_aligned && s >= 8)
                 {
                     // scroll right by multiplies of 8
-                    uint8_t *row = (uint8_t *)(m_viewPort[y]) + X1 / 8 * 3;
+                    uint8_t *row = (uint8_t *)(_view_port[y]) + x1 / 8 * 3;
                     auto sc = s & ~7;
                     auto sz = width & ~7;
                     memmove(row + sc / 8 * 3, row, (sz - sc) / 8 * 3);
-                    rawFillRow(y, X1, X1 + sc - 1, back);
+                    raw_fill_row(y, x1, x1 + sc - 1, back);
                     s -= sc;
                 }
                 else
                 {
                     // unaligned horizontal scrolling region, fallback to slow version
-                    auto row = (uint8_t *)m_viewPort[y];
-                    for (int x = X2 - s; x >= X1; --x)
-                        VGA8_SETPIXELINROW(row, x + s, VGA8_GETPIXELINROW(row, x));
+                    auto row = (uint8_t *)_view_port[y];
+                    for (int x = x2 - s; x >= x1; --x)
+                        vga8_set_pixel_in_row(row, x + s, vga8_get_pixel_in_row(row, x));
                     // fill left area with brush color
-                    rawFillRow(y, X1, X1 + s - 1, back);
+                    raw_fill_row(y, x1, x1 + s - 1, back);
                     s = 0;
                 }
             }
@@ -333,145 +336,148 @@ void VGA8Controller::HScroll(int scroll, esp::gfx::Rect &updateRect)
 }
 
 
-void VGA8Controller::drawGlyph(esp::gfx::Glyph const &glyph, esp::gfx::GlyphOptions glyphOptions,
-                               esp::gfx::RGB888 penColor, esp::gfx::RGB888 brushColor,
-                               esp::gfx::Rect &updateRect)
+void vga8_controller::draw_glyph(esp::gfx::glyph const &glyph,
+                                 esp::gfx::glyph_options glyph_options, esp::gfx::rgb888 pen_color,
+                                 esp::gfx::rgb888 brush_color, esp::gfx::rect &update_rect)
 {
-    genericDrawGlyph(
-        glyph, glyphOptions, penColor, brushColor, updateRect,
-        [&](esp::gfx::RGB888 const &color) { return RGB888toPaletteIndex(color); },
-        [&](int y) { return (uint8_t *)m_viewPort[y]; }, VGA8_SETPIXELINROW);
+    generic_draw_glyph(
+        glyph, glyph_options, pen_color, brush_color, update_rect,
+        [&](esp::gfx::rgb888 const &color) { return rgb888_to_palette_index(color); },
+        [&](int y) { return (uint8_t *)_view_port[y]; }, vga8_set_pixel_in_row);
 }
 
 
-void VGA8Controller::invertRect(esp::gfx::Rect const &rect, esp::gfx::Rect &updateRect)
+void vga8_controller::invert_rect(esp::gfx::rect const &rect, esp::gfx::rect &update_rect)
 {
-    genericInvertRect(rect, updateRect, [&](int Y, int X1, int X2) { rawInvertRow(Y, X1, X2); });
+    generic_invert_rect(rect, update_rect,
+                        [&](int y, int x1, int x2) { raw_invert_row(y, x1, x2); });
 }
 
 
-void VGA8Controller::swapFGBG(esp::gfx::Rect const &rect, esp::gfx::Rect &updateRect)
+void vga8_controller::swap_fgbg(esp::gfx::rect const &rect, esp::gfx::rect &update_rect)
 {
-    genericSwapFGBG(
-        rect, updateRect,
-        [&](esp::gfx::RGB888 const &color) { return RGB888toPaletteIndex(color); },
-        [&](int y) { return (uint8_t *)m_viewPort[y]; }, VGA8_GETPIXELINROW, VGA8_SETPIXELINROW);
+    generic_swap_fgbg(
+        rect, update_rect, [&](esp::gfx::rgb888 const &color)
+        { return rgb888_to_palette_index(color); }, [&](int y) { return (uint8_t *)_view_port[y]; },
+        vga8_get_pixel_in_row, vga8_set_pixel_in_row);
 }
 
 
 // Slow operation!
 // supports overlapping of source and dest rectangles
-void VGA8Controller::copyRect(esp::gfx::Rect const &source, esp::gfx::Rect &updateRect)
+void vga8_controller::copy_rect(esp::gfx::rect const &source, esp::gfx::rect &update_rect)
 {
-    genericCopyRect(
-        source, updateRect, [&](int y) { return (uint8_t *)m_viewPort[y]; }, VGA8_GETPIXELINROW,
-        VGA8_SETPIXELINROW);
+    generic_copy_rect(
+        source, update_rect, [&](int y) { return (uint8_t *)_view_port[y]; }, vga8_get_pixel_in_row,
+        vga8_set_pixel_in_row);
 }
 
 
 // no bounds check is done!
-void VGA8Controller::readScreen(esp::gfx::Rect const &rect, esp::gfx::RGB888 *destBuf)
+void vga8_controller::read_screen(esp::gfx::rect const &rect, esp::gfx::rgb888 *dest_buf)
 {
-    for (int y = rect.Y1; y <= rect.Y2; ++y)
+    for (int y = rect.y1; y <= rect.y2; ++y)
     {
-        auto row = (uint8_t *)m_viewPort[y];
-        for (int x = rect.X1; x <= rect.X2; ++x, ++destBuf)
+        auto row = (uint8_t *)_view_port[y];
+        for (int x = rect.x1; x <= rect.x2; ++x, ++dest_buf)
         {
-            const esp::gfx::RGB222 v = m_palette[VGA8_GETPIXELINROW(row, x)];
-            *destBuf = esp::gfx::RGB888(v.R * 85, v.G * 85, v.B * 85); // 85 x 3 = 255
+            const esp::gfx::rgb222 v = _palette[vga8_get_pixel_in_row(row, x)];
+            *dest_buf = esp::gfx::rgb888(v.r * 85, v.g * 85, v.b * 85); // 85 x 3 = 255
         }
     }
 }
 
 
-void VGA8Controller::rawDrawBitmap_Native(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                                          int X1, int Y1, int XCount, int YCount)
+void vga8_controller::raw_draw_bitmap_native(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
+                                             int x1, int y1, int x_count, int y_count)
 {
-    genericRawDrawBitmap_Native(
-        destX, destY, (uint8_t *)bitmap->data, bitmap->width, X1, Y1, XCount, YCount,
-        [&](int y) { return (uint8_t *)m_viewPort[y]; }, // rawGetRow
-        VGA8_SETPIXELINROW);
+    generic_raw_draw_bitmap_native(
+        dest_x, dest_y, (uint8_t *)bitmap->data, bitmap->width, x1, y1, x_count, y_count,
+        [&](int y) { return (uint8_t *)_view_port[y]; }, // rawGetRow
+        vga8_set_pixel_in_row);
 }
 
 
-void VGA8Controller::rawDrawBitmap_Mask(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                                        void *saveBackground, int X1, int Y1, int XCount,
-                                        int YCount)
+void vga8_controller::raw_draw_bitmap_mask(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
+                                           void *save_background, int x1, int y1, int x_count,
+                                           int y_count)
 {
-    auto foregroundColorIndex = RGB888toPaletteIndex(bitmap->foregroundColor);
-    genericRawDrawBitmap_Mask(
-        destX, destY, bitmap, (uint8_t *)saveBackground, X1, Y1, XCount, YCount,
-        [&](int y) { return (uint8_t *)m_viewPort[y]; }, // rawGetRow
-        VGA8_GETPIXELINROW, [&](uint8_t *row, int x)
-        { VGA8_SETPIXELINROW(row, x, foregroundColorIndex); } // rawSetPixelInRow
+    auto foreground_color_index = rgb888_to_palette_index(bitmap->foreground_color);
+    generic_raw_draw_bitmap_mask(
+        dest_x, dest_y, bitmap, (uint8_t *)save_background, x1, y1, x_count, y_count,
+        [&](int y) { return (uint8_t *)_view_port[y]; }, // rawGetRow
+        vga8_get_pixel_in_row, [&](uint8_t *row, int x)
+        { vga8_set_pixel_in_row(row, x, foreground_color_index); } // rawSetPixelInRow
     );
 }
 
 
-void VGA8Controller::rawDrawBitmap_RGBA2222(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                                            void *saveBackground, int X1, int Y1, int XCount,
-                                            int YCount)
+void vga8_controller::raw_draw_bitmap_rgba2222(int dest_x, int dest_y,
+                                               esp::gfx::bitmap const *bitmap,
+                                               void *save_background, int x1, int y1, int x_count,
+                                               int y_count)
 {
-    genericRawDrawBitmap_RGBA2222(
-        destX, destY, bitmap, (uint8_t *)saveBackground, X1, Y1, XCount, YCount,
-        [&](int y) { return (uint8_t *)m_viewPort[y]; }, // rawGetRow
-        VGA8_GETPIXELINROW, [&](uint8_t *row, int x, uint8_t src)
-        { VGA8_SETPIXELINROW(row, x, RGB2222toPaletteIndex(src)); } // rawSetPixelInRow
+    generic_raw_draw_bitmap_rgba2222(
+        dest_x, dest_y, bitmap, (uint8_t *)save_background, x1, y1, x_count, y_count,
+        [&](int y) { return (uint8_t *)_view_port[y]; }, // rawGetRow
+        vga8_get_pixel_in_row, [&](uint8_t *row, int x, uint8_t src)
+        { vga8_set_pixel_in_row(row, x, rgb2222_to_palette_index(src)); } // rawSetPixelInRow
     );
 }
 
 
-void VGA8Controller::rawDrawBitmap_RGBA8888(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                                            void *saveBackground, int X1, int Y1, int XCount,
-                                            int YCount)
+void vga8_controller::raw_draw_bitmap_rgba8888(int dest_x, int dest_y,
+                                               esp::gfx::bitmap const *bitmap,
+                                               void *save_background, int x1, int y1, int x_count,
+                                               int y_count)
 {
-    genericRawDrawBitmap_RGBA8888(
-        destX, destY, bitmap, (uint8_t *)saveBackground, X1, Y1, XCount, YCount,
-        [&](int y) { return (uint8_t *)m_viewPort[y]; }, // rawGetRow
-        [&](uint8_t *row, int x) { return VGA8_GETPIXELINROW(row, x); }, // rawGetPixelInRow
-        [&](uint8_t *row, int x, esp::gfx::RGBA8888 const &src)
-        { VGA8_SETPIXELINROW(row, x, RGB8888toPaletteIndex(src)); } // rawSetPixelInRow
+    generic_raw_draw_bitmap_rgba8888(
+        dest_x, dest_y, bitmap, (uint8_t *)save_background, x1, y1, x_count, y_count,
+        [&](int y) { return (uint8_t *)_view_port[y]; }, // rawGetRow
+        [&](uint8_t *row, int x) { return vga8_get_pixel_in_row(row, x); }, // rawGetPixelInRow
+        [&](uint8_t *row, int x, esp::gfx::rgba8888 const &src)
+        { vga8_set_pixel_in_row(row, x, rgb8888_to_palette_index(src)); } // rawSetPixelInRow
     );
 }
 
 
-void VGA8Controller::directSetPixel(int x, int y, int value)
+void vga8_controller::direct_set_pixel(int x, int y, int value)
 {
-    VGA8_SETPIXEL(x, y, value);
+    vga8_set_pixel(x, y, value);
 }
 
 
-void IRAM_ATTR VGA8Controller::ISRHandler(void *arg)
+void IRAM_ATTR vga8_controller::isr_handler(void *arg)
 {
 #if FABGLIB_VGAXCONTROLLER_PERFORMANCE_CHECK
-    auto s1 = getCycleCount();
+    auto s1 = cycle_count();
 #endif
 
-    auto ctrl = (VGA8Controller *)arg;
+    auto ctrl = (vga8_controller *)arg;
 
     if (I2S1.int_st.out_eof)
     {
 
         auto const desc = (lldesc_t *)I2S1.out_eof_des_addr;
 
-        if (desc == s_frameResetDesc)
-            s_scanLine = 0;
+        if (desc == _frame_reset_desc)
+            _scan_line = 0;
 
-        auto const width = ctrl->m_viewPortWidth;
-        auto const height = ctrl->m_viewPortHeight;
+        auto const width = ctrl->_view_port_width;
+        auto const height = ctrl->_view_port_height;
         auto const packedPaletteIndexPair_to_signals =
-            (uint16_t const *)ctrl->m_packedPaletteIndexPair_to_signals;
-        auto const lines = ctrl->m_lines;
+            (uint16_t const *)ctrl->_packed_palette_index_pair_to_signals;
+        auto const lines = ctrl->_lines;
 
-        int scanLine = (s_scanLine + VGA8_LinesCount / 2) % height;
+        int scan_line = (_scan_line + VGA8_LinesCount / 2) % height;
 
-        auto lineIndex = scanLine & (VGA8_LinesCount - 1);
+        auto line_index = scan_line & (VGA8_LinesCount - 1);
 
         for (int i = 0; i < VGA8_LinesCount / 2; ++i)
         {
 
-            auto src = (uint8_t const *)s_viewPortVisible[scanLine];
-            auto dest = (uint16_t *)lines[lineIndex];
+            auto src = (uint8_t const *)_isr_view_port_visible[scan_line];
+            auto dest = (uint16_t *)lines[line_index];
 
             // optimization warn: horizontal resolution must be a multiple of 16!
             for (int col = 0; col < width; col += 16)
@@ -508,23 +514,23 @@ void IRAM_ATTR VGA8Controller::ISRHandler(void *arg)
                 src += 6;
             }
 
-            ++lineIndex;
-            ++scanLine;
+            ++line_index;
+            ++scan_line;
         }
 
-        s_scanLine += VGA8_LinesCount / 2;
+        _scan_line += VGA8_LinesCount / 2;
 
-        if (scanLine >= height && !ctrl->m_primitiveProcessingSuspended && spi_flash_cache_enabled()
-            && ctrl->m_primitiveExecTask)
+        if (scan_line >= height && !ctrl->_primitive_processing_suspended
+            && spi_flash_cache_enabled() && ctrl->_primitive_exec_task)
         {
             // vertical sync, unlock primitive execution task
             // warn: don't use vTaskSuspendAll() in primitive drawing, otherwise vTaskNotifyGiveFromISR may be blocked and screen will flick!
-            vTaskNotifyGiveFromISR(ctrl->m_primitiveExecTask, NULL);
+            vTaskNotifyGiveFromISR(ctrl->_primitive_exec_task, NULL);
         }
     }
 
 #if FABGLIB_VGAXCONTROLLER_PERFORMANCE_CHECK
-    s_vgapalctrlcycles += getCycleCount() - s1;
+    s_vgapalctrlcycles += cycle_count() - s1;
 #endif
 
     I2S1.int_clr.val = I2S1.int_st.val;

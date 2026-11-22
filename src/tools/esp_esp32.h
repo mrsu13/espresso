@@ -6,20 +6,20 @@
 namespace esp
 {
 
-enum class ChipPackage
+enum class chip_package
 {
-    Unknown,
-    D0WDQ6,
-    D0WDQ5,
-    D2WDQ5,
-    U4WDH,
-    PicoD4,
-    PicoV302,
-    D0WDR2V3,
+    unknown,
+    d0wdq6,
+    d0wdq5,
+    d2wdq5,
+    u4wdh,
+    pico_d4,
+    pico_v302,
+    d0wdr2v3,
 };
 
-esp::ChipPackage chip_package();
-const char *chip_package_name(esp::ChipPackage package);
+esp::chip_package detected_chip_package();
+const char *chip_package_name(esp::chip_package package);
 
 #define ESP_GPIO_UNUSED GPIO_NUM_MAX
 

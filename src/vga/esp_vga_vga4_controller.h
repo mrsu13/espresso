@@ -73,17 +73,17 @@ namespace esp::vga
 *     displayController.begin();
 *     displayController.setResolution(VGA_640x480_60Hz);
 */
-class VGA4Controller : public VGAPalettedController
+class vga4_controller : public vga_paletted_controller
 {
 
 public:
 
-    VGA4Controller();
-    ~VGA4Controller();
+    vga4_controller();
+    ~vga4_controller();
 
     // unwanted methods
-    VGA4Controller(VGA4Controller const &) = delete;
-    void operator=(VGA4Controller const &) = delete;
+    vga4_controller(vga4_controller const &) = delete;
+    void operator=(vga4_controller const &) = delete;
 
 
     /**
@@ -91,12 +91,12 @@ public:
    *
    * @return A pointer to VGA4Controller singleton object
    */
-    static VGA4Controller *instance()
+    static vga4_controller *instance()
     {
-        return s_instance;
+        return _instance;
     }
 
-    void readScreen(esp::gfx::Rect const &rect, esp::gfx::RGB888 *destBuf);
+    void read_screen(esp::gfx::rect const &rect, esp::gfx::rgb888 *dest_buf);
 
     /**
    * @brief Determines color of specified palette item
@@ -109,86 +109,86 @@ public:
    *     // Color item 0 is pure Red
    *     displayController.setPaletteItem(0, RGB888(255, 0, 0));
    */
-    void setPaletteItem(int index, esp::gfx::RGB888 const &color);
+    void set_palette_item(int index, esp::gfx::rgb888 const &color);
 
 
 protected:
 
-    void setupDefaultPalette();
+    void setup_default_palette();
 
 
 private:
 
     // abstract method of BitmappedDisplayController
-    void setPixelAt(esp::gfx::PixelDesc const &pixelDesc, esp::gfx::Rect &updateRect);
+    void set_pixel_at(esp::gfx::pixel_desc const &pixel_desc, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void drawEllipse(esp::gfx::Size const &size, esp::gfx::Rect &updateRect);
+    void draw_ellipse(esp::gfx::size const &size, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void clear(esp::gfx::Rect &updateRect);
+    void clear(esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void VScroll(int scroll, esp::gfx::Rect &updateRect);
+    void v_scroll(int scroll, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void HScroll(int scroll, esp::gfx::Rect &updateRect);
+    void h_scroll(int scroll, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void drawGlyph(esp::gfx::Glyph const &glyph, esp::gfx::GlyphOptions glyphOptions,
-                   esp::gfx::RGB888 penColor, esp::gfx::RGB888 brushColor,
-                   esp::gfx::Rect &updateRect);
+    void draw_glyph(esp::gfx::glyph const &glyph, esp::gfx::glyph_options glyph_options,
+                    esp::gfx::rgb888 pen_color, esp::gfx::rgb888 brush_color,
+                    esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void invertRect(esp::gfx::Rect const &rect, esp::gfx::Rect &updateRect);
+    void invert_rect(esp::gfx::rect const &rect, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void copyRect(esp::gfx::Rect const &source, esp::gfx::Rect &updateRect);
+    void copy_rect(esp::gfx::rect const &source, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void swapFGBG(esp::gfx::Rect const &rect, esp::gfx::Rect &updateRect);
+    void swap_fgbg(esp::gfx::rect const &rect, esp::gfx::rect &update_rect);
 
     // abstract method of BitmappedDisplayController
-    void rawDrawBitmap_Native(int destX, int destY, esp::gfx::Bitmap const *bitmap, int X1, int Y1,
-                              int XCount, int YCount);
+    void raw_draw_bitmap_native(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap, int x1,
+                                int y1, int x_count, int y_count);
 
     // abstract method of BitmappedDisplayController
-    void rawDrawBitmap_Mask(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                            void *saveBackground, int X1, int Y1, int XCount, int YCount);
+    void raw_draw_bitmap_mask(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
+                              void *save_background, int x1, int y1, int x_count, int y_count);
 
     // abstract method of BitmappedDisplayController
-    void rawDrawBitmap_RGBA2222(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                                void *saveBackground, int X1, int Y1, int XCount, int YCount);
+    void raw_draw_bitmap_rgba2222(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
+                                  void *save_background, int x1, int y1, int x_count, int y_count);
 
     // abstract method of BitmappedDisplayController
-    void rawDrawBitmap_RGBA8888(int destX, int destY, esp::gfx::Bitmap const *bitmap,
-                                void *saveBackground, int X1, int Y1, int XCount, int YCount);
+    void raw_draw_bitmap_rgba8888(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
+                                  void *save_background, int x1, int y1, int x_count, int y_count);
 
     // abstract method of BitmappedDisplayController
-    void rawFillRow(int y, int x1, int x2, esp::gfx::RGB888 color);
-    void rawFillRow(int y, int x1, int x2, uint8_t colorIndex);
+    void raw_fill_row(int y, int x1, int x2, esp::gfx::rgb888 color);
+    void raw_fill_row(int y, int x1, int x2, uint8_t color_index);
 
-    void rawInvertRow(int y, int x1, int x2);
+    void raw_invert_row(int y, int x1, int x2);
 
-    void rawCopyRow(int x1, int x2, int srcY, int dstY);
+    void raw_copy_row(int x1, int x2, int src_y, int dst_y);
 
-    void swapRows(int yA, int yB, int x1, int x2);
-
-    // abstract method of BitmappedDisplayController
-    void absDrawLine(int X1, int Y1, int X2, int Y2, esp::gfx::RGB888 color);
+    void swap_rows(int y_a, int y_b, int x1, int x2);
 
     // abstract method of BitmappedDisplayController
-    int getBitmapSavePixelSize()
+    void abs_draw_line(int x1, int y1, int x2, int y2, esp::gfx::rgb888 color);
+
+    // abstract method of BitmappedDisplayController
+    int bitmap_save_pixel_size()
     {
         return 1;
     }
 
-    static void ISRHandler(void *arg);
+    static void isr_handler(void *arg);
 
 
-    static VGA4Controller *s_instance;
+    static vga4_controller *_instance;
 
-    volatile uint32_t *m_packedPaletteIndexQuad_to_signals;
+    volatile uint32_t *_packed_palette_index_quad_to_signals;
 };
 
 

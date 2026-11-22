@@ -56,36 +56,37 @@ namespace esp::vga
 /**
 * @brief Represents the base class for paletted bitmapped controllers like VGA16Controller, VGA8Controller, etc..
 */
-class VGAPalettedController : public VGABaseController
+class vga_paletted_controller : public vga_base_controller
 {
 
 public:
 
-    VGAPalettedController(int linesCount, int columnsQuantum,
-                          esp::gfx::NativePixelFormat nativePixelFormat, int viewPortRatioDiv,
-                          int viewPortRatioMul, intr_handler_t isrHandler);
-    ~VGAPalettedController();
+    vga_paletted_controller(int lines_count, int columns_quantum,
+                            esp::gfx::native_pixel_format native_pixel_format,
+                            int view_port_ratio_div, int view_port_ratio_mul,
+                            intr_handler_t isr_handler);
+    ~vga_paletted_controller();
 
     // unwanted methods
-    VGAPalettedController(VGAPalettedController const &) = delete;
-    void operator=(VGAPalettedController const &) = delete;
+    vga_paletted_controller(vga_paletted_controller const &) = delete;
+    void operator=(vga_paletted_controller const &) = delete;
 
     void end();
 
     // abstract method of BitmappedDisplayController
-    void suspendBackgroundPrimitiveExecution();
+    void suspend_background_primitive_execution();
 
     // import "modeline" version of setResolution
-    using VGABaseController::setResolution;
+    using vga_base_controller::set_resolution;
 
-    void setResolution(VGATimings const &timings, int viewPortWidth = -1, int viewPortHeight = -1,
-                       bool doubleBuffered = false);
+    void set_resolution(vga_timings const &timings, int view_port_width = -1,
+                        int view_port_height = -1, bool double_buffered = false);
 
-    int getPaletteSize();
+    int palette_size();
 
-    virtual int colorsCount()
+    virtual int colors_count()
     {
-        return getPaletteSize();
+        return palette_size();
     }
 
     /**
@@ -99,96 +100,96 @@ public:
    *
    * @param value True = allowed time to process primitives is limited to the vertical blank. Slow, but avoid flickering. False = allowed time is the half of an entire frame. Fast, but may flick.
    */
-    void setProcessPrimitivesOnBlank(bool value)
+    void set_process_primitives_on_blank(bool value)
     {
-        m_processPrimitivesOnBlank = value;
+        _process_primitives_on_blank = value;
     }
 
     // returns "static" version of m_viewPort
-    static uint8_t *sgetScanline(int y)
+    static uint8_t *sget_scanline(int y)
     {
-        return (uint8_t *)s_viewPort[y];
+        return (uint8_t *)_isr_view_port[y];
     }
 
     // abstract method of BitmappedDisplayController
-    esp::gfx::NativePixelFormat nativePixelFormat()
+    esp::gfx::native_pixel_format native_pixel_format()
     {
-        return m_nativePixelFormat;
+        return _native_pixel_format;
     }
 
-    virtual bool suspendDoubleBuffering(bool value);
+    virtual bool suspend_double_buffering(bool value);
 
 
 protected:
 
     void init();
 
-    virtual void setupDefaultPalette() = 0;
+    virtual void setup_default_palette() = 0;
 
-    void updateRGB2PaletteLUT();
-    void calculateAvailableCyclesForDrawings();
-    static void primitiveExecTask(void *arg);
+    void update_rgb2_palette_lut();
+    void calculate_available_cycles_for_drawings();
+    static void primitive_exec_task(void *arg);
 
-    uint8_t RGB888toPaletteIndex(esp::gfx::RGB888 const &rgb)
+    uint8_t rgb888_to_palette_index(esp::gfx::rgb888 const &rgb)
     {
-        return m_packedRGB222_to_PaletteIndex[esp::gfx::RGB888toPackedRGB222(rgb)];
+        return _packed_rgb222_to_palette_index[esp::gfx::rgb888_to_packed_rgb222(rgb)];
     }
 
-    uint8_t RGB2222toPaletteIndex(uint8_t value)
+    uint8_t rgb2222_to_palette_index(uint8_t value)
     {
-        return m_packedRGB222_to_PaletteIndex[value & 0b00111111];
+        return _packed_rgb222_to_palette_index[value & 0b00111111];
     }
 
-    uint8_t RGB8888toPaletteIndex(esp::gfx::RGBA8888 value)
+    uint8_t rgb8888_to_palette_index(esp::gfx::rgba8888 value)
     {
-        return RGB888toPaletteIndex(esp::gfx::RGB888(value.R, value.G, value.B));
+        return rgb888_to_palette_index(esp::gfx::rgb888(value.r, value.g, value.b));
     }
 
     // abstract method of BitmappedDisplayController
-    void swapBuffers();
+    void swap_buffers();
 
 
-    TaskHandle_t m_primitiveExecTask;
+    TaskHandle_t _primitive_exec_task;
 
-    volatile uint8_t **m_lines;
+    volatile uint8_t **_lines;
 
     // optimization: clones of m_viewPort and m_viewPortVisible
-    static volatile uint8_t **s_viewPort;
-    static volatile uint8_t **s_viewPortVisible;
+    static volatile uint8_t **_isr_view_port;
+    static volatile uint8_t **_isr_view_port_visible;
 
-    static lldesc_t volatile *s_frameResetDesc;
+    static lldesc_t volatile *_frame_reset_desc;
 
-    static volatile int s_scanLine;
+    static volatile int _scan_line;
 
-    esp::gfx::RGB222 *m_palette;
+    esp::gfx::rgb222 *_palette;
 
 
 private:
 
-    void allocateViewPort();
-    void freeViewPort();
-    void checkViewPortSize();
-    void onSetupDMABuffer(lldesc_t volatile *buffer, bool isStartOfVertFrontPorch, int scan,
-                          bool isVisible, int visibleRow);
+    void allocate_view_port();
+    void free_view_port();
+    void check_view_port_size();
+    void on_setup_dma_buffer(lldesc_t volatile *buffer, bool is_start_of_vert_front_porch, int scan,
+                             bool is_visible, int visible_row);
 
     // Maximum time (in CPU cycles) available for primitives drawing
-    volatile uint32_t m_primitiveExecTimeoutCycles;
+    volatile uint32_t _primitive_exec_timeout_cycles;
 
-    volatile bool m_taskProcessingPrimitives;
+    volatile bool _task_processing_primitives;
 
     // true = allowed time to process primitives is limited to the vertical blank. Slow, but avoid flickering
     // false = allowed time is the half of an entire frame. Fast, but may flick
-    bool m_processPrimitivesOnBlank;
+    bool _process_primitives_on_blank;
 
-    uint8_t m_packedRGB222_to_PaletteIndex[64];
+    uint8_t _packed_rgb222_to_palette_index[64];
 
     // configuration
-    int m_linesCount; // viewport height must be divisible by m_linesCount
-    int m_columnsQuantum; // viewport width must be divisble by m_columnsQuantum
-    esp::gfx::NativePixelFormat m_nativePixelFormat;
-    int m_viewPortRatioDiv;
-    int m_viewPortRatioMul;
-    intr_handler_t m_isrHandler;
+    int _lines_count; // viewport height must be divisible by m_linesCount
+    int _columns_quantum; // viewport width must be divisble by m_columnsQuantum
+    esp::gfx::native_pixel_format _native_pixel_format;
+    int _view_port_ratio_div;
+    int _view_port_ratio_mul;
+    intr_handler_t _isr_handler;
 };
 
 

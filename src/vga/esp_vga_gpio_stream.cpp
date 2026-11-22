@@ -48,48 +48,48 @@ namespace esp::vga
 /*************************************************************************************/
 /* GPIOStream definitions */
 
-void GPIOStream::begin()
+void gpio_stream::begin()
 {
-    m_DMAStarted = false;
-    m_DMABuffer = nullptr;
-    m_DMAData = nullptr;
+    _dma_started = false;
+    _dma_buffer = nullptr;
+    _dma_data = nullptr;
 }
 
 
-void GPIOStream::begin(bool div1_onGPIO0, gpio_num_t div2, gpio_num_t div4, gpio_num_t div8,
-                       gpio_num_t div16, gpio_num_t div32, gpio_num_t div64, gpio_num_t div128,
-                       gpio_num_t div256)
+void gpio_stream::begin(bool div_1_on_gpio0, gpio_num_t div2, gpio_num_t div4, gpio_num_t div8,
+                        gpio_num_t div16, gpio_num_t div32, gpio_num_t div64, gpio_num_t div128,
+                        gpio_num_t div256)
 {
-    m_DMAStarted = false;
+    _dma_started = false;
 
-    if (div1_onGPIO0)
-        setupGPIO(GPIO_NUM_0, -1, GPIO_MODE_OUTPUT); // note: GPIO_NUM_0 cannot be changed!
-    setupGPIO(div2, 0, GPIO_MODE_OUTPUT);
-    setupGPIO(div4, 1, GPIO_MODE_OUTPUT);
-    setupGPIO(div8, 2, GPIO_MODE_OUTPUT);
-    setupGPIO(div16, 3, GPIO_MODE_OUTPUT);
-    setupGPIO(div32, 4, GPIO_MODE_OUTPUT);
-    setupGPIO(div64, 5, GPIO_MODE_OUTPUT);
-    setupGPIO(div128, 6, GPIO_MODE_OUTPUT);
-    setupGPIO(div256, 7, GPIO_MODE_OUTPUT);
+    if (div_1_on_gpio0)
+        setup_gpio(GPIO_NUM_0, -1, GPIO_MODE_OUTPUT); // note: GPIO_NUM_0 cannot be changed!
+    setup_gpio(div2, 0, GPIO_MODE_OUTPUT);
+    setup_gpio(div4, 1, GPIO_MODE_OUTPUT);
+    setup_gpio(div8, 2, GPIO_MODE_OUTPUT);
+    setup_gpio(div16, 3, GPIO_MODE_OUTPUT);
+    setup_gpio(div32, 4, GPIO_MODE_OUTPUT);
+    setup_gpio(div64, 5, GPIO_MODE_OUTPUT);
+    setup_gpio(div128, 6, GPIO_MODE_OUTPUT);
+    setup_gpio(div256, 7, GPIO_MODE_OUTPUT);
 
-    m_DMAData = (volatile uint8_t *)heap_caps_malloc(256, MALLOC_CAP_DMA);
+    _dma_data = (volatile uint8_t *)heap_caps_malloc(256, MALLOC_CAP_DMA);
     for (int i = 0; i < 256; ++i)
-        m_DMAData[i] = i;
+        _dma_data[i] = i;
 
-    m_DMABuffer = (volatile lldesc_t *)heap_caps_malloc(sizeof(lldesc_t), MALLOC_CAP_DMA);
-    m_DMABuffer->eof = 0;
-    m_DMABuffer->sosf = 0;
-    m_DMABuffer->owner = 1;
-    m_DMABuffer->qe.stqe_next = (lldesc_t *)m_DMABuffer;
-    m_DMABuffer->offset = 0;
-    m_DMABuffer->size = 256;
-    m_DMABuffer->length = 256;
-    m_DMABuffer->buf = (uint8_t *)m_DMAData;
+    _dma_buffer = (volatile lldesc_t *)heap_caps_malloc(sizeof(lldesc_t), MALLOC_CAP_DMA);
+    _dma_buffer->eof = 0;
+    _dma_buffer->sosf = 0;
+    _dma_buffer->owner = 1;
+    _dma_buffer->qe.stqe_next = (lldesc_t *)_dma_buffer;
+    _dma_buffer->offset = 0;
+    _dma_buffer->size = 256;
+    _dma_buffer->length = 256;
+    _dma_buffer->buf = (uint8_t *)_dma_data;
 }
 
 
-void GPIOStream::end()
+void gpio_stream::end()
 {
     stop();
 }
@@ -97,7 +97,7 @@ void GPIOStream::end()
 
 // if bit is -1 = clock signal
 // gpio = GPIO_UNUSED means not set
-void GPIOStream::setupGPIO(gpio_num_t gpio, int bit, gpio_mode_t mode)
+void gpio_stream::setup_gpio(gpio_num_t gpio, int bit, gpio_mode_t mode)
 {
     if (gpio != GPIO_UNUSED)
     {
@@ -110,20 +110,20 @@ void GPIOStream::setupGPIO(gpio_num_t gpio, int bit, gpio_mode_t mode)
         }
         else
         {
-            configureGPIO(gpio, mode);
+            configure_gpio(gpio, mode);
             esp_rom_gpio_connect_out_signal(gpio, I2S1O_DATA_OUT0_IDX + bit, false, false);
         }
     }
 }
 
 
-void GPIOStream::play(int freq, lldesc_t volatile *dmaBuffers)
+void gpio_stream::play(int freq, lldesc_t volatile *dma_buffers)
 {
-    if (!m_DMAStarted)
+    if (!_dma_started)
     {
 
         // Power on device
-        esp::I2SModuleEnable(1, true);
+        esp::i2s_module_enable(1, true);
 
         // Initialize I2S device
         I2S1.conf.tx_reset = 1;
@@ -146,7 +146,7 @@ void GPIOStream::play(int freq, lldesc_t volatile *dmaBuffers)
         I2S1.sample_rate_conf.val = 0;
         I2S1.sample_rate_conf.tx_bits_mod = 8;
 
-        setupClock(freq);
+        setup_clock(freq);
 
         I2S1.fifo_conf.val = 0;
         I2S1.fifo_conf.tx_fifo_mod_force_en = 1;
@@ -174,33 +174,33 @@ void GPIOStream::play(int freq, lldesc_t volatile *dmaBuffers)
 
         // Start DMA
         I2S1.lc_conf.val = I2S_OUT_DATA_BURST_EN | I2S_OUTDSCR_BURST_EN;
-        I2S1.out_link.addr = (uint32_t)(dmaBuffers ? &dmaBuffers[0] : m_DMABuffer);
+        I2S1.out_link.addr = (uint32_t)(dma_buffers ? &dma_buffers[0] : _dma_buffer);
         I2S1.out_link.start = 1;
         I2S1.conf.tx_start = 1;
 
-        m_DMAStarted = true;
+        _dma_started = true;
     }
 }
 
 
-void GPIOStream::stop()
+void gpio_stream::stop()
 {
-    if (m_DMAStarted)
+    if (_dma_started)
     {
-        APLLEnable(false);
-        esp::I2SModuleEnable(1, false);
+        apll_enable(false);
+        esp::i2s_module_enable(1, false);
 
-        m_DMAStarted = false;
+        _dma_started = false;
     }
 }
 
 
-void GPIOStream::setupClock(int freq)
+void gpio_stream::setup_clock(int freq)
 {
-    APLLParams p = {0, 0, 0, 0};
+    apll_params p = {0, 0, 0, 0};
     double error, out_freq;
     uint8_t a = 1, b = 0;
-    APLLCalcParams(freq, &p, &a, &b, &out_freq, &error);
+    apll_calc_params(freq, &p, &a, &b, &out_freq, &error);
 
     I2S1.clkm_conf.val = 0;
     I2S1.clkm_conf.clkm_div_b = b;
@@ -209,7 +209,7 @@ void GPIOStream::setupClock(int freq)
 
     I2S1.sample_rate_conf.tx_bck_div_num = 1; // this makes I2S1O_BCK = I2S1_CLK
 
-    APLLEnable(true, p.sdm0, p.sdm1, p.sdm2, p.o_div);
+    apll_enable(true, p.sdm0, p.sdm1, p.sdm2, p.o_div);
 
     I2S1.clkm_conf.clka_en = 1;
 }

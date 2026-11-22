@@ -21,8 +21,8 @@ public:
     inline int height() const;
 
     int index(char32_t codepoint) const;
-    void draw_char(Canvas &canvas, int x, int y, char32_t codepoint) const;
-    int draw_text(Canvas &canvas, int x, int y, const char *text) const;
+    void draw_char(canvas &canvas, int x, int y, char32_t codepoint) const;
+    int draw_text(canvas &canvas, int x, int y, const char *text) const;
 
 private:
 

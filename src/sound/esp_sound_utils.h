@@ -43,12 +43,12 @@ namespace esp::sound
 
 
 #ifndef FABGL_EMULATED
-int calcI2STimingParams(int sampleRate, int *outA, int *outB, int *outN, int *outM);
+int calc_i2s_timing_params(int sample_rate, int *out_a, int *out_b, int *out_n, int *out_m);
 #endif
 
 
 // routes I2S0 output to the internal DAC and powers up the DAC channel of the specified gpio (GPIO_NUM_25 or GPIO_NUM_26)
-void DACEnableI2SOutput(gpio_num_t gpio);
+void dac_enable_i2s_output(gpio_num_t gpio);
 
 
 } // end of namespace

@@ -62,30 +62,30 @@ bool esp::sd_card::mount()
 
     const int MAX_FILES = 4; // Сколько файлов можно держать открытыми одновременно.
     const size_t ALLOCATION_UNIT_SIZE = 16 * 1024; // Размер кластера в байтах.
-    int MISO; // Вывод MISO: по умолчанию 16 для WROOM-32, 2 для PICO-D4.
-    int MOSI; // Вывод MOSI: по умолчанию 17 для WROOM-32, 12 для PICO-D4.
+    int miso; // Вывод MISO: по умолчанию 16 для WROOM-32, 2 для PICO-D4.
+    int mosi; // Вывод MOSI: по умолчанию 17 для WROOM-32, 12 для PICO-D4.
     const int CLK = 14; // Вывод тактового сигнала.
     const int CS = 13; // Вывод выбора карты.
 
     // По корпусу чипа угадывается плата, а по плате — разводка выводов.
-    switch (esp::chip_package())
+    switch (esp::detected_chip_package())
     {
-        case ChipPackage::PicoD4:
+        case chip_package::pico_d4:
             ESP_LOGD(TAG, "TTGO VGA32 detected.");
-            MISO = 2;
-            MOSI = 12;
+            miso = 2;
+            mosi = 12;
             break;
-        case ChipPackage::D0WDQ5:
-            MISO = 35;
-            MOSI = 12;
+        case chip_package::d0wdq5:
+            miso = 35;
+            mosi = 12;
             break;
         default:
-            MISO = 16;
-            MOSI = 17;
+            miso = 16;
+            mosi = 17;
             break;
     }
 
-    ESP_LOGD(TAG, "SPI pins: MISO %d, MOSI %d, CLK %d, CS %d.", MISO, MOSI, CLK, CS);
+    ESP_LOGD(TAG, "SPI pins: MISO %d, MOSI %d, CLK %d, CS %d.", miso, mosi, CLK, CS);
 
     // Параметры монтирования. Если включить format_if_mount_failed, карта,
     // которую не удалось смонтировать, будет заново размечена и
@@ -100,8 +100,8 @@ bool esp::sd_card::mount()
 
     // Неиспользуемые линии шины отмечаются значением -1.
     spi_bus_config_t bus_cfg = {};
-    bus_cfg.mosi_io_num = MOSI;
-    bus_cfg.miso_io_num = MISO;
+    bus_cfg.mosi_io_num = mosi;
+    bus_cfg.miso_io_num = miso;
     bus_cfg.sclk_io_num = CLK;
     bus_cfg.quadwp_io_num = -1;
     bus_cfg.quadhd_io_num = -1;

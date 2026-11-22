@@ -64,7 +64,7 @@ namespace esp::sound
 // Equivalent to legacy dac_i2s_enable() + dac_output_enable(). The new DAC driver cannot be used
 // because it wants to own I2S0.
 
-void DACEnableI2SOutput(gpio_num_t gpio)
+void dac_enable_i2s_output(gpio_num_t gpio)
 {
     // I2S0 clock and data connected to the DAC
     SENS.sar_dac_ctrl1.dac_dig_force = 1;
@@ -97,51 +97,51 @@ void DACEnableI2SOutput(gpio_num_t gpio)
 // N    : 2..254
 // M    : 1..63
 // ret: actual sample rate
-int calcI2STimingParams(int sampleRate, int *outA, int *outB, int *outN, int *outM)
+int calc_i2s_timing_params(int sample_rate, int *out_a, int *out_b, int *out_n, int *out_m)
 {
-    *outM = 1;
+    *out_m = 1;
 
-    double N = (double)APB_CLK_FREQ / sampleRate;
-    while (N >= 255)
+    double n = (double)APB_CLK_FREQ / sample_rate;
+    while (n >= 255)
     {
-        ++(*outM);
-        N = (double)APB_CLK_FREQ / sampleRate / *outM;
+        ++(*out_m);
+        n = (double)APB_CLK_FREQ / sample_rate / *out_m;
     }
 
     double min_error = 1.0;
-    *outN = N;
-    *outB = 0;
-    *outA = 1;
+    *out_n = n;
+    *out_b = 0;
+    *out_a = 1;
 
     for (int a = 1; a < 64; ++a)
     {
-        int b = (N - (double)(*outN)) * (double)a;
+        int b = (n - (double)(*out_n)) * (double)a;
         if (b > 63)
             continue;
 
-        double divisor = (double)(*outN) + (double)b / (double)a;
-        double error = divisor > N ? divisor - N : N - divisor;
+        double divisor = (double)(*out_n) + (double)b / (double)a;
+        double error = divisor > n ? divisor - n : n - divisor;
         if (error < min_error)
         {
             min_error = error;
-            *outA = a;
-            *outB = b;
+            *out_a = a;
+            *out_b = b;
         }
 
         ++b;
         if (b > 63)
             continue;
-        divisor = (double)(*outN) + (double)b / (double)a;
-        error = divisor > N ? divisor - N : N - divisor;
+        divisor = (double)(*out_n) + (double)b / (double)a;
+        error = divisor > n ? divisor - n : n - divisor;
         if (error < min_error)
         {
             min_error = error;
-            *outA = a;
-            *outB = b;
+            *out_a = a;
+            *out_b = b;
         }
     }
 
-    return APB_CLK_FREQ / ((double)(*outN) + (double)(*outB) / (*outA)) / *outM;
+    return APB_CLK_FREQ / ((double)(*out_n) + (double)(*out_b) / (*out_a)) / *out_m;
 }
 
 #endif
