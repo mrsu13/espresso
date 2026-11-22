@@ -1120,7 +1120,16 @@ EXCLUDE_PATTERNS       = */.git/* \
                          */build/* \
                          */components/utf8 \
                          */components/yyjson \
-                         */components/fabgl
+                         */components/fabgl/INFO.md \
+                         */components/fabgl/src/esp_utils.* \
+                         */components/fabgl/src/gfx/esp_gfx_canvas.* \
+                         */components/fabgl/src/gfx/esp_gfx_config.h \
+                         */components/fabgl/src/gfx/esp_gfx_cursors.h \
+                         */components/fabgl/src/gfx/esp_gfx_display_controller.* \
+                         */components/fabgl/src/gfx/esp_gfx_utils.* \
+                         */components/fabgl/src/ps2 \
+                         */components/fabgl/src/sound \
+                         */components/fabgl/src/vga
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
 # (namespaces, classes, functions, etc.) that should be excluded from the

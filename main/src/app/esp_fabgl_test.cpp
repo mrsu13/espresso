@@ -11,6 +11,13 @@
 
 #include "esp_fabgl_test.h"
 
+#include "esp_gfx_display_controller.h"
+#include "esp_gfx_utils.h"
+#include "esp_ps2_keyboard.h"
+#include "esp_ps2_keyboard_layouts.h"
+#include "esp_ps2_mouse.h"
+#include "esp_ps2_ps2_controller.h"
+#include "esp_vga_modelines.h"
 #include "ter_10x18.h"
 
 #include "esp_heap_caps.h"
@@ -34,7 +41,7 @@
  * На экране — рамка по краю изображения, заголовок, полосы всех 16 цветов
  * палитры, строки состояния, образцы русского текста и псевдографики и
  * поле для рисования мышью. Весь текст выводится растровым шрифтом
- * Unicode Terminus 10 × 18 (esp::font, компонент consolefonts); разметка
+ * Unicode Terminus 10 × 18 (esp::gfx::font, компонент consolefonts); разметка
  * экрана рассчитывается по размеру знакоместа шрифта.
  *
  * Клавиатура: набранные символы появляются в строке ввода; Backspace
@@ -125,16 +132,16 @@ const char *const WAVEFORMS[] = {"sine", "square", "triangle", "sawtooth", "nois
 static_assert(std::size(WAVEFORMS) == 5, "WAVEFORMS must match esp::fabgl_test::play()");
 
 /** @brief Указатель мыши. */
-constexpr fabgl::CursorName CURSOR = fabgl::CursorPointerShadowed;
+constexpr esp::gfx::CursorName CURSOR = esp::gfx::CursorPointerShadowed;
 
 /**
  * @brief Возвращает цвет палитры по номеру.
  * @param index Номер цвета, от 0 до 15.
  * @return Цвет палитры.
  */
-fabgl::Color color(int index)
+esp::gfx::Color color(int index)
 {
-    return static_cast<fabgl::Color>(index);
+    return static_cast<esp::gfx::Color>(index);
 }
 
 }
@@ -154,7 +161,7 @@ esp::fabgl_test::fabgl_test()
     , _font(ter_10x18::WIDTH, ter_10x18::HEIGHT, ter_10x18::CODEPOINTS, ter_10x18::GLYPHS,
             ter_10x18::COUNT, ter_10x18::FALLBACK)
     , _waveform(0)
-    , _paint_color(fabgl::BrightYellow)
+    , _paint_color(esp::gfx::BrightYellow)
     , _presses(0)
     , _keyboard_found(false)
     , _mouse_found(false)
@@ -167,17 +174,17 @@ esp::fabgl_test::fabgl_test()
 
     // Знаки шрифта заливают фон знакоместа цветом кисти, поэтому новый
     // текст закрывает прежний.
-    _canvas.setGlyphOptions(fabgl::GlyphOptions().FillBackground(true));
+    _canvas.setGlyphOptions(esp::gfx::GlyphOptions().FillBackground(true));
 
     // FabGL ищет устройства только здесь и при их сбросе (check_devices()):
     // клавиатуру и мышь лучше подключить до включения платы.
-    fabgl::PS2Controller::begin(fabgl::PS2Preset::KeyboardPort0_MousePort1);
-    fabgl::PS2Controller::keyboard()->setLayout(&fabgl::USLayout);
-    _keyboard_found = fabgl::PS2Controller::keyboard()->isKeyboardAvailable();
+    esp::ps2::PS2Controller::begin(esp::ps2::PS2Preset::KeyboardPort0_MousePort1);
+    esp::ps2::PS2Controller::keyboard()->setLayout(&esp::ps2::USLayout);
+    _keyboard_found = esp::ps2::PS2Controller::keyboard()->isKeyboardAvailable();
 
     // Указатель мыши двигает сама FabGL, а новые состояния мыши она кладёт
     // в очередь, которую читает poll(). Указатель начинает с центра экрана.
-    fabgl::Mouse *const mouse = fabgl::PS2Controller::mouse();
+    esp::ps2::Mouse *const mouse = esp::ps2::PS2Controller::mouse();
     mouse->setupAbsolutePositioner(_canvas.getWidth(), _canvas.getHeight(), true, &_display);
     _mouse = mouse->status();
     _mouse_found = mouse->isMouseAvailable();
@@ -207,14 +214,14 @@ esp::fabgl_test::fabgl_test()
 void esp::fabgl_test::poll()
 {
     // Нулевой тайм-аут: забрать то, что уже есть в очереди, и не ждать.
-    fabgl::Keyboard *const keyboard = fabgl::PS2Controller::keyboard();
-    fabgl::VirtualKeyItem item;
+    esp::ps2::Keyboard *const keyboard = esp::ps2::PS2Controller::keyboard();
+    esp::ps2::VirtualKeyItem item;
     while (keyboard->getNextVirtualKey(&item, 0))
         on_key(item);
 
     // При быстром движении состояний мыши приходит много: рисуются все,
     // а строка состояния обновляется один раз.
-    fabgl::Mouse *const mouse = fabgl::PS2Controller::mouse();
+    esp::ps2::Mouse *const mouse = esp::ps2::PS2Controller::mouse();
     bool moved = false;
     while (mouse->availableStatus())
     {
@@ -275,17 +282,17 @@ void esp::fabgl_test::draw_screen()
     const int height = _canvas.getHeight();
     const int line = _font.height();
 
-    _canvas.setBrushColor(fabgl::Black);
+    _canvas.setBrushColor(esp::gfx::Black);
     _canvas.clear();
 
     // Рамка по самому краю изображения: по ней видно, помещается ли
     // изображение на экране монитора целиком и не сдвинуто ли оно.
-    _canvas.setPenColor(fabgl::BrightWhite);
+    _canvas.setPenColor(esp::gfx::BrightWhite);
     _canvas.drawRectangle(0, 0, width - 1, height - 1);
 
     // Заголовок: белый текст на синем; справа — режим (в строке только
     // знаки ASCII, поэтому число знаков равно её длине).
-    _canvas.setBrushColor(fabgl::Blue);
+    _canvas.setBrushColor(esp::gfx::Blue);
     _canvas.fillRectangle(1, 1, width - 2, TITLE_TOP + line);
     _font.draw_text(_canvas, MARGIN, TITLE_TOP, "Espresso: FabGL test");
     char mode[32];
@@ -306,8 +313,8 @@ void esp::fabgl_test::draw_screen()
 
         char number[4];
         std::snprintf(number, sizeof(number), "%d", i);
-        _canvas.setPenColor(fabgl::White);
-        _canvas.setBrushColor(fabgl::Black);
+        _canvas.setPenColor(esp::gfx::White);
+        _canvas.setBrushColor(esp::gfx::Black);
         _font.draw_text(_canvas,
                         x + (bar_width - _font.width() * static_cast<int>(std::strlen(number))) / 2,
                         bars_top + BAR_HEIGHT + 2, number);
@@ -325,7 +332,7 @@ void esp::fabgl_test::draw_screen()
     draw_line(ROW_HELP, "Mouse: left draws, right clears, wheel changes the colour.");
     show_paint_color();
 
-    _canvas.setPenColor(fabgl::White);
+    _canvas.setPenColor(esp::gfx::White);
     _canvas.drawRectangle(MARGIN, paint_top(), width - MARGIN - 1, height - MARGIN - 1);
 }
 
@@ -347,9 +354,9 @@ void esp::fabgl_test::draw_line(int row, const char *text)
 
     // Отсечение по правому полю: при широком знакоместе длинная строка
     // иначе залезла бы на рамку по краю изображения.
-    _canvas.setClippingRect(fabgl::Rect(MARGIN, y, right, y + line - 1));
-    _canvas.setPenColor(fabgl::BrightWhite);
-    _canvas.setBrushColor(fabgl::Black);
+    _canvas.setClippingRect(esp::gfx::Rect(MARGIN, y, right, y + line - 1));
+    _canvas.setPenColor(esp::gfx::BrightWhite);
+    _canvas.setBrushColor(esp::gfx::Black);
     const int cells = _font.draw_text(_canvas, MARGIN, y, text);
 
     // Число знаков в UTF-8 не равно числу байтов, поэтому хвост строки
@@ -357,7 +364,7 @@ void esp::fabgl_test::draw_line(int row, const char *text)
     const int x = MARGIN + cells * _font.width();
     if (x <= right)
         _canvas.fillRectangle(x, y, right, y + line - 1);
-    _canvas.setClippingRect(fabgl::Rect(0, 0, _canvas.getWidth() - 1, _canvas.getHeight() - 1));
+    _canvas.setClippingRect(esp::gfx::Rect(0, 0, _canvas.getWidth() - 1, _canvas.getHeight() - 1));
 }
 
 /**
@@ -368,7 +375,7 @@ void esp::fabgl_test::show_keyboard()
     char text[96];
     if (_keyboard_found)
         std::snprintf(text, sizeof(text), "Keyboard: found, layout %s",
-                      fabgl::PS2Controller::keyboard()->getLayout()->desc);
+                      esp::ps2::PS2Controller::keyboard()->getLayout()->desc);
     else
         std::snprintf(text, sizeof(text), "%s", "Keyboard: not found; connect it and press K1");
     draw_line(ROW_KEYBOARD, text);
@@ -378,11 +385,11 @@ void esp::fabgl_test::show_keyboard()
  * @brief Показывает последнюю нажатую или отпущенную клавишу.
  * @param item Событие клавиатуры.
  */
-void esp::fabgl_test::show_key(const fabgl::VirtualKeyItem &item)
+void esp::fabgl_test::show_key(const esp::ps2::VirtualKeyItem &item)
 {
     char text[96];
     std::snprintf(text, sizeof(text), "Key:      %s %s, ASCII 0x%02x",
-                  fabgl::Keyboard::virtualKeyToString(item.vk), item.down ? "down" : "up",
+                  esp::ps2::Keyboard::virtualKeyToString(item.vk), item.down ? "down" : "up",
                   item.ASCII);
     draw_line(ROW_KEY, text);
 }
@@ -454,7 +461,7 @@ void esp::fabgl_test::show_paint_color()
     const int top = status_top() + ROW_HELP * _font.height() + 1;
     const int bottom = top + _font.height() - 3;
 
-    _canvas.setPenColor(fabgl::White);
+    _canvas.setPenColor(esp::gfx::White);
     _canvas.setBrushColor(color(_paint_color));
     _canvas.fillRectangle(right - 31, top, right, bottom);
     _canvas.drawRectangle(right - 31, top, right, bottom);
@@ -465,7 +472,7 @@ void esp::fabgl_test::show_paint_color()
  */
 void esp::fabgl_test::clear_paint_area()
 {
-    _canvas.setBrushColor(fabgl::Black);
+    _canvas.setBrushColor(esp::gfx::Black);
     _canvas.fillRectangle(MARGIN + 1, paint_top() + 1, _canvas.getWidth() - MARGIN - 2,
                           _canvas.getHeight() - MARGIN - 2);
 }
@@ -489,12 +496,12 @@ void esp::fabgl_test::paint(int x1, int y1, int x2, int y2)
     // остаются нетронутыми. Затем отсечение и толщина линии
     // возвращаются к обычным.
     _canvas.setClippingRect(
-        fabgl::Rect(MARGIN + 1, paint_top() + 1, width - MARGIN - 2, height - MARGIN - 2));
+        esp::gfx::Rect(MARGIN + 1, paint_top() + 1, width - MARGIN - 2, height - MARGIN - 2));
     _canvas.setPenColor(color(_paint_color));
     _canvas.setPenWidth(PAINT_PEN_WIDTH);
     _canvas.drawLine(x1, y1, x2, y2);
     _canvas.setPenWidth(1);
-    _canvas.setClippingRect(fabgl::Rect(0, 0, width - 1, height - 1));
+    _canvas.setClippingRect(esp::gfx::Rect(0, 0, width - 1, height - 1));
 }
 
 /**
@@ -504,11 +511,11 @@ void esp::fabgl_test::paint(int x1, int y1, int x2, int y2)
  *
  * @param item Событие клавиатуры.
  */
-void esp::fabgl_test::on_key(const fabgl::VirtualKeyItem &item)
+void esp::fabgl_test::on_key(const esp::ps2::VirtualKeyItem &item)
 {
     show_key(item);
 
-    const char *const name = fabgl::Keyboard::virtualKeyToString(item.vk);
+    const char *const name = esp::ps2::Keyboard::virtualKeyToString(item.vk);
     if (!item.down)
     {
         ESP_LOGD(TAG, "Key %s up.", name);
@@ -518,34 +525,34 @@ void esp::fabgl_test::on_key(const fabgl::VirtualKeyItem &item)
     ESP_LOGI(TAG, "Key %s down, ASCII 0x%02x.", name, item.ASCII);
 
     // Коды F1–F8 в перечислении VirtualKey идут подряд.
-    if (item.vk >= fabgl::VK_F1 && item.vk <= fabgl::VK_F8)
+    if (item.vk >= esp::ps2::VK_F1 && item.vk <= esp::ps2::VK_F8)
     {
-        play(NOTES[item.vk - fabgl::VK_F1], NOTE_MS);
+        play(NOTES[item.vk - esp::ps2::VK_F1], NOTE_MS);
         return;
     }
 
     switch (item.vk)
     {
-        case fabgl::VK_F9:
+        case esp::ps2::VK_F9:
             _waveform = (_waveform + 1) % static_cast<int>(std::size(WAVEFORMS));
             show_sound();
             ESP_LOGI(TAG, "Waveform %s.", WAVEFORMS[_waveform]);
             play(NOTES[0], NOTE_MS);
             return;
 
-        case fabgl::VK_ESCAPE:
+        case esp::ps2::VK_ESCAPE:
             _input.clear();
             show_input();
             return;
 
-        case fabgl::VK_BACKSPACE:
+        case esp::ps2::VK_BACKSPACE:
             if (!_input.empty())
                 _input.pop_back();
             show_input();
             return;
 
-        case fabgl::VK_RETURN:
-        case fabgl::VK_KP_ENTER:
+        case esp::ps2::VK_RETURN:
+        case esp::ps2::VK_KP_ENTER:
             ESP_LOGI(TAG, "Input: \"%s\".", _input.c_str());
             _input.clear();
             show_input();
@@ -573,9 +580,9 @@ void esp::fabgl_test::on_key(const fabgl::VirtualKeyItem &item)
  *
  * @param status Новое состояние мыши.
  */
-void esp::fabgl_test::on_mouse(const fabgl::MouseStatus &status)
+void esp::fabgl_test::on_mouse(const esp::ps2::MouseStatus &status)
 {
-    const fabgl::MouseStatus previous = _mouse;
+    const esp::ps2::MouseStatus previous = _mouse;
     _mouse = status;
 
     // Линия от прежнего положения делает след сплошным и при быстром
@@ -624,10 +631,10 @@ void esp::fabgl_test::check_devices()
     if (!_keyboard_found)
     {
         draw_line(ROW_KEYBOARD, "Keyboard: searching...");
-        fabgl::Keyboard *const keyboard = fabgl::PS2Controller::keyboard();
+        esp::ps2::Keyboard *const keyboard = esp::ps2::PS2Controller::keyboard();
         _keyboard_found = keyboard->reset();
         // Сброс ставит раскладку US; здесь она та же, но задаётся явно.
-        keyboard->setLayout(&fabgl::USLayout);
+        keyboard->setLayout(&esp::ps2::USLayout);
         ESP_LOGI(TAG, "Keyboard %s.", _keyboard_found ? "found" : "not found");
         show_keyboard();
     }
@@ -635,7 +642,7 @@ void esp::fabgl_test::check_devices()
     if (!_mouse_found)
     {
         draw_line(ROW_MOUSE, "Mouse:    searching...");
-        _mouse_found = fabgl::PS2Controller::mouse()->reset();
+        _mouse_found = esp::ps2::PS2Controller::mouse()->reset();
         if (_mouse_found)
             _display.setMouseCursor(CURSOR);
         ESP_LOGI(TAG, "Mouse %s.", _mouse_found ? "found" : "not found");
@@ -659,19 +666,21 @@ void esp::fabgl_test::play(int frequency, int duration_ms)
     switch (_waveform)
     {
         case 0:
-            _sound.playSound(fabgl::SineWaveformGenerator(), frequency, duration_ms, VOLUME);
+            _sound.playSound(esp::sound::SineWaveformGenerator(), frequency, duration_ms, VOLUME);
             break;
         case 1:
-            _sound.playSound(fabgl::SquareWaveformGenerator(), frequency, duration_ms, VOLUME);
+            _sound.playSound(esp::sound::SquareWaveformGenerator(), frequency, duration_ms, VOLUME);
             break;
         case 2:
-            _sound.playSound(fabgl::TriangleWaveformGenerator(), frequency, duration_ms, VOLUME);
+            _sound.playSound(esp::sound::TriangleWaveformGenerator(), frequency, duration_ms,
+                             VOLUME);
             break;
         case 3:
-            _sound.playSound(fabgl::SawtoothWaveformGenerator(), frequency, duration_ms, VOLUME);
+            _sound.playSound(esp::sound::SawtoothWaveformGenerator(), frequency, duration_ms,
+                             VOLUME);
             break;
         default:
-            _sound.playSound(fabgl::NoiseWaveformGenerator(), frequency, duration_ms, VOLUME);
+            _sound.playSound(esp::sound::NoiseWaveformGenerator(), frequency, duration_ms, VOLUME);
             break;
     }
 }

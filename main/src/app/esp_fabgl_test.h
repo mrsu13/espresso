@@ -1,8 +1,10 @@
 #pragma once
 
-#include "esp_font.h"
-
-#include "fabgl.h"
+#include "esp_gfx_canvas.h"
+#include "esp_gfx_font.h"
+#include "esp_ps2_utils.h"
+#include "esp_sound_sound_generator.h"
+#include "esp_vga_vga16_controller.h"
 
 #include <string>
 
@@ -27,7 +29,7 @@ private:
     void draw_screen();
     void draw_line(int row, const char *text);
     void show_keyboard();
-    void show_key(const fabgl::VirtualKeyItem &item);
+    void show_key(const esp::ps2::VirtualKeyItem &item);
     void show_input();
     void show_mouse();
     void show_button();
@@ -36,28 +38,28 @@ private:
     void show_paint_color();
     void clear_paint_area();
     void paint(int x1, int y1, int x2, int y2);
-    void on_key(const fabgl::VirtualKeyItem &item);
-    void on_mouse(const fabgl::MouseStatus &status);
+    void on_key(const esp::ps2::VirtualKeyItem &item);
+    void on_mouse(const esp::ps2::MouseStatus &status);
     void check_devices();
     void play(int frequency, int duration_ms);
 
     /** @brief Видеоконтроллер VGA на 16 цветов. */
-    fabgl::VGA16Controller _display;
+    esp::vga::VGA16Controller _display;
 
     /** @brief Холст для рисования на экране видеоконтроллера _display. */
-    fabgl::Canvas _canvas;
+    esp::gfx::Canvas _canvas;
 
     /** @brief Шрифт всего текста на экране: Terminus 10 × 18 (таблицы ter_10x18). */
-    font _font;
+    esp::gfx::font _font;
 
     /** @brief Генератор звука: ЦАП на выводе GPIO25. */
-    fabgl::SoundGenerator _sound;
+    esp::sound::SoundGenerator _sound;
 
     /** @brief Строка, набранная на клавиатуре. */
     std::string _input;
 
     /** @brief Последнее полученное состояние мыши. */
-    fabgl::MouseStatus _mouse;
+    esp::ps2::MouseStatus _mouse;
 
     /** @brief Форма звуковой волны: номер в таблице WAVEFORMS. */
     int _waveform;

@@ -1,4 +1,6 @@
-# Часть библиотеки FabGL: вывод на VGA, клавиатура и мышь PS/2, звук.
+# Часть библиотеки FabGL: вывод на VGA, клавиатура и мышь PS/2, звук —
+# пространства имён esp::vga, esp::gfx, esp::ps2 и esp::sound, общие
+# помощники — в esp.
 # Источник, версия и изменения относительно оригинала указаны в файле
 # INFO.md. Нужные FabGL настройки ESP-IDF — в sdkconfig.defaults проекта.
 include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/tools.cmake")
@@ -7,13 +9,14 @@ esp_inc_dirs(src esp_fabgl_inc_dirs)
 esp_src_dirs(src esp_fabgl_src_dirs)
 
 # В REQUIRES — компоненты, заголовки которых включают заголовки FabGL;
-# в PRIV_REQUIRES — те, что нужны только исходным текстам. Заголовок
-# fabglconf.h берёт из esp_wifi.h номер ядра задачи Wi-Fi, чтобы занять
-# под видеовывод другое ядро.
+# в PRIV_REQUIRES — те, что нужны только исходным текстам (utf8 разбирает
+# строки UTF-8 для esp::gfx::font). Заголовок esp_utils.h берёт из
+# esp_wifi.h номер ядра задачи Wi-Fi, чтобы занять под видеовывод другое
+# ядро.
 idf_component_register(INCLUDE_DIRS ${esp_fabgl_inc_dirs}
                        SRC_DIRS ${esp_fabgl_src_dirs}
                        REQUIRES esp_driver_gpio esp_driver_sdm esp_timer esp_wifi ulp
-                       PRIV_REQUIRES spi_flash)
+                       PRIV_REQUIRES spi_flash utf8)
 
 # FabGL отлажена с оптимизацией по размеру (-Os), как в ядре Arduino и в
 # конфигурации порта; самые нагруженные модули к тому же сами включают -O2

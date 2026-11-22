@@ -19,7 +19,6 @@ idf_component_register(INCLUDE_DIRS ${esp_main_inc_dirs}
                                      esp_driver_spi
                                      fatfs
                                      spi_flash
-                                     utf8
                                      yyjson)
 
 # Отладочный вывод: вызовы ESP_LOGD модуля main компилируются при любом

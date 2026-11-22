@@ -6,15 +6,20 @@
 ## Что взято
 
 Только вывод на VGA, клавиатура и мышь PS/2, звук и общее ядро, без которого они не работают.
-Расположение файлов в каталоге src такое же, как в FabGL.
+Код разнесён по пространствам имён и каталогам модулей (раздел «Пространства имён и файлы»).
 
-  * Ядро: fabutils, fabglconf.h, displaycontroller, canvas, codepages, images/cursors.h (указатели
-    мыши), fabgl.h (общий заголовок).
-  * VGA: контроллеры dispdrivers/vga* на 2, 4, 8, 16 и 64 цвета и прямой вывод (vgadirectcontroller);
-    devdrivers/swgenerator — вывод сигнала через I2S, на котором построены контроллеры VGA.
-  * PS/2: comdrivers/ps2controller, comdrivers/ps2device, ulp_macro_ex (программа сопроцессора ULP),
-    devdrivers/keyboard, devdrivers/kbdlayouts, devdrivers/mouse.
-  * Звук: devdrivers/soundgen.
+  * Графика, esp::gfx: контроллер дисплея, холст, растры, спрайты, указатели мыши, геометрия и
+    цвета (в FabGL — displaycontroller, canvas, images/cursors.h и часть fabutils). Здесь же шрифт
+    проекта esp::gfx::font.
+  * VGA, esp::vga: контроллеры на 2, 4, 8, 16 и 64 цвета, прямой вывод и генератор сигнала через
+    I2S GPIOStream, на котором они построены (dispdrivers/vga*, devdrivers/swgenerator).
+  * PS/2, esp::ps2: контроллер и устройства PS/2 с программой сопроцессора ULP, клавиатура,
+    раскладки, кодовые страницы, мышь и виртуальные клавиши (comdrivers/ps2controller,
+    comdrivers/ps2device, ulp_macro_ex, devdrivers/keyboard, devdrivers/kbdlayouts,
+    devdrivers/mouse, codepages).
+  * Звук, esp::sound: генератор звука и формы волны (devdrivers/soundgen).
+  * Общие помощники, esp: tmax(), tmin(), tclamp(), tswap(), msToTicks(), I2SModuleEnable(),
+    esp_intr_alloc_pinnedToCore(), CoreUsage и VideoMode — то, чем пользуются несколько модулей.
 
 ## Что не взято
 
@@ -34,6 +39,46 @@
   * Эмуляторы процессоров и микросхем (emudevs), сеть (network).
   * Примеры, документация, инструменты, файлы сборки для Arduino и PlatformIO.
 
+## Пространства имён и файлы
+
+Код перенесён из пространства имён fabgl во вложенные пространства имён esp и разложен по
+каталогам модулей src/gfx, src/vga, src/ps2 и src/sound; общие помощники лежат прямо в src. Имя
+файла начинается с пространства имён, как требует руководство по стилю кода проекта
+(doc/md/10-codestyle.md), а имя из другого модуля записывается полностью, от корня:
+esp::gfx::Rect. Общий заголовок fabgl.h удалён вместе с объявлениями using, которые выносили
+35 имён FabGL в глобальное пространство имён: программа включает заголовки нужных модулей.
+
+| FabGL                             | Здесь                                                         |
+|-----------------------------------|---------------------------------------------------------------|
+| canvas                            | gfx/esp_gfx_canvas                                            |
+| displaycontroller                 | gfx/esp_gfx_display_controller                                |
+| images/cursors.h                  | gfx/esp_gfx_cursors.h                                         |
+| dispdrivers/vga2controller        | vga/esp_vga_vga2_controller                                   |
+| dispdrivers/vga4controller        | vga/esp_vga_vga4_controller                                   |
+| dispdrivers/vga8controller        | vga/esp_vga_vga8_controller                                   |
+| dispdrivers/vga16controller       | vga/esp_vga_vga16_controller                                  |
+| dispdrivers/vgacontroller         | vga/esp_vga_vga_controller (64 цвета)                         |
+| dispdrivers/vgabasecontroller     | vga/esp_vga_vga_base_controller                               |
+| dispdrivers/vgapalettedcontroller | vga/esp_vga_vga_paletted_controller                           |
+| dispdrivers/vgadirectcontroller   | vga/esp_vga_vga_direct_controller                             |
+| devdrivers/swgenerator            | vga/esp_vga_gpio_stream                                       |
+| comdrivers/ps2controller          | ps2/esp_ps2_ps2_controller                                    |
+| comdrivers/ps2device              | ps2/esp_ps2_ps2_device                                        |
+| devdrivers/keyboard               | ps2/esp_ps2_keyboard                                          |
+| devdrivers/kbdlayouts             | ps2/esp_ps2_keyboard_layouts                                  |
+| devdrivers/mouse                  | ps2/esp_ps2_mouse                                             |
+| codepages                         | ps2/esp_ps2_codepages                                         |
+| ulp_macro_ex                      | ps2/esp_ps2_ulp_macro_ex                                      |
+| devdrivers/soundgen               | sound/esp_sound_sound_generator                               |
+| fabutils                          | esp_utils, gfx/esp_gfx_utils, vga/esp_vga_utils, ps2/esp_ps2_utils, sound/esp_sound_utils |
+| fabglconf.h                       | gfx/esp_gfx_config.h, vga/esp_vga_config.h, vga/esp_vga_modelines.h (строки режимов), ps2/esp_ps2_config.h; ядро для видеовывода — в esp_utils.h |
+| fabgl.h                           | удалён                                                        |
+
+Содержимое fabutils и fabglconf.h разложено по модулям, которые им пользуются. Файл
+ulp_macro_ex — копия ulp_macro.c из ESP-IDF под лицензией Apache 2.0 — тоже перенесён в
+пространство имён esp::ps2. Имена классов, функций и макросов пока прежние, из FabGL. В разделах
+ниже файлы названы так, как в FabGL.
+
 ## Изменения
 
 Изменения убирают связь с невзятыми графическим интерфейсом (класс fabgl::uiApp), шрифтами и
@@ -46,9 +91,7 @@
   * devdrivers/mouse.h, devdrivers/mouse.cpp: удалены метод setUIApp(), поле m_uiApp, параметр app
     метода setupAbsolutePositioner() и отправка событий мыши в uiApp. Вместо fabui.h включается
     displaycontroller.h, который раньше попадал через него.
-  * fabgl.h: включает только взятые модули и объявляет через using только их типы; добавлено
-    включение canvas.h, который раньше попадал через fabui.h и terminal.h. Описание библиотеки
-    больше не обещает встроенных шрифтов.
+  * fabgl.h удалён (раздел «Пространства имён и файлы»).
   * canvas.cpp: drawText() без выбранного шрифта ничего не рисует; раньше он выбирал FONT_8x8.
   * fabutils.h, fabutils.cpp: удалены FileBrowser (со структурой DirItem и перечислением DriveType)
     и функции АЦП вместе с их включениями.
