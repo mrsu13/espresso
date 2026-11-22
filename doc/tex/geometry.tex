@@ -1,0 +1,16 @@
+% Геометрия страницы для XeLaTeX.
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{indentfirst}
+
+\pagestyle{empty}
+
+% Страницы могут быть разной высоты — не растягиваем по нижнему краю.
+\raggedbottom
+
+% Перенос: разрешаем оставлять минимум 2 символа.
+\righthyphenmin=2
+
+% Плотнее расстояние между пунктами списков (вместо \let-перетасовки
+% старого варианта используем штатный enumitem из header.tex).
+\setlist{itemsep=0em}
