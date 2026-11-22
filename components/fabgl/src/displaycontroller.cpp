@@ -172,7 +172,6 @@ Sprite::Sprite()
     savedBackground = nullptr; // allocated or reallocated when bitmaps are added
     savedX = 0;
     savedY = 0;
-    collisionDetectorObject = nullptr;
     visible = true;
     isStatic = false;
     allowDraw = true;
@@ -851,9 +850,6 @@ void IRAM_ATTR BitmappedDisplayController::execPrimitive(Primitive const &prim, 
         case PrimitiveCmd::SwapFGBG:
             swapFGBG(prim.rect, updateRect);
             break;
-        case PrimitiveCmd::RenderGlyphsBuffer:
-            renderGlyphsBuffer(prim.glyphsBufferRenderInfo, updateRect);
-            break;
         case PrimitiveCmd::DrawBitmap:
             drawBitmap(prim.bitmapDrawingInfo, updateRect);
             break;
@@ -1063,35 +1059,6 @@ void IRAM_ATTR BitmappedDisplayController::fillEllipse(int centerX, int centerY,
     if (halfHeight == 0 && centerY >= clipY1 && centerY <= clipY2)
         rawFillRow(centerY, iclamp(centerX - halfWidth, clipX1, clipX2),
                    iclamp(centerX - halfWidth + 2 * halfWidth + 1, clipX1, clipX2), color);
-}
-
-
-void IRAM_ATTR BitmappedDisplayController::renderGlyphsBuffer(
-    GlyphsBufferRenderInfo const &glyphsBufferRenderInfo, Rect &updateRect)
-{
-    int itemX = glyphsBufferRenderInfo.itemX;
-    int itemY = glyphsBufferRenderInfo.itemY;
-
-    int glyphsWidth = glyphsBufferRenderInfo.glyphsBuffer->glyphsWidth;
-    int glyphsHeight = glyphsBufferRenderInfo.glyphsBuffer->glyphsHeight;
-
-    uint32_t const *mapItem = glyphsBufferRenderInfo.glyphsBuffer->map + itemX
-        + itemY * glyphsBufferRenderInfo.glyphsBuffer->columns;
-
-    GlyphOptions glyphOptions = glyphMapItem_getOptions(mapItem);
-    auto fgColor = glyphMapItem_getFGColor(mapItem);
-    auto bgColor = glyphMapItem_getBGColor(mapItem);
-
-    Glyph glyph;
-    glyph.X = (int16_t)(itemX * glyphsWidth * (glyphOptions.doubleWidth ? 2 : 1));
-    glyph.Y = (int16_t)(itemY * glyphsHeight);
-    glyph.width = glyphsWidth;
-    glyph.height = glyphsHeight;
-    glyph.data = glyphsBufferRenderInfo.glyphsBuffer->glyphsData
-        + glyphMapItem_getIndex(mapItem) * glyphsHeight * ((glyphsWidth + 7) / 8);
-    ;
-
-    drawGlyph(glyph, glyphOptions, fgColor, bgColor, updateRect);
 }
 
 

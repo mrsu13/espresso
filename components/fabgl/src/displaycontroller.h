@@ -148,10 +148,6 @@ enum PrimitiveCmd : uint8_t
     // params: rect
     SwapFGBG,
 
-    // Render glyphs buffer
-    // params: glyphsBufferRenderInfo
-    RenderGlyphsBuffer,
-
     // Draw a bitmap
     // params: bitmapDrawingInfo
     DrawBitmap,
@@ -466,89 +462,6 @@ union GlyphOptions
 } __attribute__((packed));
 
 
-// GlyphsBuffer.map support functions
-//  0 ..  7 : index
-//  8 .. 11 : BG color (Color)
-// 12 .. 15 : FG color (Color)
-// 16 .. 31 : options (GlyphOptions)
-// note: volatile pointer to avoid optimizer to get less than 32 bit from 32 bit access only memory
-#define GLYPHMAP_INDEX_BIT 0
-#define GLYPHMAP_BGCOLOR_BIT 8
-#define GLYPHMAP_FGCOLOR_BIT 12
-#define GLYPHMAP_OPTIONS_BIT 16
-#define GLYPHMAP_ITEM_MAKE(index, bgColor, fgColor, options) \
-    (((uint32_t)(index) << GLYPHMAP_INDEX_BIT) | ((uint32_t)(bgColor) << GLYPHMAP_BGCOLOR_BIT) \
-     | ((uint32_t)(fgColor) << GLYPHMAP_FGCOLOR_BIT) \
-     | ((uint32_t)((options).value) << GLYPHMAP_OPTIONS_BIT))
-
-inline uint8_t glyphMapItem_getIndex(uint32_t const volatile *mapItem)
-{
-    return *mapItem >> GLYPHMAP_INDEX_BIT & 0xFF;
-}
-inline uint8_t glyphMapItem_getIndex(uint32_t const &mapItem)
-{
-    return mapItem >> GLYPHMAP_INDEX_BIT & 0xFF;
-}
-
-inline Color glyphMapItem_getBGColor(uint32_t const volatile *mapItem)
-{
-    return (Color)(*mapItem >> GLYPHMAP_BGCOLOR_BIT & 0x0F);
-}
-inline Color glyphMapItem_getBGColor(uint32_t const &mapItem)
-{
-    return (Color)(mapItem >> GLYPHMAP_BGCOLOR_BIT & 0x0F);
-}
-
-inline Color glyphMapItem_getFGColor(uint32_t const volatile *mapItem)
-{
-    return (Color)(*mapItem >> GLYPHMAP_FGCOLOR_BIT & 0x0F);
-}
-inline Color glyphMapItem_getFGColor(uint32_t const &mapItem)
-{
-    return (Color)(mapItem >> GLYPHMAP_FGCOLOR_BIT & 0x0F);
-}
-
-inline GlyphOptions glyphMapItem_getOptions(uint32_t const volatile *mapItem)
-{
-    return (GlyphOptions){.value = (uint16_t)(*mapItem >> GLYPHMAP_OPTIONS_BIT & 0xFFFF)};
-}
-inline GlyphOptions glyphMapItem_getOptions(uint32_t const &mapItem)
-{
-    return (GlyphOptions){.value = (uint16_t)(mapItem >> GLYPHMAP_OPTIONS_BIT & 0xFFFF)};
-}
-
-inline void glyphMapItem_setOptions(uint32_t volatile *mapItem, GlyphOptions const &options)
-{
-    *mapItem = (*mapItem & ~((uint32_t)0xFFFF << GLYPHMAP_OPTIONS_BIT))
-        | ((uint32_t)(options.value) << GLYPHMAP_OPTIONS_BIT);
-}
-
-struct GlyphsBuffer
-{
-    int16_t glyphsWidth;
-    int16_t glyphsHeight;
-    uint8_t const *glyphsData;
-    int16_t columns;
-    int16_t rows;
-    uint32_t *map; // look at glyphMapItem_... inlined functions
-};
-
-
-struct GlyphsBufferRenderInfo
-{
-    int16_t itemX; // starts from 0
-    int16_t itemY; // starts from 0
-    GlyphsBuffer const *glyphsBuffer;
-
-    GlyphsBufferRenderInfo(int itemX_, int itemY_, GlyphsBuffer const *glyphsBuffer_)
-        : itemX(itemX_)
-        , itemY(itemY_)
-        , glyphsBuffer(glyphsBuffer_)
-    {
-    }
-} __attribute__((packed));
-
-
 /** \ingroup Enumerations
  * @brief This enum defines the display controller native pixel format
  */
@@ -679,15 +592,11 @@ struct Cursor
 };
 
 
-struct QuadTreeObject;
-
-
 /**
  * @brief Represents a sprite.
  *
  * A sprite contains one o more bitmaps (fabgl::Bitmap object) and has
  * a position in a scene (fabgl::Scane class). Only one bitmap is displayed at the time.<br>
- * It can be included in a collision detection group (fabgl::CollisionDetector class).
  * Bitmaps can have different sizes.
  */
 struct Sprite
@@ -702,7 +611,6 @@ struct Sprite
     int16_t savedBackgroundWidth;
     int16_t savedBackgroundHeight;
     uint8_t *savedBackground;
-    QuadTreeObject *collisionDetectorObject;
     struct
     {
         uint8_t visible : 1;
@@ -795,7 +703,6 @@ struct Primitive
         Rect rect;
         GlyphOptions glyphOptions;
         PaintOptions paintOptions;
-        GlyphsBufferRenderInfo glyphsBufferRenderInfo;
         BitmapDrawingInfo bitmapDrawingInfo;
         Path path;
         PixelDesc pixelDesc;
@@ -838,7 +745,6 @@ struct PaintState
  */
 enum class DisplayControllerType
 {
-    Textual, /**< The display controller can represents text only */
     Bitmapped, /**< The display controller can represents text and bitmapped graphics */
 };
 
@@ -924,31 +830,6 @@ protected:
     int16_t m_screenHeight;
     volatile int16_t m_viewPortWidth;
     volatile int16_t m_viewPortHeight;
-};
-
-
-/**
- * @brief Represents the base abstract class for textual display controllers
- */
-class TextualDisplayController : public BaseDisplayController
-{
-
-public:
-
-    DisplayControllerType controllerType()
-    {
-        return DisplayControllerType::Textual;
-    }
-
-    virtual int getColumns() = 0;
-    virtual int getRows() = 0;
-    virtual void adjustMapSize(int *columns, int *rows) = 0;
-    virtual void setTextMap(uint32_t const *map, int rows) = 0;
-    virtual void enableCursor(bool value) = 0;
-    virtual void setCursorPos(int row, int col) = 0; // row and col starts from 0
-    virtual void setCursorForeground(Color value) = 0;
-    virtual void setCursorBackground(Color value) = 0;
-    virtual FontInfo const *getFont() = 0;
 };
 
 
@@ -1231,8 +1112,6 @@ protected:
                      Rect &updateRect);
 
     void fillPath(Path const &path, RGB888 const &color, Rect &updateRect);
-
-    void renderGlyphsBuffer(GlyphsBufferRenderInfo const &glyphsBufferRenderInfo, Rect &updateRect);
 
     void setSprites(Sprite *sprites, int count, int spriteSize);
 

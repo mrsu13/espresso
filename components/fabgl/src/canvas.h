@@ -572,8 +572,6 @@ public:
    */
     void resetGlyphOptions();
 
-    void renderGlyphsBuffer(int itemX, int itemY, GlyphsBuffer const *glyphsBuffer);
-
     /**
    * @brief Sets paint options.
    */

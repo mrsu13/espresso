@@ -43,49 +43,12 @@
 #define FABGLIB_XTAL 40000000
 
 
-/** Blink (cursor, text blink, ...) period in ms. */
-#define FABGLIB_DEFAULT_BLINK_PERIOD_MS 500
-
-
 /** Size of display controller primitives queue */
 #define FABGLIB_DEFAULT_DISPLAYCONTROLLER_QUEUE_SIZE 1024
 
 
-#define FABGLIB_TERMINAL_FLOWCONTROL_RXFIFO_MIN_THRESHOLD 20
-
-#define FABGLIB_TERMINAL_FLOWCONTROL_RXFIFO_MAX_THRESHOLD 300
-
-
 /** Size (in bytes) of primitives dynamic buffers. Used by primitives like drawPath and fillPath to contain path points. */
 #define FABGLIB_PRIMITIVES_DYNBUFFERS_SIZE 512
-
-
-/** Number of characters the terminal can "write" without pause (increase if you have loss of characters in serial port). */
-#define FABGLIB_DEFAULT_TERMINAL_INPUT_QUEUE_SIZE 1024
-
-
-/** Number of characters the terminal can store from keyboard. */
-#define FABGLIB_TERMINAL_OUTPUT_QUEUE_SIZE 32
-
-
-#define FABGLIB_TERMINAL_XOFF_THRESHOLD (FABGLIB_DEFAULT_TERMINAL_INPUT_QUEUE_SIZE / 2)
-#define FABGLIB_TERMINAL_XON_THRESHOLD (FABGLIB_DEFAULT_TERMINAL_INPUT_QUEUE_SIZE / 4)
-
-
-/** Stack size of the task that processes Terminal input stream. */
-#define FABGLIB_DEFAULT_TERMINAL_INPUT_CONSUMER_TASK_STACK_SIZE 2048
-
-
-/** Priority of the task that processes Terminal input stream. */
-#define FABGLIB_CHARS_CONSUMER_TASK_PRIORITY 5
-
-
-/** Stack size of the task that reads keys from keyboard and send ANSI/VT codes to output stream in Terminal */
-#define FABGLIB_DEFAULT_TERMINAL_KEYBOARD_READER_TASK_STACK_SIZE 2048
-
-
-/** Priority of the task that reads keys from keyboard and send ANSI/VT codes to output stream in Terminal */
-#define FABGLIB_KEYBOARD_READER_TASK_PRIORITY 5
 
 
 /** Stack size of the task that converts scancodes to Virtual Keys Keyboard */
@@ -100,24 +63,12 @@
 #define FABGLIB_UNDERLINE_POSITION 0
 
 
-/** Optional feature. If enabled terminal fonts are cached in RAM for better performance. */
-#define FABGLIB_CACHE_FONT_IN_RAM 0
-
-
 /** Optional feature. Enables Keyboard.virtualKeyToString() method */
 #define FABGLIB_HAS_VirtualKeyO_STRING 1
 
 
 /** Optional feature. Use b/a coeff to fine tune frequency. Unfortunately output is not very stable when enabled! */
 #define FABGLIB_USE_APLL_AB_COEF 0
-
-
-/** Maximum number of allowed parameters in CSI escape sequence. */
-#define FABGLIB_MAX_CSI_PARAMS 12
-
-
-/** Maximum chars in DCS escape sequence. */
-#define FABGLIB_MAX_DCS_CONTENT 12
 
 
 /** To reduce memory overhead the viewport is allocated as few big buffers. This parameter defines the maximum number of these big buffers. */
@@ -150,19 +101,7 @@
 
 
 // debug options
-#define FABGLIB_TERMINAL_DEBUG_REPORT 0 // this must be enabled to make below settings active
-#define FABGLIB_TERMINAL_DEBUG_REPORT_IN_CODES 0
-#define FABGLIB_TERMINAL_DEBUG_REPORT_INQUEUE_CODES \
-    0 // use as alternative to FABGLIB_TERMINAL_DEBUG_REPORT_IN_CODES when write() is called inside isr
-#define FABGLIB_TERMINAL_DEBUG_REPORT_OUT_CODES 0
-#define FABGLIB_TERMINAL_DEBUG_REPORT_ESC 0
-#define FABGLIB_TERMINAL_DEBUG_REPORT_DESCS 0
-#define FABGLIB_TERMINAL_DEBUG_REPORT_DESCSALL 0
-#define FABGLIB_TERMINAL_DEBUG_REPORT_OSC_CONTENT 0
-#define FABGLIB_TERMINAL_DEBUG_REPORT_UNSUPPORT 1
-#define FABGLIB_TERMINAL_DEBUG_REPORT_ERRORS 1
 #define FABGLIB_VGAXCONTROLLER_PERFORMANCE_CHECK 0
-#define FABGLIB_CVBSCONTROLLER_PERFORMANCE_CHECK 0
 
 
 /************ Preset Resolution Modelines ************/

@@ -112,62 +112,12 @@ bool calcParity(uint8_t v)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-// realloc32
-// free32
-
-// size must be a multiple of uint32_t (32 bit)
-void *realloc32(void *ptr, size_t size)
-{
-    uint32_t *newBuffer = (uint32_t *)heap_caps_malloc(size, MALLOC_CAP_32BIT);
-    if (ptr)
-    {
-        moveItems(newBuffer, (uint32_t *)ptr, size / sizeof(uint32_t));
-        heap_caps_free(ptr);
-    }
-    return newBuffer;
-}
-
-
-void free32(void *ptr)
-{
-    heap_caps_free(ptr);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////
 // msToTicks
 
 uint32_t msToTicks(int ms)
 {
     return ms < 0 ? portMAX_DELAY : pdMS_TO_TICKS(ms);
 }
-
-
-////////////////////////////////////////////////////////////////////////////////////////////
-// getChipPackage
-
-#ifndef FABGL_EMULATED
-
-ChipPackage getChipPackage()
-{
-    // read CHIP_VER_PKG (block0, byte 3, 105th bit % 32 = 9, 3 bits)
-    uint32_t ver_pkg = (REG_READ(EFUSE_BLK0_RDATA3_REG) >> 9) & 7;
-    switch (ver_pkg)
-    {
-        case 0:
-            return ChipPackage::ESP32D0WDQ6; // WROOOM-32
-        case 1:
-            return ChipPackage::ESP32D0WDQ5; // WROVER-B
-        case 2:
-            return ChipPackage::ESP32D2WDQ5;
-        case 5:
-            return ChipPackage::ESP32PICOD4; // TTGO-VGA32
-        default:
-            return ChipPackage::Unknown;
-    }
-}
-
-#endif
 
 
 #ifndef FABGL_EMULATED
@@ -261,18 +211,6 @@ void configureGPIO(gpio_num_t gpio, gpio_mode_t mode)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-// getApbFrequency
-#ifndef FABGL_EMULATED
-uint32_t getApbFrequency()
-{
-    rtc_cpu_freq_config_t conf;
-    rtc_clk_cpu_freq_get_config(&conf);
-    return conf.freq_mhz >= 80 ? 80000000 : (conf.source_freq_mhz * 80000000 / conf.div);
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////////////////
 // getCPUFrequencyMHz
 #ifndef FABGL_EMULATED
 uint32_t getCPUFrequencyMHz()
@@ -316,17 +254,6 @@ void esp_intr_alloc_pinnedToCore(int source, int flags, intr_handler_t handler, 
 }
 
 #endif
-
-
-////////////////////////////////////////////////////////////////////////////////////////////
-// converts '\' or '/' to newSep
-
-void replacePathSep(char *path, char newSep)
-{
-    for (; *path; ++path)
-        if (*path == '\\' || *path == '/')
-            *path = newSep;
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -416,35 +343,6 @@ bool clipLine(int &x1, int &y1, int &x2, int &y2, Rect const &clipRect, bool che
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-// removeRectangle
-// remove "rectToRemove" from "mainRect", pushing remaining rectangles to "rects" stack
-
-void removeRectangle(Stack<Rect> &rects, Rect const &mainRect, Rect const &rectToRemove)
-{
-    if (!mainRect.intersects(rectToRemove) || rectToRemove.contains(mainRect))
-        return;
-
-    // top rectangle
-    if (mainRect.Y1 < rectToRemove.Y1)
-        rects.push(Rect(mainRect.X1, mainRect.Y1, mainRect.X2, rectToRemove.Y1 - 1));
-
-    // bottom rectangle
-    if (mainRect.Y2 > rectToRemove.Y2)
-        rects.push(Rect(mainRect.X1, rectToRemove.Y2 + 1, mainRect.X2, mainRect.Y2));
-
-    // left rectangle
-    if (mainRect.X1 < rectToRemove.X1)
-        rects.push(Rect(mainRect.X1, tmax(rectToRemove.Y1, mainRect.Y1), rectToRemove.X1 - 1,
-                        tmin(rectToRemove.Y2, mainRect.Y2)));
-
-    // right rectangle
-    if (mainRect.X2 > rectToRemove.X2)
-        rects.push(Rect(rectToRemove.X2 + 1, tmax(rectToRemove.Y1, mainRect.Y1), mainRect.X2,
-                        tmin(rectToRemove.Y2, mainRect.Y2)));
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////
 // Rect
 
 Rect IRAM_ATTR Rect::merge(Rect const &rect) const
@@ -481,228 +379,6 @@ void rgb222_to_hsv(int R, int G, int B, double *h, double *s, double *v)
     *s = cmax == 0 ? 0 : (diff / cmax) * 100.0;
     *v = cmax * 100.0;
 }
-
-
-///////////////////////////////////////////////////////////////////////////////////
-// StringList
-
-
-StringList::StringList()
-    : m_items(nullptr)
-    , m_selMap(nullptr)
-    , m_ownStrings(false)
-    , m_count(0)
-    , m_allocated(0)
-{
-}
-
-
-StringList::~StringList()
-{
-    clear();
-}
-
-
-void StringList::clear()
-{
-    if (m_ownStrings)
-    {
-        for (int i = 0; i < m_count; ++i)
-            free((void *)m_items[i]);
-    }
-    free32(m_items);
-    free32(m_selMap);
-    m_items = nullptr;
-    m_selMap = nullptr;
-    m_count = m_allocated = 0;
-}
-
-
-void StringList::copyFrom(StringList const &src)
-{
-    clear();
-    m_count = src.m_count;
-    checkAllocatedSpace(m_count);
-    for (int i = 0; i < m_count; ++i)
-    {
-        m_items[i] = nullptr;
-        set(i, src.m_items[i]);
-    }
-    deselectAll();
-}
-
-
-void StringList::copySelectionMapFrom(StringList const &src)
-{
-    int maskLen = (31 + m_allocated) / 32;
-    for (int i = 0; i < maskLen; ++i)
-        m_selMap[i] = src.m_selMap[i];
-}
-
-
-void StringList::checkAllocatedSpace(int requiredItems)
-{
-    if (m_allocated < requiredItems)
-    {
-        if (m_allocated == 0)
-        {
-            // first time allocates exact space
-            m_allocated = requiredItems;
-        }
-        else
-        {
-            // next times allocate double
-            while (m_allocated < requiredItems)
-                m_allocated *= 2;
-        }
-        m_items = (char const **)realloc32(m_items, m_allocated * sizeof(char const *));
-        m_selMap = (uint32_t *)realloc32(m_selMap, (31 + m_allocated) / 32 * sizeof(uint32_t));
-    }
-}
-
-
-void StringList::insert(int index, char const *str)
-{
-    ++m_count;
-    checkAllocatedSpace(m_count);
-    moveItems(m_items + index + 1, m_items + index, m_count - index - 1);
-    m_items[index] = nullptr;
-    set(index, str);
-    deselectAll();
-}
-
-
-int StringList::append(char const *str)
-{
-    insert(m_count, str);
-    return m_count - 1;
-}
-
-
-int StringList::appendFmt(const char *format, ...)
-{
-    takeStrings();
-    va_list ap;
-    va_start(ap, format);
-    int size = vsnprintf(nullptr, 0, format, ap) + 1;
-    if (size > 0)
-    {
-        va_end(ap);
-        va_start(ap, format);
-        char buf[size + 1];
-        vsnprintf(buf, size, format, ap);
-        insert(m_count, buf);
-    }
-    va_end(ap);
-    return m_count - 1;
-}
-
-
-void StringList::append(char const *strlist[], int count)
-{
-    for (int i = 0; i < count; ++i)
-        insert(m_count, strlist[i]);
-}
-
-
-// separator cannot be "0"
-void StringList::appendSepList(char const *strlist, char separator)
-{
-    if (strlist)
-    {
-        takeStrings();
-        char const *start = strlist;
-        while (*start)
-        {
-            auto end = strchr(start, separator);
-            if (!end)
-                end = strchr(start, 0);
-            auto len = end - start;
-            char str[len + 1];
-            memcpy(str, start, len);
-            str[len] = 0;
-            insert(m_count, str);
-            start += len + (*end == 0 ? 0 : 1);
-        }
-    }
-}
-
-
-void StringList::set(int index, char const *str)
-{
-    if (m_ownStrings)
-    {
-        free((void *)m_items[index]);
-        m_items[index] = (char const *)malloc(strlen(str) + 1);
-        strcpy((char *)m_items[index], str);
-    }
-    else
-    {
-        m_items[index] = str;
-    }
-}
-
-
-void StringList::remove(int index)
-{
-    if (m_ownStrings)
-        free((void *)m_items[index]);
-    moveItems(m_items + index, m_items + index + 1, m_count - index - 1);
-    --m_count;
-    deselectAll();
-}
-
-
-void StringList::takeStrings()
-{
-    if (!m_ownStrings)
-    {
-        m_ownStrings = true;
-        // take existing strings
-        for (int i = 0; i < m_count; ++i)
-        {
-            char const *str = m_items[i];
-            m_items[i] = nullptr;
-            set(i, str);
-        }
-    }
-}
-
-
-void StringList::deselectAll()
-{
-    for (int i = 0; i < (31 + m_count) / 32; ++i)
-        m_selMap[i] = 0;
-}
-
-
-bool StringList::selected(int index)
-{
-    return m_selMap[index / 32] & (1 << (index % 32));
-}
-
-
-// -1 = no items selected
-int StringList::getFirstSelected()
-{
-    for (int i = 0; i < m_count; ++i)
-        if (selected(i))
-            return i;
-    return -1;
-}
-
-
-void StringList::select(int index, bool value)
-{
-    if (value)
-        m_selMap[index / 32] |= 1 << (index % 32);
-    else
-        m_selMap[index / 32] &= ~(1 << (index % 32));
-}
-
-
-// StringList
-///////////////////////////////////////////////////////////////////////////////////
 
 
 ///////////////////////////////////////////////////////////////////////////////////

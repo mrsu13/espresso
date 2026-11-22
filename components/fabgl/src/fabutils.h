@@ -189,22 +189,12 @@ constexpr auto iclamp = tclamp<int>;
 
 
 template<typename T>
-const T &twrap(const T &v, const T &lo, const T &hi)
-{
-    return (v < lo ? hi : (v > hi ? lo : v));
-}
-
-
-template<typename T>
 void tswap(T &v1, T &v2)
 {
     T t = v1;
     v1 = v2;
     v2 = t;
 }
-
-
-constexpr auto iswap = tswap<int>;
 
 
 template<typename T>
@@ -228,19 +218,6 @@ T moveItems(T dest, T src, size_t n)
 void rgb222_to_hsv(int R, int G, int B, double *h, double *s, double *v);
 
 
-inline uint16_t changeEndiannesWord(uint16_t value)
-{
-    return ((value & 0xff00) >> 8) | ((value & 0x00ff) << 8);
-}
-
-
-inline uint32_t changeEndiannesDWord(uint32_t value)
-{
-    return ((value & 0xff) << 24) | ((value & 0xff00) << 8) | ((value & 0xff0000) >> 8)
-        | ((value & 0xff000000) >> 24);
-}
-
-
 struct APLLParams
 {
     uint8_t sdm0;
@@ -255,14 +232,6 @@ void APLLCalcParams(double freq, APLLParams *params, uint8_t *a, uint8_t *b, dou
 #ifndef FABGL_EMULATED
 int calcI2STimingParams(int sampleRate, int *outA, int *outB, int *outN, int *outM);
 #endif
-
-
-inline void taskExit()
-{
-#ifndef FABGL_EMULATED
-    vTaskDelete(NULL);
-#endif
-}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -523,58 +492,6 @@ struct FontInfo
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-// Print
-
-
-#ifndef ARDUINO
-
-struct Print
-{
-    virtual size_t write(uint8_t) = 0;
-    virtual size_t write(const uint8_t *buffer, size_t size) = 0;
-    size_t write(const char *str)
-    {
-        if (str == NULL)
-            return 0;
-        return write((const uint8_t *)str, strlen(str));
-    }
-    void printf(const char *format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        int size = vsnprintf(nullptr, 0, format, ap) + 1;
-        if (size > 0)
-        {
-            va_end(ap);
-            va_start(ap, format);
-            char buf[size + 1];
-            auto l = vsnprintf(buf, size, format, ap);
-            write((uint8_t *)buf, l);
-        }
-        va_end(ap);
-    }
-};
-
-#endif // ifdef ARDUINO
-
-
-///////////////////////////////////////////////////////////////////////////////////
-// Stream
-
-
-#ifndef ARDUINO
-
-struct Stream : public Print
-{
-    virtual int available() = 0;
-    virtual int read() = 0;
-    virtual int peek() = 0;
-};
-
-#endif // ifdef ARDUINO
-
-
-///////////////////////////////////////////////////////////////////////////////////
 // TimeOut
 
 
@@ -588,66 +505,6 @@ struct TimeOut
 private:
 
     int64_t m_start;
-};
-
-
-///////////////////////////////////////////////////////////////////////////////////
-// Stack
-
-
-template<typename T>
-struct StackItem
-{
-    StackItem *next;
-    T item;
-    StackItem(StackItem *next_, T const &item_)
-        : next(next_)
-        , item(item_)
-    {
-    }
-};
-
-template<typename T>
-class Stack
-{
-public:
-
-    Stack()
-        : m_items(nullptr)
-    {
-    }
-    bool isEmpty()
-    {
-        return m_items == nullptr;
-    }
-    void push(T const &value)
-    {
-        m_items = new StackItem<T>(m_items, value);
-    }
-    T pop()
-    {
-        if (m_items)
-        {
-            StackItem<T> *iptr = m_items;
-            m_items = iptr->next;
-            T r = iptr->item;
-            delete iptr;
-            return r;
-        }
-        else
-            return T();
-    }
-    int count()
-    {
-        int r = 0;
-        for (auto i = m_items; i; i = i->next)
-            ++r;
-        return r;
-    }
-
-private:
-
-    StackItem<T> *m_items;
 };
 
 
@@ -714,59 +571,6 @@ private:
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-// StringList
-
-class StringList
-{
-
-public:
-
-    StringList();
-    ~StringList();
-    int append(char const *str);
-    int appendFmt(const char *format, ...);
-    void append(char const *strlist[], int count);
-    void appendSepList(char const *strlist, char separator);
-    void insert(int index, char const *str);
-    void set(int index, char const *str);
-    void remove(int index);
-    int count()
-    {
-        return m_count;
-    }
-    char const *get(int index)
-    {
-        return m_items[index];
-    }
-    void clear();
-    void takeStrings();
-    void select(int index, bool value);
-    void deselectAll();
-    bool selected(int index);
-    int getFirstSelected();
-    void copyFrom(StringList const &src);
-    void copySelectionMapFrom(StringList const &src);
-
-private:
-
-    void checkAllocatedSpace(int requiredItems);
-
-    char const **m_items;
-
-    // each 32 bit word can select up to 32 items, one bit per item
-    uint32_t *m_selMap;
-
-    // If true (default is false) all strings added (append/insert/set) are copied.
-    // Strings will be released when no more used (destructor, clear(), etc...).
-    // This flag is permanently switched to True by takeStrings() call.
-    bool m_ownStrings;
-
-    uint16_t m_count; // actual items
-    uint16_t m_allocated; // allocated items
-};
-
-
-///////////////////////////////////////////////////////////////////////////////////
 // LightMemoryPool
 // Each allocated block starts with a two bytes header (int16_t). Bit 15 is allocation flag (0=free, 1=allocated).
 // Bits 14..0 represent the block size.
@@ -812,56 +616,12 @@ private:
 bool clipLine(int &x1, int &y1, int &x2, int &y2, Rect const &clipRect, bool checkOnly);
 
 
-void removeRectangle(Stack<Rect> &rects, Rect const &mainRect, Rect const &rectToRemove);
-
-
 bool calcParity(uint8_t v);
-
-// why these? this is like heap_caps_malloc with MALLOC_CAP_32BIT. Unfortunately
-// heap_caps_realloc crashes, so we need this workaround.
-void *realloc32(void *ptr, size_t size);
-void free32(void *ptr);
-
-
-inline gpio_num_t int2gpio(int gpio)
-{
-    return gpio == -1 ? GPIO_UNUSED : (gpio_num_t)gpio;
-}
-
-
-// converts 0..9 -> '0'..'9', 10..15 -> 'a'..'f'
-inline char digit2hex(int digit)
-{
-    return digit < 10 ? '0' + digit : 'a' + digit - 10;
-}
-
-
-// converts '0'..'9' -> 0..9, 'a'..'f' -> 10..15
-inline int hex2digit(char hex)
-{
-    return hex < 'a' ? hex - '0' : hex - 'a' + 10;
-}
 
 
 // milliseconds to FreeRTOS ticks.
 // ms = -1 => maximum delay (portMAX_DELAY)
 uint32_t msToTicks(int ms);
-
-
-/** \ingroup Enumerations
-* @brief This enum defines ESP32 module types (packages)
-*/
-enum class ChipPackage
-{
-    Unknown,
-    ESP32D0WDQ6, /**< Unknown */
-    ESP32D0WDQ5, /**< ESP32D0WDQ5 */
-    ESP32D2WDQ5, /**< ESP32D2WDQ5 */
-    ESP32PICOD4, /**< ESP32PICOD4 */
-};
-
-
-ChipPackage getChipPackage();
 
 
 #ifndef FABGL_EMULATED
@@ -876,15 +636,6 @@ inline __attribute__((always_inline)) uint32_t getCycleCount()
 }
 
 #endif
-
-
-/**
- * @brief Replaces path separators
- *
- * @param path Path with separators to replace
- * @param newSep New separator character
- */
-void replacePathSep(char *path, char newSep);
 
 
 // enables/disables bus clock of the specified I2S module (0 = I2S0, 1 = I2S1)
@@ -913,88 +664,7 @@ void esp_intr_alloc_pinnedToCore(int source, int flags, intr_handler_t handler, 
 void configureGPIO(gpio_num_t gpio, gpio_mode_t mode);
 
 
-uint32_t getApbFrequency();
-
 uint32_t getCPUFrequencyMHz();
-
-
-///////////////////////////////////////////////////////////////////////////////////////////
-///// FRC1 timer
-
-
-// FRC1 timer has 23 bits (8388608 values)
-constexpr int FRC1TimerMax = 8388607;
-
-
-#ifdef FABGL_EMULATED
-
-#   define FRC_TIMER_PRESCALER_1 1
-#   define FRC_TIMER_PRESCALER_16 16
-#   define FRC_TIMER_PRESCALER_256 256
-
-inline int FRC1Timer_prescaler(int prescaler = 0)
-{
-    static int PRESCALER = 0; // 1, 16, 256
-    if (prescaler)
-        PRESCALER = prescaler;
-    return PRESCALER;
-}
-
-
-// prescaler: FRC_TIMER_PRESCALER_1, FRC_TIMER_PRESCALER_16, FRC_TIMER_PRESCALER_256
-// 80Mhz / prescaler = timer frequency
-inline void FRC1Timer_init(int prescaler)
-{
-    FRC1Timer_prescaler(prescaler);
-}
-
-
-inline uint32_t FRC1Timer()
-{
-    //return esp_timer_get_time() & 0x7fffff;
-    return (uint32_t)(esp_timer_get_time() * 1000
-                      / (1000000000 / (80000000 / FRC1Timer_prescaler())))
-        & 0x7fffff;
-}
-
-#else
-
-// prescaler: FRC_TIMER_PRESCALER_1, FRC_TIMER_PRESCALER_16, FRC_TIMER_PRESCALER_256
-// 80Mhz / prescaler = timer frequency
-inline void FRC1Timer_init(int prescaler)
-{
-    REG_WRITE(FRC_TIMER_LOAD_REG(0), 0);
-    REG_WRITE(FRC_TIMER_CTRL_REG(0), prescaler | FRC_TIMER_ENABLE);
-}
-
-
-inline uint32_t FRC1Timer()
-{
-    return FRC1TimerMax - REG_READ(FRC_TIMER_COUNT_REG(0)); // make timer count up
-}
-
-#endif
-
-
-///////////////////////////////////////////////////////////////////////////////////
-// AutoSemaphore
-
-struct AutoSemaphore
-{
-    AutoSemaphore(SemaphoreHandle_t mutex)
-        : m_mutex(mutex)
-    {
-        xSemaphoreTake(m_mutex, portMAX_DELAY);
-    }
-    ~AutoSemaphore()
-    {
-        xSemaphoreGive(m_mutex);
-    }
-
-private:
-
-    SemaphoreHandle_t m_mutex;
-};
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -1467,8 +1137,3 @@ inline bool isGUI(VirtualKey value)
 
 
 } // end of namespace
-
-
-#ifndef ARDUINO
-using fabgl::Stream;
-#endif

@@ -348,15 +348,6 @@ void Canvas::drawGlyph(int X, int Y, int width, int height, uint8_t const *data,
 }
 
 
-void Canvas::renderGlyphsBuffer(int itemX, int itemY, GlyphsBuffer const *glyphsBuffer)
-{
-    Primitive p;
-    p.cmd = PrimitiveCmd::RenderGlyphsBuffer;
-    p.glyphsBufferRenderInfo = GlyphsBufferRenderInfo(itemX, itemY, glyphsBuffer);
-    m_displayController->addPrimitive(p);
-}
-
-
 void Canvas::setGlyphOptions(GlyphOptions options)
 {
     Primitive p;

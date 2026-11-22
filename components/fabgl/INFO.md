@@ -52,6 +52,21 @@
   * canvas.cpp: drawText() без выбранного шрифта ничего не рисует; раньше он выбирал FONT_8x8.
   * fabutils.h, fabutils.cpp: удалены FileBrowser (со структурой DirItem и перечислением DriveType)
     и функции АЦП вместе с их включениями.
+  * Удалён код, которым после удаления терминала, графического интерфейса, текстового режима и
+    файлового браузера никто не пользовался:
+      * fabutils: Print и Stream, StringList с realloc32() и free32(), Stack и removeRectangle(),
+        AutoSemaphore, таймер FRC1, digit2hex() и hex2digit(), replacePathSep(), getApbFrequency(),
+        changeEndiannesWord() и changeEndiannesDWord(), taskExit(), twrap() и iswap(), а также
+        getChipPackage() с ChipPackage и int2gpio(): у проекта свои esp::chip_package() и
+        esp::int2gpio();
+      * fabglconf.h: 23 настройки терминала, кэша шрифтов, отладочного вывода терминала и
+        композитного видеосигнала;
+      * displaycontroller, canvas: TextualDisplayController (основа удалённого текстового режима) и
+        значение DisplayControllerType::Textual; вывод буфера знакомест — GlyphsBuffer,
+        GlyphsBufferRenderInfo, макросы GLYPHMAP_* и функции glyphMapItem_*(),
+        Canvas::renderGlyphsBuffer(), BitmappedDisplayController::renderGlyphsBuffer() и команда
+        RenderGlyphsBuffer; указатель Sprite::collisionDetectorObject и объявление QuadTreeObject
+        для невзятого CollisionDetector.
 
 Примеры в комментариях canvas.h по-прежнему ссылаются на удалённые шрифты FONT_8x8 и
 getPresetFontInfo().
