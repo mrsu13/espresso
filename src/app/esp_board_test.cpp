@@ -17,6 +17,11 @@
 #include "esp_ps2_keyboard_layouts.h"
 #include "esp_ps2_mouse.h"
 #include "esp_ps2_ps2_controller.h"
+#include "esp_sound_noise_waveform_generator.h"
+#include "esp_sound_sawtooth_waveform_generator.h"
+#include "esp_sound_sine_waveform_generator.h"
+#include "esp_sound_square_waveform_generator.h"
+#include "esp_sound_triangle_waveform_generator.h"
 #include "esp_vga_modelines.h"
 #include "ter_10x18.h"
 
@@ -655,8 +660,8 @@ void esp::board_test::check_devices()
 /**
  * @brief Подаёт звук текущей формы волны.
  *
- * Не ждёт окончания звука: генератор звука сам удаляет генератор волны, когда
- * длительность истекает.
+ * Не ждёт окончания звука: генератор звука сам освобождает голос, когда
+ * длительность истекает. Если все голоса заняты, звук пропускается.
  *
  * @param frequency Частота, Гц; для шума не важна.
  * @param duration_ms Длительность, мс.

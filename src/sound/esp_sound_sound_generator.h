@@ -6,599 +6,311 @@
 #pragma once
 
 
-/**
- * @file
- *
- * @brief This file contains all classes related to FabGL Sound System
- */
-
-
-#include <stddef.h>
-#include <stdint.h>
-
-#include "freertos/FreeRTOS.h"
-
-#if __has_include("esp32/rom/lldesc.h")
-#   include "esp32/rom/lldesc.h"
-#else
-#   include "rom/lldesc.h"
-#endif
-#include "esp_timer.h"
-#include "soc/i2s_struct.h"
-#include "soc/sens_struct.h"
-
+#include "esp_non_copyable.h"
+#include "esp_sound_config.h"
+#include "esp_sound_samples_generator.h"
+#include "esp_sound_sound_gen_method.h"
+#include "esp_sound_waveform_generator.h"
 #include "esp_tools.h"
 
+#include <array>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 
-#include "driver/sdm.h"
+#include <driver/gpio.h>
+#include <driver/sdm.h>
+#include <esp32/rom/lldesc.h>
+#include <esp_intr_alloc.h>
+#include <esp_timer.h>
+#include <freertos/FreeRTOS.h>
 
 
 namespace esp::sound
 {
 
-
-/** @brief Частота дискретизации по умолчанию, Гц. */
-constexpr int DEFAULT_SAMPLE_RATE = 16384;
-
-
-// DAC mode specific:
-// setting 64 at 16KHz, generates 16000/64=250 interrupts per second
-/** @brief Отсчётов в буфере DMA (ЦАП): 64 при 16 кГц — 250 прерываний в секунду. */
-constexpr int SAMPLE_BUFFER_SIZE = 64;
-
-
-/** @brief Base abstract class for waveform generators. A waveform generator can be seen as an audio channel that will be mixed by SoundGenerator. */
-class waveform_generator
-{
-public:
-
-    waveform_generator()
-        : next(nullptr)
-        , _sample_rate(0)
-        , _volume(100)
-        , _enabled(false)
-        , _duration(-1)
-        , _auto_destroy(false)
-        , _auto_detach(false)
-    {
-    }
-
-    virtual ~waveform_generator() {}
-
-    /**
-   * @brief Sets output frequency
-   *
-   * @param value Frequency in Hertz
-   */
-    virtual void set_frequency(int value) = 0;
-
-    /**
-   * @brief Sets number of samples to play
-   *
-   * @param value Number of samples to play. -1 = infinite.
-   */
-    void set_duration(uint32_t value)
-    {
-        _duration = value;
-    }
-
-    /**
-   * @brief Returns number of remaining samples to play
-   *
-   * @return Number of remaining samples to play. -1 = infinite.
-   */
-    uint32_t duration()
-    {
-        return _duration;
-    }
-
-    /**
-   * @brief Sets autodetach mode
-   *
-   * @param value if true: this object needs to be detached from the sound generator when there are no more samples to play.
-   */
-    void set_auto_detach(bool value)
-    {
-        _auto_detach = value;
-    }
-
-    bool auto_detach()
-    {
-        return _auto_detach;
-    }
-
-    /**
-   * @brief Sets autodestroy mode
-   *
-   * @param value if true: this object needs to be destroyed by the sound generat or when there are no more samples to play. This will set also setAutoDetach(true).
-   */
-    void set_auto_destroy(bool value)
-    {
-        _auto_destroy = value;
-        _auto_detach |= value;
-    }
-
-    bool auto_destroy()
-    {
-        return _auto_destroy;
-    }
-
-    /**
-   * @brief Gets next sample
-   *
-   * @return Sample value as signed 8 bit (-128..127 range)
-   */
-    virtual int sample() = 0;
-
-    /**
-   * @brief Sets volume of this generator
-   *
-   * @param value Volume value. Minimum is 0, maximum is 127.
-   */
-    void set_volume(int value)
-    {
-        _volume = value;
-    }
-
-    /**
-   * @brief Determines current volume
-   *
-   * @return Current volume of this generator (0 = minimum, 127 = maximum)
-   */
-    int volume()
-    {
-        return _volume;
-    }
-
-    /**
-   * @brief Determines whether this generator is enabled or disabled
-   *
-   * @return True if this generator is enabled
-   */
-    bool enabled()
-    {
-        return _enabled;
-    }
-
-    /**
-   * @brief Enables or disabled this generator
-   *
-   * A generator is disabled for default and must be enabled in order to play sound
-   *
-   * @param value True to enable the generator, False to disable
-   */
-    void enable(bool value)
-    {
-        _enabled = value;
-    }
-
-    /**
-   * @brief Sets the sample rate
-   *
-   * Default sample rate is 160000 Hertz.
-   *
-   * @param value Sample rate in Hertz
-   */
-    void set_sample_rate(int value)
-    {
-        _sample_rate = value;
-    }
-
-    /**
-   * @brief Determines the sample rate
-   *
-   * @return Current sample rate in Hertz
-   */
-    uint16_t sample_rate()
-    {
-        return _sample_rate;
-    }
-
-    waveform_generator *next;
-
-protected:
-
-    void dec_duration()
-    {
-        --_duration;
-        if (_duration == 0)
-            _enabled = false;
-    }
-
-private:
-
-    uint16_t _sample_rate;
-    int8_t _volume;
-    int8_t _enabled; // 0 = disabled, 1 = enabled
-    uint32_t _duration; // number of samples to play (-1 = infinite)
-    bool
-        _auto_destroy; // if true: this object needs to be destroyed by the sound generator when there are no more samples to play
-    bool
-        _auto_detach; // if true: this object needs to be autodetached from the sound generator when there are no more samples to play
-};
-
-
-/** @brief Sine waveform generator */
-class sine_waveform_generator : public waveform_generator
-{
-public:
-
-    sine_waveform_generator();
-
-    void set_frequency(int value);
-
-    int sample();
-
-private:
-
-    uint32_t _phase_inc;
-    uint32_t _phase_acc;
-    uint16_t _frequency;
-    int16_t _last_sample;
-};
-
-
-/** @brief Square waveform generator */
-class square_waveform_generator : public waveform_generator
-{
-public:
-
-    square_waveform_generator();
-
-    void set_frequency(int value);
-
-    /**
-   * @brief Sets square wave duty cycle
-   *
-   * @param dutyCycle Duty cycle in 0..255 range. 255 = 100%
-   */
-    void set_duty_cycle(int duty_cycle);
-
-    int sample();
-
-private:
-
-    uint32_t _phase_inc;
-    uint32_t _phase_acc;
-    uint16_t _frequency;
-    int8_t _last_sample;
-    uint8_t _duty_cycle;
-};
-
-
-/** @brief Triangle waveform generator */
-class triangle_waveform_generator : public waveform_generator
-{
-public:
-
-    triangle_waveform_generator();
-
-    void set_frequency(int value);
-
-    int sample();
-
-private:
-
-    uint32_t _phase_inc;
-    uint32_t _phase_acc;
-    uint16_t _frequency;
-    int8_t _last_sample;
-};
-
-
-/** @brief Sawtooth waveform generator */
-class sawtooth_waveform_generator : public waveform_generator
-{
-public:
-
-    sawtooth_waveform_generator();
-
-    void set_frequency(int value);
-
-    int sample();
-
-private:
-
-    uint32_t _phase_inc;
-    uint32_t _phase_acc;
-    uint16_t _frequency;
-    int8_t _last_sample;
-};
-
-
-/** @brief Noise generator */
-class noise_waveform_generator : public waveform_generator
-{
-public:
-
-    noise_waveform_generator();
-
-    void set_frequency(int value);
-
-    int sample();
-
-private:
-
-    uint16_t _noise;
-};
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////
-// "tries" to emulate VIC6561 noise generator
-// derived from a reverse enginnered VHDL code: http://www.denial.shamani.dk/bb/viewtopic.php?t=8733&start=210
-
-/**
- * @brief Emulates VIC6561 (VIC20) noise generator
- *
- * Inspired from a reverse enginnered VHDL code: http://www.denial.shamani.dk/bb/viewtopic.php?t=8733&start=210
- */
-class vic_noise_generator : public waveform_generator
-{
-public:
-
-    vic_noise_generator();
-
-    void set_frequency(int value);
-    uint16_t frequency()
-    {
-        return _frequency;
-    }
-
-    int sample();
-
-private:
-
-    static const uint16_t LFSRINIT = 0x0202;
-    static const int CLK = 4433618;
-
-    uint16_t _frequency;
-    uint16_t _counter;
-    uint16_t _lfsr;
-    uint16_t _out_sr;
-};
-
-
-/**
- * @brief Samples generator
- *
- * Sample data should be sampled at the same samplerate of the sound generator.
- * Only 8 bit (signed - not compressed) depth is supported.
- */
-class samples_generator : public waveform_generator
-{
-public:
-
-    samples_generator(int8_t const *data, int length);
-
-    void set_frequency(int value);
-
-    int sample();
-
-private:
-
-    int8_t const *_data;
-    int _length;
-    int _index;
-};
-
-
-/** \ingroup Enumerations
- * @brief Specifies sound generation method
- */
-enum class sound_gen_method
-{
-    dac, /**< Use DAC. Available on gpio 25 or 26. Very low resources occupation. */
-    sigma_delta, /**< Use Sigma-Delta. Available on almost all GPIO pins. Requires a lot of CPU power for high sample rates. */
-    Auto, /**< Use DAC when video output is VGA, use SigmaDelta when video output is Composite. */
-};
-
-
-/**
- * @brief SoundGenerator handles audio output
- *
- * SoundGenerator generates audio samples using DAC or Sigma-Delta modulation. Use constructor to specify GPIO and generation method.
- * Applications attach waveform generators (like SineWaveformGenerator, SquareWaveformGenerator, etc...) and call SoundGenerator.play() to start audio generation.
- *
- * Here is a list of supported sound generators:
- * - SineWaveformGenerator
- * - SquareWaveformGenerator
- * - TriangleWaveformGenerator
- * - SawtoothWaveformGenerator
- * - NoiseWaveformGenerator
- * - VICNoiseGenerator
- * - SamplesGenerator
- */
-class sound_generator
+class sound_generator : esp::non_copyable
 {
 
 public:
 
-    /**
-   * @brief Creates an instance of the sound generator. Only one instance is allowed
-   *
-   * @param sampleRate Sample rate in Hertz.
-   * @param gpio GPIO to use. DAC mode can be set on 25 or 26. Value GPIO_AUTO will set GPIO 25 when genMethod is DAC and GPIO 23 when genMethod is SigmaDelta.
-   * @param genMethod Sound generation method. Can be DAC, sigma-delta or automatic. If automatic then DAC is selected when VGA is used, otherwise SigmaDelta is selected when Composite is used.
-   *
-   * Example:
-   *
-   *     // creates sound generator with automatic values (depends by selected video output, VGA or CVBS)
-   *     SoundGenerator soundGenerator;
-   *
-   *     // creates sound generator using 16Khz sample rate, GPIO 25 in DAC mode
-   *     SoundGenerator soundGenerator(16000, GPIO_NUM_25, SoundGenMethod::DAC);
-   *
-   *     // creates sound generator using 16Khz sample rate, GPIO 23 in sigma-delta mode
-   *     SoundGenerator soundGenerator(16000, GPIO_NUM_23, SoundGenMethod::SigmaDelta);
-   */
-    sound_generator(int sample_rate = DEFAULT_SAMPLE_RATE, gpio_num_t gpio = GPIO_AUTO,
-                    sound_gen_method gen_method = sound_gen_method::Auto);
-
+    explicit sound_generator(int sample_rate = DEFAULT_SAMPLE_RATE, gpio_num_t gpio = GPIO_AUTO,
+                             sound_gen_method gen_method = sound_gen_method::automatic);
     ~sound_generator();
 
-    /**
-   * @brief Stops playing and removes all attached waveform generators
-   */
     void clear();
 
-    /**
-   * @brief Starts or stops playing
-   *
-   * @param value True = starts playing, False = stops playing
-   *
-   * @return Returns previous playing state
-   *
-   * Example:
-   *
-   *     soundGenerator.play(true);
-   */
     bool play(bool value);
+    inline bool playing() const;
 
-    /**
-   * @brief Plays the specified samples
-   *
-   * Starts immediately to play the specified samples. It is not required to call play().
-   * This method returns without wait the end of sound.
-   *
-   * @param data Samples to play.
-   * @param length Number of samples to play.
-   * @param volume Volume value. Minimum is 0, maximum is 127.
-   * @param durationMS Duration in milliseconds. 0 = untile end of samples, -1 = infinite loop.
-   *
-   * @return Pointer to SamplesGenerator object. Lifetime of this object is limited to the duration.
-   */
-    samples_generator *play_samples(int8_t const *data, int length, int volume = 100,
+    samples_generator *play_samples(const std::int8_t *data, int length, int volume = 100,
                                     int duration_ms = 0);
 
-    /**
-   * @brief Plays the specified waveform
-   *
-   * Starts immediately to play the specified waveform. It is not required to call play().
-   * This method returns without wait the end of sound.
-   *
-   * @param waveform Waveform to play.
-   * @param frequency Frequency in Hertz.
-   * @param durationMS Duration in milliseconds.
-   * @param volume Volume value. Minimum is 0, maximum is 127.
-   *
-   * Example:
-   *
-   *     // plays a sinewave at 500Hz for 200 milliseconds
-   *     soundGen.playSound(SineWaveformGenerator(), 500, 200);
-   *
-   *     // plays a C Major chord for 1 second
-   *     soundGen.playSound(SineWaveformGenerator(), 262, 1000);  // C
-   *     soundGen.playSound(SineWaveformGenerator(), 330, 1000);  // E
-   *     soundGen.playSound(SineWaveformGenerator(), 392, 1000);  // G
-   */
-    template<typename T>
-    void play_sound(T const &waveform, int frequency, int duration_ms, int volume = 100)
-    {
-        auto wf = new T(waveform);
-        attach(wf);
-        wf->set_frequency(frequency);
-        wf->set_volume(volume);
-        wf->set_auto_destroy(true);
-        wf->set_duration(_sample_rate / 1000 * duration_ms);
-        wf->enable(true);
-        play(true);
-    }
+    template<std::derived_from<esp::sound::waveform_generator> T>
+    inline bool play_sound(const T &waveform, int frequency, int duration_ms, int volume = 100);
 
-    /**
-   * @brief Determines whether sound generator is playing
-   *
-   * @return True when playing, False otherwise
-   */
-    bool playing()
-    {
-        return _play;
-    }
-
-    waveform_generator *channels()
-    {
-        return _channels;
-    }
-
-    /**
-   * @brief Attaches a waveform generator
-   *
-   * @param value Pointer of the waveform generator to attach
-   *
-   * Example:
-   *
-   *     SineWaveformGenerator sine;
-   *     soundGenerator.attach(&sine);
-   *     sine.enable(true);
-   *     sine.setFrequency(500);  // 500 Hz
-   */
     void attach(waveform_generator *value);
-
-    /**
-   * @brief Detaches a waveform generator
-   *
-   * @param value Pointer of the waveform generator to detach
-   */
     void detach(waveform_generator *value);
+    inline waveform_generator *channels() const;
 
-    /**
-   * @brief Sets the overall volume
-   *
-   * @param value Volume value. Minimum is 0, maximum is 127.
-   */
-    void set_volume(int value)
-    {
-        _volume = value;
-    }
-
-    /**
-   * @brief Determines current overall volume
-   *
-   * @return Current overall volume (0 = minimum, 127 = maximum)
-   */
-    int volume()
-    {
-        return _volume;
-    }
-
+    inline void set_volume(int value);
+    inline int volume() const;
 
 private:
 
-    static void isr_handler(void *arg); // used in DAC mode
-    static void timer_handler(void *args); // used in sigma-delta mode
+    static void isr_handler(void *arg);
+    static void timer_handler(void *arg);
 
+    void init();
     void dac_init();
     void sigmadelta_init();
-    void detach_no_suspend(waveform_generator *value);
-    void set_dma_node(int index, volatile uint16_t *buf, int len);
-    void init();
-
+    void set_dma_node(int index, volatile std::uint16_t *buf, int len);
+    int available_voice();
+    void start_voice(int index, waveform_generator *generator);
+    bool has_channel(const waveform_generator *value) const;
+    void remove_channel(waveform_generator *value);
     int sample();
 
-
+    /**
+     * @brief Голова списка каналов — подключённых генераторов волны.
+     *
+     * Список односвязный, ссылки хранят сами генераторы
+     * (esp::sound::waveform_generator::next()). Новый генератор встаёт в
+     * начало. Список обходит sample() — в режиме ЦАП из обработчика
+     * прерывания, — поэтому и читают, и меняют его только под
+     * спин-блокировкой @c _lock.
+     */
     waveform_generator *_channels;
 
-    uint16_t *_sample_buffer[2];
+    /**
+     * @brief Два буфера отсчётов для DMA в режиме ЦАП.
+     *
+     * По @c esp::sound::SAMPLE_BUFFER_SIZE 16-разрядных отсчётов в памяти,
+     * доступной DMA. Пока I2S0 выводит один буфер, обработчик прерывания
+     * заполняет другой. В режиме сигма-дельта не выделяются.
+     */
+    std::uint16_t *_sample_buffer[2];
 
-    int8_t _volume;
+    /**
+     * @brief Общая громкость, от 0 до 127.
+     *
+     * Умножается на смесь всех каналов после того, как она ослаблена по
+     * сумме громкостей каналов. По умолчанию 100.
+     */
+    std::int8_t _volume;
 
-    uint16_t _sample_rate;
+    /**
+     * @brief Частота дискретизации, Гц.
+     *
+     * Сначала — заданная в конструкторе. В режиме ЦАП dac_init() заменяет
+     * её действительной частотой, которую дают подобранные делители
+     * тактовой частоты I2S. Подключаемые генераторы волны получают это
+     * значение.
+     */
+    std::uint16_t _sample_rate;
 
+    /**
+     * @brief Выводится ли звук.
+     *
+     * Меняется только в play(): @c true между play(true) и play(false).
+     */
     bool _play;
 
+    /**
+     * @brief Вывод звука.
+     *
+     * До первого запуска может быть @c GPIO_AUTO; init() заменяет его на
+     * GPIO25 для ЦАП или GPIO23 для сигма-дельта-модулятора.
+     */
     gpio_num_t _gpio;
 
+    /**
+     * @brief Прерывание I2S0 в режиме ЦАП.
+     *
+     * Выделяется в dac_init() и освобождается деструктором; ненулевое
+     * значение и означает для деструктора, что работал режим ЦАП.
+     */
     intr_handle_t _isr_handle;
 
-    lldesc_t volatile *_dma_chain;
+    /**
+     * @brief Два дескриптора DMA, замкнутые в кольцо, — по одному на буфер отсчётов.
+     *
+     * Лежат в памяти, доступной DMA; их читает и меняет оборудование,
+     * поэтому указатель на @c volatile. Поле @c sosf второго дескриптора
+     * равно единице: по нему обработчик прерывания узнаёт, какой буфер
+     * выведен.
+     */
+    volatile lldesc_t *_dma_chain;
 
+    /**
+     * @brief Способ вывода звука.
+     *
+     * До первого запуска может быть @c sound_gen_method::automatic; init()
+     * заменяет его на ЦАП или сигма-дельта-модулятор по текущему
+     * видеовыходу.
+     */
     sound_gen_method _gen_method;
 
+    /**
+     * @brief Настроено ли оборудование.
+     *
+     * init() настраивает его один раз, при первом запуске звука, и ставит
+     * этот флаг.
+     */
     bool _init_done;
 
+    /**
+     * @brief Таймер esp_timer в режиме сигма-дельта.
+     *
+     * Срабатывает с частотой дискретизации, и timer_handler() подаёт
+     * модулятору очередной отсчёт. Создаётся в sigmadelta_init(),
+     * удаляется деструктором.
+     */
     esp_timer_handle_t _timer_handle;
 
-    sdm_channel_handle_t _sdm_channel = nullptr;
+    /**
+     * @brief Канал сигма-дельта-модулятора в режиме сигма-дельта.
+     *
+     * Создаётся в sigmadelta_init() на выводе @c _gpio и освобождается
+     * деструктором; в режиме ЦАП остаётся @c nullptr.
+     */
+    sdm_channel_handle_t _sdm_channel;
+
+    /**
+     * @brief Спин-блокировка списка каналов и голосов.
+     *
+     * Обработчик прерывания держит её, пока заполняет буфер, обработчик
+     * таймера — пока получает отсчёт, а методы, меняющие список, — пока
+     * меняют его. Обработчик может работать на другом ядре, и без
+     * блокировки задача могла бы изменить список или занять голос под
+     * новый звук, пока sample() их обходит.
+     */
+    portMUX_TYPE _lock;
+
+    /**
+     * @brief Генераторы волны в голосах; @c nullptr — голос пуст.
+     *
+     * Генератор голоса создают play_sound() и play_samples() в
+     * @c _voice_storage. Голос занят, пока его генератор в списке каналов;
+     * отзвучавший генератор убирается из списка автоотключением, и его голос
+     * достаётся следующему звуку (available_voice()).
+     */
+    std::array<waveform_generator *, VOICE_COUNT> _voices;
+
+    /**
+     * @brief Место под генераторы голосов, по @c esp::sound::VOICE_SIZE байтов на голос.
+     *
+     * Выровнено для любого типа. Генератор голоса создаётся здесь
+     * @c std::construct_at() и разрушается @c std::destroy_at(), когда голос
+     * занимает новый звук или clear() освобождает все голоса, — без
+     * динамической памяти.
+     */
+    alignas(std::max_align_t) std::byte _voice_storage[VOICE_COUNT][VOICE_SIZE];
 };
 
+}
 
-} // end of namespace
+
+// Реализация
+
+// Открытые
+
+/**
+ * @brief Сообщает, выводится ли звук.
+ * @return @c true между play(true) и play(false).
+ */
+bool esp::sound::sound_generator::playing() const
+{
+    return _play;
+}
+
+/**
+ * @brief Воспроизводит волну заданной частоты и длительности.
+ *
+ * Создаёт в свободном голосе копию @p waveform, подключает её и запускает
+ * звук, не дожидаясь его конца; play() вызывать не нужно. Когда
+ * длительность истекает, генератор отключается, и его голос достаётся
+ * следующему звуку. Звуки, запущенные один за другим, звучат
+ * одновременно — так строятся аккорды; одновременно звучат не больше
+ * @c esp::sound::VOICE_COUNT таких звуков.
+ *
+ * @code
+ * // Синусоида 500 Гц, 200 мс.
+ * sound.play_sound(esp::sound::sine_waveform_generator(), 500, 200);
+ *
+ * // До-мажорное трезвучие на секунду.
+ * sound.play_sound(esp::sound::sine_waveform_generator(), 262, 1000); // До.
+ * sound.play_sound(esp::sound::sine_waveform_generator(), 330, 1000); // Ми.
+ * sound.play_sound(esp::sound::sine_waveform_generator(), 392, 1000); // Соль.
+ * @endcode
+ *
+ * @tparam T Класс генератора волны; его объект должен помещаться в голос
+ *         (@c esp::sound::VOICE_SIZE байтов).
+ * @param waveform Образец генератора; копируется.
+ * @param frequency Частота волны, Гц.
+ * @param duration_ms Длительность, мс.
+ * @param volume Громкость, от 0 до 127.
+ * @return @c false, если свободных голосов нет и звук не запущен.
+ */
+template<std::derived_from<esp::sound::waveform_generator> T>
+bool esp::sound::sound_generator::play_sound(const T &waveform, int frequency, int duration_ms,
+                                             int volume)
+{
+    static_assert(sizeof(T) <= VOICE_SIZE,
+                  "the waveform generator does not fit into a voice: raise esp::sound::VOICE_SIZE");
+    static_assert(alignof(T) <= alignof(std::max_align_t),
+                  "the waveform generator needs a stricter alignment than a voice provides");
+
+    const int index = available_voice();
+    if (index < 0)
+        return false;
+
+    T *const generator = std::construct_at(reinterpret_cast<T *>(_voice_storage[index]), waveform);
+    // Генератор настраивается до подключения, чтобы обработчик прерывания
+    // не застал его настроенным наполовину. Частота дискретизации нужна
+    // set_frequency() для приращения фазы.
+    generator->set_sample_rate(_sample_rate);
+    generator->set_frequency(frequency);
+    generator->set_volume(volume);
+    generator->set_duration(_sample_rate / 1000 * duration_ms);
+    start_voice(index, generator);
+    return true;
+}
+
+/**
+ * @brief Возвращает голову списка каналов.
+ *
+ * Следующие генераторы списка дают esp::sound::waveform_generator::next().
+ * Список меняет и обработчик прерывания, поэтому обходить его можно, только
+ * пока звук остановлен.
+ *
+ * @return Последний подключённый генератор волны; @c nullptr, если
+ *         подключённых нет.
+ */
+esp::sound::waveform_generator *esp::sound::sound_generator::channels() const
+{
+    return _channels;
+}
+
+/**
+ * @brief Задаёт общую громкость.
+ *
+ * Общая громкость умножается на смесь всех каналов; громкость каждого
+ * канала задаёт его генератор (esp::sound::waveform_generator::set_volume()).
+ *
+ * @param value Громкость, от 0 до 127; по умолчанию 100.
+ */
+void esp::sound::sound_generator::set_volume(int value)
+{
+    _volume = value;
+}
+
+/**
+ * @brief Возвращает общую громкость.
+ * @return Громкость, от 0 до 127.
+ */
+int esp::sound::sound_generator::volume() const
+{
+    return _volume;
+}

@@ -1130,7 +1130,6 @@ EXCLUDE_PATTERNS       = */.git/* \
                          */src/gfx/esp_gfx_display_controller.* \
                          */src/gfx/esp_gfx_utils.* \
                          */src/ps2 \
-                         */src/sound \
                          */src/vga
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
