@@ -53,7 +53,8 @@
  * Клавиатура: набранные символы появляются в строке ввода; Backspace
  * стирает последний, Enter выводит строку в консоль и очищает её, Esc
  * просто очищает. F1–F8 играют гамму до мажор (523–1047 Гц), F9 меняет
- * форму звуковой волны.
+ * форму звуковой волны, F10 показывает на поле для рисования проверку
+ * фигур и отсечения (draw_clipping_test()) и убирает её.
  *
  * Мышь: левая кнопка рисует, правая очищает поле, средняя подаёт звук,
  * колесо меняет цвет рисования.
@@ -120,6 +121,18 @@ enum row
 /** @brief Толщина линии при рисовании мышью, точки. */
 constexpr int PAINT_PEN_WIDTH = 3;
 
+/**
+ * @brief Промежуток между рамкой поля для рисования и рамкой окна проверки
+ *        отсечения слева и справа, точки.
+ *
+ * В промежутках рисуются фигуры, которые целиком вне окна и потому не
+ * должны появиться (см. esp::board_test::draw_clipping_test()).
+ */
+constexpr int TEST_GAP_X = 24;
+
+/** @brief То же сверху и снизу, точки. */
+constexpr int TEST_GAP_Y = 12;
+
 /** @brief Наибольшая длина набираемой строки, символы. */
 constexpr size_t INPUT_MAX = 60;
 
@@ -172,6 +185,7 @@ esp::board_test::board_test()
     , _presses(0)
     , _keyboard_found(false)
     , _mouse_found(false)
+    , _clipping_test_shown(false)
 {
     // По два бита на каждую составляющую цвета; контроллер выбирает из
     // этих 64 цветов палитру из 16. Кадр — 4 бита на точку, 150 КБ памяти.
@@ -337,8 +351,7 @@ void esp::board_test::draw_screen()
     show_memory();
     for (size_t i = 0; i < std::size(SAMPLES); ++i)
         draw_line(row_samples + static_cast<int>(i), SAMPLES[i]);
-    draw_line(row_help, "Mouse: left draws, right clears, wheel changes the colour.");
-    show_paint_color();
+    show_help();
 
     _canvas.set_pen_color(esp::gfx::color::white);
     _canvas.draw_rectangle(MARGIN, paint_top(), width - MARGIN - 1, height - MARGIN - 1);
@@ -461,6 +474,20 @@ void esp::board_test::show_memory()
 }
 
 /**
+ * @brief Показывает строку подсказки и образец цвета рисования в её конце.
+ *
+ * Пока показана проверка отсечения, подсказка напоминает, что фигуры не
+ * должны выходить за внутреннюю рамку.
+ */
+void esp::board_test::show_help()
+{
+    draw_line(row_help,
+              _clipping_test_shown ? "Test: shapes must stay inside the inner frame. F10: back"
+                                   : "Mouse: left draws, right clears, wheel: colour. F10: test");
+    show_paint_color();
+}
+
+/**
  * @brief Показывает образец цвета рисования в конце строки подсказки.
  */
 void esp::board_test::show_paint_color()
@@ -477,12 +504,19 @@ void esp::board_test::show_paint_color()
 
 /**
  * @brief Очищает поле для рисования, не трогая его рамку.
+ *
+ * Если на поле была проверка отсечения, возвращает обычную подсказку.
  */
 void esp::board_test::clear_paint_area()
 {
     _canvas.set_brush_color(esp::gfx::color::black);
     _canvas.fill_rectangle(MARGIN + 1, paint_top() + 1, _canvas.width() - MARGIN - 2,
                            _canvas.height() - MARGIN - 2);
+    if (_clipping_test_shown)
+    {
+        _clipping_test_shown = false;
+        show_help();
+    }
 }
 
 /**
@@ -510,6 +544,129 @@ void esp::board_test::paint(int x1, int y1, int x2, int y2)
     _canvas.draw_line(x1, y1, x2, y2);
     _canvas.set_pen_width(1);
     _canvas.set_clipping_rect(esp::gfx::rect(0, 0, width - 1, height - 1));
+}
+
+/**
+ * @brief Рисует на поле для рисования проверку фигур и отсечения.
+ *
+ * Посреди поля — окно в ярко-белой рамке. Все фигуры рисуются с
+ * отсечением по окну, поэтому между рамкой окна и рамкой поля всё должно
+ * остаться чёрным. Внутри окна на синем фоне:
+ * - по углам — четверти прямоугольников, у левого края — половина
+ *   залитого эллипса, у правого — половина контура эллипса; бирюзовые
+ *   горизонтальная, вертикальная и наклонная линии доходят до рамки;
+ * - слева — эллипсы высотой в одну строку шириной 41, 21, 9, 3 и 1 точка;
+ * - внизу — инвертированный прямоугольник, который выходит за окно: синий
+ *   фон в нём ярко-жёлтый, бирюзовая линия — тёмно-красная;
+ * - вверху — красные полосы; в их верхней части, которую задевает
+ *   выходящий за окно прямоугольник, цвета пера и кисти обменяны: полосы
+ *   там синие на красном.
+ *
+ * Фигуры целиком вне окна следа не оставляют: инверсия слева, эллипсы
+ * высотой в строку справа и обмен цветов снизу. Прежде от них на
+ * внутренней стороне рамки оставались линии в одну точку: ярко-жёлтые
+ * слева и справа над половинами эллипсов и красная внизу под полосами.
+ * Последними фигуры рисуются через пустые области отсечения (ширина или
+ * высота −1 точка) посередине окна: от них не появляется ничего.
+ */
+void esp::board_test::draw_clipping_test()
+{
+    // Поле для рисования без его рамки.
+    const int left = MARGIN + 1;
+    const int top = paint_top() + 1;
+    const int right = _canvas.width() - MARGIN - 2;
+    const int bottom = _canvas.height() - MARGIN - 2;
+
+    // Окно, по которому идёт отсечение; его рамка — на точку снаружи.
+    const int x1 = left + TEST_GAP_X + 1;
+    const int y1 = top + TEST_GAP_Y + 1;
+    const int x2 = right - TEST_GAP_X - 1;
+    const int y2 = bottom - TEST_GAP_Y - 1;
+    const int center_x = (x1 + x2) / 2;
+    const int center_y = (y1 + y2) / 2;
+
+    clear_paint_area();
+    _canvas.set_pen_color(esp::gfx::color::bright_white);
+    _canvas.draw_rectangle(x1 - 1, y1 - 1, x2 + 1, y2 + 1);
+
+    _canvas.set_clipping_rect(esp::gfx::rect(x1, y1, x2, y2));
+    _canvas.set_brush_color(esp::gfx::color::blue);
+    _canvas.fill_rectangle(x1, y1, x2, y2);
+
+    // Прямоугольники 48 × 24 с центрами в углах окна: видна четверть каждого.
+    const auto corner = [this](int x, int y, esp::gfx::color color)
+    {
+        _canvas.set_brush_color(color);
+        _canvas.fill_rectangle(x - 24, y - 12, x + 23, y + 11);
+    };
+    corner(x1, y1, esp::gfx::color::bright_red);
+    corner(x2, y1, esp::gfx::color::bright_green);
+    corner(x1, y2, esp::gfx::color::bright_magenta);
+    corner(x2, y2, esp::gfx::color::white);
+
+    // Эллипсы с центрами на левом и правом краях: видна половина каждого.
+    _canvas.set_brush_color(esp::gfx::color::bright_green);
+    _canvas.fill_ellipse(x1, center_y, 72, 56);
+    _canvas.set_pen_color(esp::gfx::color::bright_white);
+    _canvas.draw_ellipse(x2, center_y, 72, 56);
+
+    // Эллипсы высотой в одну строку; последний — в одну точку.
+    _canvas.set_brush_color(esp::gfx::color::bright_yellow);
+    const int widths[] = {41, 21, 9, 3, 1};
+    for (int i = 0; i < static_cast<int>(std::size(widths)); ++i)
+        _canvas.fill_ellipse(x1 + 90, center_y - 12 + 6 * i, widths[i], 1);
+
+    // Линии через всё поле: видны только их части внутри окна.
+    _canvas.set_pen_color(esp::gfx::color::bright_cyan);
+    _canvas.draw_line(left, y2 - 20, right, y2 - 20);
+    _canvas.draw_line(x1 + 120, top, x1 + 120, bottom);
+    _canvas.draw_line(x1 + 430, top, x1 + 510, bottom);
+
+    // Инверсия прямоугольника, который выходит за нижний край окна.
+    _canvas.invert_rectangle(x1 + 150, y2 - 24, x1 + 230, bottom - 2);
+
+    // Красные полосы, затем обмен цветов пера и кисти в прямоугольнике,
+    // который выходит за верхний край окна.
+    _canvas.set_brush_color(esp::gfx::color::bright_red);
+    for (int x = x1 + 280; x < x1 + 360; x += 8)
+        _canvas.fill_rectangle(x, y1, x + 3, y1 + 30);
+    _canvas.set_pen_color(esp::gfx::color::bright_red);
+    _canvas.set_brush_color(esp::gfx::color::blue);
+    _canvas.swap_rectangle(x1 + 270, top + 2, x1 + 370, y1 + 15);
+
+    // Фигуры целиком вне окна: инверсия слева, обмен цветов снизу,
+    // эллипсы высотой в строку справа. Следов остаться не должно.
+    _canvas.invert_rectangle(left + 4, y1 + 14, x1 - 6, y1 + 25);
+    _canvas.swap_rectangle(x1 + 270, y2 + 3, x1 + 370, bottom - 2);
+    _canvas.set_brush_color(esp::gfx::color::bright_yellow);
+    for (int y = y1 + 14; y <= y1 + 25; ++y)
+        _canvas.fill_ellipse(x2 + 1 + TEST_GAP_X / 2, y, 15, 1);
+
+    // Пустые области отсечения (ширина или высота −1 точка): через них не
+    // рисуется ничего, иначе посередине окна появилась бы белая линия.
+    const esp::gfx::rect empty_clips[] = {esp::gfx::rect(center_x, y1, center_x - 1, y2),
+                                          esp::gfx::rect(x1, center_y, x2, center_y - 1)};
+    for (const esp::gfx::rect &clip : empty_clips)
+    {
+        _canvas.set_clipping_rect(clip);
+        _canvas.set_brush_color(esp::gfx::color::bright_white);
+        _canvas.fill_rectangle(x1, y1, x2, y2);
+        _canvas.fill_ellipse(center_x, center_y, 200, 60);
+        _canvas.fill_ellipse(center_x, center_y, 200, 1);
+        _canvas.set_pen_color(esp::gfx::color::bright_white);
+        _canvas.draw_line(x1, center_y, x2, center_y);
+        _canvas.draw_line(center_x, y1, center_x, y2);
+        _canvas.draw_line(x1, y1, x2, y2);
+        _canvas.invert_rectangle(x1, y1, x2, y2);
+        _canvas.set_pen_color(esp::gfx::color::bright_red);
+        _canvas.set_brush_color(esp::gfx::color::blue);
+        _canvas.swap_rectangle(x1, y1, x2, y2);
+    }
+
+    _canvas.set_clipping_rect(esp::gfx::rect(0, 0, _canvas.width() - 1, _canvas.height() - 1));
+
+    _clipping_test_shown = true;
+    show_help();
 }
 
 /**
@@ -547,6 +704,13 @@ void esp::board_test::on_key(const esp::ps2::virtual_key_item &item)
             show_sound();
             ESP_LOGI(TAG, "Waveform %s.", WAVEFORMS[_waveform]);
             play(NOTES[0], NOTE_MS);
+            return;
+
+        case esp::ps2::virtual_key::vk_f10:
+            if (_clipping_test_shown)
+                clear_paint_area();
+            else
+                draw_clipping_test();
             return;
 
         case esp::ps2::virtual_key::vk_escape:

@@ -36,9 +36,11 @@ private:
     void show_button();
     void show_sound();
     void show_memory();
+    void show_help();
     void show_paint_color();
     void clear_paint_area();
     void paint(int x1, int y1, int x2, int y2);
+    void draw_clipping_test();
     void on_key(const esp::ps2::virtual_key_item &item);
     void on_mouse(const esp::ps2::mouse_status &status);
     void check_devices();
@@ -76,6 +78,15 @@ private:
 
     /** @brief Была ли мышь найдена при последней проверке. */
     bool _mouse_found;
+
+    /**
+     * @brief Показана ли на поле для рисования проверка отсечения.
+     *
+     * Её рисует draw_clipping_test() по клавише F10 и убирает
+     * clear_paint_area() — по F10 или правой кнопке мыши. От неё зависит
+     * текст строки подсказки (show_help()).
+     */
+    bool _clipping_test_shown;
 };
 
 }
