@@ -58,9 +58,9 @@
  * форму звуковой волны, F10 показывает на поле для рисования проверку
  * фигур и отсечения (draw_clipping_test()) и убирает её. F12 по кругу
  * переключает видеорежимы (esp::p::DISPLAY_MODES): 640 × 480 с 16, 8, 4 и
- * 2 цветами, 800 × 600 с 4 и 2 цветами, 400 × 300 и 320 × 240 с 64
- * цветами; на маленьком экране видны не все строки, а поля для рисования
- * нет.
+ * 2 цветами, 800 × 600 с 4 и 2 цветами, 1024 × 768 с 2 цветами в двух
+ * развёртках, 400 × 300 и 320 × 240 с 64 цветами; на маленьком экране
+ * видны не все строки, а поля для рисования нет.
  *
  * Мышь: левая кнопка рисует, правая очищает поле, средняя подаёт звук,
  * колесо меняет цвет рисования.
@@ -111,9 +111,14 @@ struct display_mode
  *
  * Буфер кадра при 640 × 480 занимает 150 КБ при 16 цветах, 113 КБ при 8,
  * 75 КБ при 4 и 38 КБ при 2; при 800 × 600 — 117 КБ при 4 цветах и 59 КБ
- * при 2; при 64 цветах (байт на точку) — 117 КБ при 400 × 300 и 75 КБ при
- * 320 × 240. Если памяти не хватает, видеоконтроллер уменьшает высоту
- * области вывода.
+ * при 2; при 1024 × 768 и 2 цветах — 96 КБ; при 64 цветах (байт на
+ * точку) — 117 КБ при 400 × 300 и 75 КБ при 320 × 240. Если памяти не
+ * хватает, видеоконтроллер уменьшает высоту области вывода.
+ *
+ * Режим 1024 × 768 дан в двух развёртках: обычной, которая выводится на
+ * 62,5 МГц вместо 65 МГц, и с сокращёнными гасящими интервалами на 56 МГц
+ * (esp::vga::SVGA_1024X768_60HZ_RB); монитор может принимать только одну
+ * из них.
  */
 constexpr display_mode DISPLAY_MODES[] = {
     {vga_driver::vga16, esp::vga::VGA_640X480_60HZ},
@@ -122,6 +127,8 @@ constexpr display_mode DISPLAY_MODES[] = {
     {vga_driver::vga2, esp::vga::VGA_640X480_60HZ},
     {vga_driver::vga4, esp::vga::SVGA_800X600_60HZ},
     {vga_driver::vga2, esp::vga::SVGA_800X600_60HZ},
+    {vga_driver::vga2, esp::vga::SVGA_1024X768_60HZ},
+    {vga_driver::vga2, esp::vga::SVGA_1024X768_60HZ_RB},
     {vga_driver::vga64, esp::vga::VGA_400X300_60HZ},
     {vga_driver::vga64, esp::vga::QVGA_320X240_60HZ},
 };
@@ -475,8 +482,8 @@ void esp::board_test::set_video_mode(int index)
     if (esp::ps2::ps2_controller::initialized())
         attach_mouse();
 
-    ESP_LOGI(esp::p::TAG, "VGA %dx%d, %d colours.", _canvas->width(), _canvas->height(),
-             _display->colors_count());
+    ESP_LOGI(esp::p::TAG, "VGA %s: %dx%d, %d colours.", _display->resolution_timings()->label,
+             _canvas->width(), _canvas->height(), _display->colors_count());
 }
 
 /**
@@ -526,14 +533,14 @@ void esp::board_test::draw_screen()
     _canvas->set_pen_color(esp::gfx::color::bright_white);
     _canvas->draw_rectangle(0, 0, width - 1, height - 1);
 
-    // Заголовок: белый текст на синем; справа — видеорежим и клавиша,
-    // которая его меняет (в строках только знаки ASCII, поэтому число
-    // знаков равно длине строки). На узком экране название короче или его
-    // нет вовсе.
+    // Заголовок: белый текст на синем; справа — имя развёртки из модлайна,
+    // число цветов и клавиша, которая меняет видеорежим (в строках только
+    // знаки ASCII, поэтому число знаков равно длине строки). На узком
+    // экране название короче или его нет вовсе.
     _canvas->set_brush_color(esp::gfx::color::blue);
     _canvas->fill_rectangle(1, 1, width - 2, esp::p::TITLE_TOP + line);
-    char mode[40];
-    std::snprintf(mode, sizeof(mode), "%dx%d, %d colours (F12)", width, height,
+    char mode[48];
+    std::snprintf(mode, sizeof(mode), "%s, %d colours (F12)", _display->resolution_timings()->label,
                   _display->colors_count());
     const int mode_length = static_cast<int>(std::strlen(mode));
     const int cells = (width - 2 * esp::p::MARGIN) / _font.width();
