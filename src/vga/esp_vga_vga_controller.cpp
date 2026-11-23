@@ -25,6 +25,7 @@
 #include <utility>
 
 #include <esp_attr.h>
+#include <esp_err.h>
 #include <esp_heap_caps.h>
 #include <esp_intr_alloc.h>
 #include <esp_timer.h>
@@ -77,7 +78,8 @@ void esp::vga::vga_controller::suspend_background_primitive_execution()
 /**
  * @brief Возобновляет рисование примитивов: когда приостановок не осталось, разрешает прерывание.
  *
- * При первом вызове ставит обработчик прерывания I2S1.
+ * При первом вызове ставит обработчик прерывания I2S1; если выделить
+ * прерывание не удалось, программа останавливается с сообщением об ошибке.
  */
 void esp::vga::vga_controller::resume_background_primitive_execution()
 {
@@ -85,8 +87,8 @@ void esp::vga::vga_controller::resume_background_primitive_execution()
     if (_primitive_processing_suspended == 0)
     {
         if (!_isr_handle)
-            esp_intr_alloc(ETS_I2S1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, v_sync_interrupt, this,
-                           &_isr_handle);
+            ESP_ERROR_CHECK(esp_intr_alloc(ETS_I2S1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1,
+                                           v_sync_interrupt, this, &_isr_handle));
         I2S1.int_clr.val = 0xFFFFFFFF;
         I2S1.int_ena.out_eof = 1;
     }

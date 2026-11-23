@@ -40,16 +40,17 @@ public:
 private:
 
     void setup_clock(int freq);
+    void free_buffers();
     static void setup_gpio(gpio_num_t gpio, int bit, gpio_mode_t mode);
 
     /** @brief Запущены ли модуль I2S1 и его DMA. */
-    bool _dma_started;
+    bool _dma_started = false;
 
     /** @brief Дескриптор DMA потока делителей частоты; @c nullptr, пока поток не создан. */
-    volatile lldesc_t *_dma_buffer;
+    volatile lldesc_t *_dma_buffer = nullptr;
 
     /** @brief Данные потока делителей частоты: байты от 0 до 255. */
-    volatile std::uint8_t *_dma_data;
+    volatile std::uint8_t *_dma_data = nullptr;
 };
 
 }

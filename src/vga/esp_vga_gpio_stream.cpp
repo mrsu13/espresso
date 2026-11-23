@@ -57,12 +57,13 @@
 
 /**
  * @brief Готовит поток к play() со своими буферами DMA.
+ *
+ * Поток, запущенный прежде, останавливается, буферы делителей частоты
+ * освобождаются (см. end()).
  */
 void esp::vga::gpio_stream::begin()
 {
-    _dma_started = false;
-    _dma_buffer = nullptr;
-    _dma_data = nullptr;
+    end();
 }
 
 /**
@@ -89,7 +90,8 @@ void esp::vga::gpio_stream::begin(bool div_1_on_gpio0, gpio_num_t div2, gpio_num
                                   gpio_num_t div8, gpio_num_t div16, gpio_num_t div32,
                                   gpio_num_t div64, gpio_num_t div128, gpio_num_t div256)
 {
-    _dma_started = false;
+    // Прежний поток и его буферы не нужны.
+    end();
 
     if (div_1_on_gpio0)
         setup_gpio(GPIO_NUM_0, -1, GPIO_MODE_OUTPUT); // Только GPIO0.
@@ -119,11 +121,12 @@ void esp::vga::gpio_stream::begin(bool div_1_on_gpio0, gpio_num_t div2, gpio_num
 }
 
 /**
- * @brief Останавливает поток (см. stop()).
+ * @brief Останавливает поток (см. stop()) и освобождает буферы делителей частоты.
  */
 void esp::vga::gpio_stream::end()
 {
     stop();
+    free_buffers();
 }
 
 /**
@@ -235,6 +238,20 @@ void esp::vga::gpio_stream::setup_clock(int freq)
     esp::vga::p::apll_enable(true, params.sdm0, params.sdm1, params.sdm2, params.o_div);
 
     I2S1.clkm_conf.clka_en = 1;
+}
+
+/**
+ * @brief Освобождает буферы потока делителей частоты, если они есть.
+ *
+ * Поток к этому времени остановлен: иначе DMA продолжал бы читать
+ * освобождённую память.
+ */
+void esp::vga::gpio_stream::free_buffers()
+{
+    heap_caps_free(const_cast<lldesc_t *>(_dma_buffer));
+    heap_caps_free(const_cast<std::uint8_t *>(_dma_data));
+    _dma_buffer = nullptr;
+    _dma_data = nullptr;
 }
 
 /**

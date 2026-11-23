@@ -54,6 +54,10 @@
  * display.begin();
  * display.set_resolution(esp::vga::VGA_640X480_60HZ);
  * @endcode
+ *
+ * Деструкторы вывод не останавливают: прежде чем уничтожить контроллер,
+ * его останавливают end(), иначе DMA и обработчик прерывания продолжали
+ * бы работать с освобождённой памятью.
  */
 
 
@@ -548,8 +552,10 @@ bool esp::vga::vga_base_controller::set_dma_buffers_count(int buffers_count)
         if (_dma_buffers_visible && _dma_buffers_visible != _dma_buffers)
             heap_caps_free(const_cast<lldesc_t *>(_dma_buffers_visible));
         heap_caps_free(const_cast<lldesc_t *>(_dma_buffers));
+        heap_caps_free(const_cast<lldesc_t *>(_dma_buffers_head));
         _dma_buffers = nullptr;
         _dma_buffers_visible = nullptr;
+        _dma_buffers_head = nullptr;
         _dma_buffers_count = 0;
         return true;
     }

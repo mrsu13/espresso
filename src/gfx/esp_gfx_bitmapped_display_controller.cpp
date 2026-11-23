@@ -106,7 +106,9 @@ esp::gfx::bitmapped_display_controller::bitmapped_display_controller()
  */
 esp::gfx::bitmapped_display_controller::~bitmapped_display_controller()
 {
-    vQueueDelete(_exec_queue);
+    // Очереди нет, если режим так и не был задан.
+    if (_exec_queue)
+        vQueueDelete(_exec_queue);
     if (_exec_queue_alt)
         vQueueDelete(_exec_queue_alt);
 }
