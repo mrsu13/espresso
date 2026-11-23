@@ -5,7 +5,7 @@
 
 #include "freertos/FreeRTOS.h"
 
-#include "esp_gfx_display_controller.h"
+#include "esp_gfx_bitmapped_display_controller.h"
 #include "esp_ps2_config.h"
 #include "esp_ps2_mouse.h"
 #include "esp_ps2_ps2_controller.h"

@@ -22,7 +22,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
-#include "esp_gfx_display_controller.h"
+#include "esp_gfx_generic_bitmapped_display_controller.h"
+#include "esp_gfx_rgb222.h"
 #include "esp_tools.h"
 #include "esp_vga_gpio_stream.h"
 #include "esp_vga_vga_base_controller.h"

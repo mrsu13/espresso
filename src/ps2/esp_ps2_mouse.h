@@ -16,7 +16,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
 
-#include "esp_gfx_display_controller.h"
+#include "esp_gfx_bitmapped_display_controller.h"
 #include "esp_gfx_utils.h"
 #include "esp_ps2_ps2_device.h"
 #include "esp_ps2_utils.h"

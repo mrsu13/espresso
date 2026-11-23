@@ -11,8 +11,9 @@
 
 #include "esp_board_test.h"
 
-#include "esp_gfx_display_controller.h"
-#include "esp_gfx_utils.h"
+#include "esp_gfx_color.h"
+#include "esp_gfx_cursor_name.h"
+#include "esp_gfx_rect.h"
 #include "esp_ps2_keyboard.h"
 #include "esp_ps2_keyboard_layouts.h"
 #include "esp_ps2_mouse.h"
@@ -137,7 +138,7 @@ const char *const WAVEFORMS[] = {"sine", "square", "triangle", "sawtooth", "nois
 static_assert(std::size(WAVEFORMS) == 5, "WAVEFORMS must match esp::board_test::play()");
 
 /** @brief Указатель мыши. */
-constexpr esp::gfx::cursor_name CURSOR = esp::gfx::cursor_pointer_shadowed;
+constexpr esp::gfx::cursor_name CURSOR = esp::gfx::cursor_name::pointer_shadowed;
 
 /**
  * @brief Возвращает цвет палитры по номеру.
@@ -167,7 +168,7 @@ esp::board_test::board_test()
     , _font(ter_10x18::WIDTH, ter_10x18::HEIGHT, ter_10x18::CODEPOINTS, ter_10x18::GLYPHS,
             ter_10x18::COUNT, ter_10x18::FALLBACK)
     , _waveform(0)
-    , _paint_color(esp::gfx::bright_yellow)
+    , _paint_color(static_cast<int>(esp::gfx::color::bright_yellow))
     , _presses(0)
     , _keyboard_found(false)
     , _mouse_found(false)
@@ -289,17 +290,17 @@ void esp::board_test::draw_screen()
     const int height = _canvas.height();
     const int line = _font.height();
 
-    _canvas.set_brush_color(esp::gfx::black);
+    _canvas.set_brush_color(esp::gfx::color::black);
     _canvas.clear();
 
     // Рамка по самому краю изображения: по ней видно, помещается ли
     // изображение на экране монитора целиком и не сдвинуто ли оно.
-    _canvas.set_pen_color(esp::gfx::bright_white);
+    _canvas.set_pen_color(esp::gfx::color::bright_white);
     _canvas.draw_rectangle(0, 0, width - 1, height - 1);
 
     // Заголовок: белый текст на синем; справа — режим (в строке только
     // знаки ASCII, поэтому число знаков равно её длине).
-    _canvas.set_brush_color(esp::gfx::blue);
+    _canvas.set_brush_color(esp::gfx::color::blue);
     _canvas.fill_rectangle(1, 1, width - 2, TITLE_TOP + line);
     _font.draw_text(_canvas, MARGIN, TITLE_TOP, "Espresso: board test");
     char mode[32];
@@ -320,8 +321,8 @@ void esp::board_test::draw_screen()
 
         char number[4];
         std::snprintf(number, sizeof(number), "%d", i);
-        _canvas.set_pen_color(esp::gfx::white);
-        _canvas.set_brush_color(esp::gfx::black);
+        _canvas.set_pen_color(esp::gfx::color::white);
+        _canvas.set_brush_color(esp::gfx::color::black);
         _font.draw_text(_canvas,
                         x + (bar_width - _font.width() * static_cast<int>(std::strlen(number))) / 2,
                         bars_top + BAR_HEIGHT + 2, number);
@@ -339,7 +340,7 @@ void esp::board_test::draw_screen()
     draw_line(row_help, "Mouse: left draws, right clears, wheel changes the colour.");
     show_paint_color();
 
-    _canvas.set_pen_color(esp::gfx::white);
+    _canvas.set_pen_color(esp::gfx::color::white);
     _canvas.draw_rectangle(MARGIN, paint_top(), width - MARGIN - 1, height - MARGIN - 1);
 }
 
@@ -362,8 +363,8 @@ void esp::board_test::draw_line(int row, const char *text)
     // Отсечение по правому полю: при широком знакоместе длинная строка
     // иначе залезла бы на рамку по краю изображения.
     _canvas.set_clipping_rect(esp::gfx::rect(MARGIN, y, right, y + line - 1));
-    _canvas.set_pen_color(esp::gfx::bright_white);
-    _canvas.set_brush_color(esp::gfx::black);
+    _canvas.set_pen_color(esp::gfx::color::bright_white);
+    _canvas.set_brush_color(esp::gfx::color::black);
     const int cells = _font.draw_text(_canvas, MARGIN, y, text);
 
     // Число знаков в UTF-8 не равно числу байтов, поэтому хвост строки
@@ -468,7 +469,7 @@ void esp::board_test::show_paint_color()
     const int top = status_top() + row_help * _font.height() + 1;
     const int bottom = top + _font.height() - 3;
 
-    _canvas.set_pen_color(esp::gfx::white);
+    _canvas.set_pen_color(esp::gfx::color::white);
     _canvas.set_brush_color(color(_paint_color));
     _canvas.fill_rectangle(right - 31, top, right, bottom);
     _canvas.draw_rectangle(right - 31, top, right, bottom);
@@ -479,7 +480,7 @@ void esp::board_test::show_paint_color()
  */
 void esp::board_test::clear_paint_area()
 {
-    _canvas.set_brush_color(esp::gfx::black);
+    _canvas.set_brush_color(esp::gfx::color::black);
     _canvas.fill_rectangle(MARGIN + 1, paint_top() + 1, _canvas.width() - MARGIN - 2,
                            _canvas.height() - MARGIN - 2);
 }

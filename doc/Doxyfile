@@ -1124,11 +1124,6 @@ EXCLUDE_PATTERNS       = */.git/* \
                          */build/* \
                          */src/3rdparty \
                          */src/tools/esp_tools.* \
-                         */src/gfx/esp_gfx_canvas.* \
-                         */src/gfx/esp_gfx_config.h \
-                         */src/gfx/esp_gfx_cursors.h \
-                         */src/gfx/esp_gfx_display_controller.* \
-                         */src/gfx/esp_gfx_utils.* \
                          */src/ps2 \
                          */src/vga
 
@@ -2538,7 +2533,9 @@ INCLUDE_FILE_PATTERNS  =
 
 PREDEFINED             = ESP_OS_LINUX \
                          ESP_DEBUG \
-                         ESP_TRACE_MIN_LEVEL=5
+                         ESP_TRACE_MIN_LEVEL=5 \
+                         IRAM_ATTR= \
+                         PACKED_ATTR=
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The
