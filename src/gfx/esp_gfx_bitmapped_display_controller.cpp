@@ -27,11 +27,13 @@
 #include "esp_gfx_utils.h"
 #include "esp_tools.h"
 
+#include <algorithm>
 #include <climits>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <utility>
 
 #include <esp_attr.h>
 #include <freertos/FreeRTOS.h>
@@ -240,7 +242,7 @@ bool esp::gfx::bitmapped_display_controller::suspend_double_buffering(bool value
             _exec_queue_alt =
                 xQueueCreate(bitmapped_display_controller::queue_size, sizeof(primitive));
         }
-        esp::tswap(_exec_queue_alt, _exec_queue);
+        std::swap(_exec_queue_alt, _exec_queue);
         _double_buffered_enabled = !value;
     }
     return ret;
@@ -460,7 +462,7 @@ void IRAM_ATTR esp::gfx::bitmapped_display_controller::exec_primitive(const prim
             break;
 
         case primitive_cmd::set_pen_width:
-            paint_state().pen_width = esp::imax(1, prim.ivalue);
+            paint_state().pen_width = std::max<int>(1, prim.ivalue);
             break;
 
         case primitive_cmd::set_line_ends:
@@ -495,18 +497,18 @@ void IRAM_ATTR esp::gfx::bitmapped_display_controller::reset_paint_state()
  * @brief Пересчитывает действующую область отсечения.
  *
  * Сдвигает заданную холстом область на начало координат и обрезает её по
- * области вывода.
+ * области вывода; та к этому времени задана (ширина и высота не меньше 1).
  */
 void IRAM_ATTR esp::gfx::bitmapped_display_controller::update_absolute_clipping_rect()
 {
-    const int x1 = esp::iclamp(paint_state().origin.x + paint_state().clipping_rect.x1, 0,
-                               view_port_width() - 1);
-    const int y1 = esp::iclamp(paint_state().origin.y + paint_state().clipping_rect.y1, 0,
-                               view_port_height() - 1);
-    const int x2 = esp::iclamp(paint_state().origin.x + paint_state().clipping_rect.x2, 0,
-                               view_port_width() - 1);
-    const int y2 = esp::iclamp(paint_state().origin.y + paint_state().clipping_rect.y2, 0,
-                               view_port_height() - 1);
+    const int x1 = std::clamp(paint_state().origin.x + paint_state().clipping_rect.x1, 0,
+                              view_port_width() - 1);
+    const int y1 = std::clamp(paint_state().origin.y + paint_state().clipping_rect.y1, 0,
+                              view_port_height() - 1);
+    const int x2 = std::clamp(paint_state().origin.x + paint_state().clipping_rect.x2, 0,
+                              view_port_width() - 1);
+    const int y2 = std::clamp(paint_state().origin.y + paint_state().clipping_rect.y2, 0,
+                              view_port_height() - 1);
     paint_state().abs_clipping_rect = rect(x1, y1, x2, y2);
 }
 
@@ -549,8 +551,8 @@ void IRAM_ATTR esp::gfx::bitmapped_display_controller::line_to(const point &posi
 
     // Изменённая область — с запасом на половину толщины пера.
     const int hw = paint_state().pen_width / 2;
-    update_rect = update_rect.merge(rect(esp::imin(x1, x2) - hw, esp::imin(y1, y2) - hw,
-                                         esp::imax(x1, x2) + hw, esp::imax(y1, y2) + hw));
+    update_rect = update_rect.merge(rect(std::min(x1, x2) - hw, std::min(y1, y2) - hw,
+                                         std::max(x1, x2) + hw, std::max(y1, y2) + hw));
     hide_sprites(update_rect);
     abs_draw_line(x1, y1, x2, y2, color);
 
@@ -623,8 +625,8 @@ void IRAM_ATTR esp::gfx::bitmapped_display_controller::draw_path(const path &pat
         if (py > max_y)
             max_y = py;
     }
-    min_y = esp::tmax(clip_y1, min_y);
-    max_y = esp::tmin(clip_y2, max_y);
+    min_y = std::max(clip_y1, min_y);
+    max_y = std::min(clip_y2, max_y);
 
     const int hw = paint_state().pen_width / 2;
     update_rect = update_rect.merge(rect(min_x - hw, min_y - hw, max_x + hw, max_y + hw));
@@ -739,10 +741,11 @@ void IRAM_ATTR esp::gfx::bitmapped_display_controller::fill_rect(const rect &rec
     if (x1 > clip_x2 || x2 < clip_x1 || y1 > clip_y2 || y2 < clip_y1)
         return;
 
-    x1 = esp::iclamp(x1, clip_x1, clip_x2);
-    y1 = esp::iclamp(y1, clip_y1, clip_y2);
-    x2 = esp::iclamp(x2, clip_x1, clip_x2);
-    y2 = esp::iclamp(y2, clip_y1, clip_y2);
+    // Пересечение с областью отсечения.
+    x1 = std::max(x1, clip_x1);
+    y1 = std::max(y1, clip_y1);
+    x2 = std::min(x2, clip_x2);
+    y2 = std::min(y2, clip_y2);
 
     update_rect = update_rect.merge(esp::gfx::rect(x1, y1, x2, y2));
     hide_sprites(update_rect);
@@ -809,8 +812,8 @@ void IRAM_ATTR esp::gfx::bitmapped_display_controller::fill_ellipse(int center_x
             int col2 = center_x - x + width - 1;
             if (col1 <= clip_x2 && col2 >= clip_x1)
             {
-                col1 = esp::iclamp(col1, clip_x1, clip_x2);
-                col2 = esp::iclamp(col2, clip_x1, clip_x2);
+                col1 = std::max(col1, clip_x1);
+                col2 = std::min(col2, clip_x2);
                 int row1 = center_y - y;
                 int row2 = center_y + y;
                 if (row1 >= clip_y1 && row1 <= clip_y2)
@@ -830,11 +833,14 @@ void IRAM_ATTR esp::gfx::bitmapped_display_controller::fill_ellipse(int center_x
             t += dyt;
         }
     }
-    // Эллипс высотой в одну строку.
+    // Эллипс высотой в одну строку: цикл выше его не рисует.
     if (half_height == 0 && center_y >= clip_y1 && center_y <= clip_y2)
-        raw_fill_row(center_y, esp::iclamp(center_x - half_width, clip_x1, clip_x2),
-                     esp::iclamp(center_x - half_width + 2 * half_width + 1, clip_x1, clip_x2),
-                     color);
+    {
+        const int col1 = center_x - half_width;
+        const int col2 = center_x + half_width;
+        if (col1 <= clip_x2 && col2 >= clip_x1)
+            raw_fill_row(center_y, std::max(col1, clip_x1), std::min(col2, clip_x2), color);
+    }
 }
 
 /**
@@ -875,8 +881,8 @@ void IRAM_ATTR esp::gfx::bitmapped_display_controller::fill_path(const path &pat
         if (py > max_y)
             max_y = py;
     }
-    min_y = esp::tmax(clip_y1, min_y);
-    max_y = esp::tmin(clip_y2, max_y);
+    min_y = std::max(clip_y1, min_y);
+    max_y = std::min(clip_y2, max_y);
 
     update_rect = update_rect.merge(rect(min_x, min_y, max_x, max_y));
     hide_sprites(update_rect);
@@ -910,7 +916,7 @@ void IRAM_ATTR esp::gfx::bitmapped_display_controller::fill_path(const path &pat
         {
             if (node_x[i] > node_x[i + 1])
             {
-                esp::tswap(node_x[i], node_x[i + 1]);
+                std::swap(node_x[i], node_x[i + 1]);
                 if (i)
                     --i;
             }
@@ -1075,9 +1081,9 @@ void esp::gfx::bitmapped_display_controller::set_sprites(sprite *sprites, int co
             int req_back_buffer_size = 0;
             for (int frame = 0; frame < sprite->frames_count; ++frame)
                 req_back_buffer_size =
-                    esp::tmax(req_back_buffer_size,
-                              sprite->frames[frame]->width * bitmap_save_pixel_size()
-                                  * sprite->frames[frame]->height);
+                    std::max(req_back_buffer_size,
+                             sprite->frames[frame]->width * bitmap_save_pixel_size()
+                                 * sprite->frames[frame]->height);
             if (req_back_buffer_size > 0)
                 sprite->saved_background = static_cast<std::uint8_t *>(
                     std::realloc(sprite->saved_background, req_back_buffer_size));

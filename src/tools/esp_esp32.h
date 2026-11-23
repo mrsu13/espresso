@@ -1,5 +1,7 @@
 #pragma once
 
+#include "esp_tools.h"
+
 #include <driver/gpio.h>
 
 
@@ -21,8 +23,6 @@ enum class chip_package
 esp::chip_package detected_chip_package();
 const char *chip_package_name(esp::chip_package package);
 
-#define ESP_GPIO_UNUSED GPIO_NUM_MAX
-
 inline gpio_num_t int2gpio(int gpio);
 
 }
@@ -33,9 +33,9 @@ inline gpio_num_t int2gpio(int gpio);
 /**
  * @brief Приводит номер вывода из @c int к типу @c gpio_num_t.
  * @param gpio Номер вывода или -1, если вывод не используется.
- * @return Номер вывода; ESP_GPIO_UNUSED, если @p gpio равен -1.
+ * @return Номер вывода; esp::GPIO_UNUSED, если @p gpio равен -1.
  */
 gpio_num_t esp::int2gpio(int gpio)
 {
-    return gpio == -1 ? ESP_GPIO_UNUSED : (gpio_num_t)gpio;
+    return gpio == -1 ? esp::GPIO_UNUSED : static_cast<gpio_num_t>(gpio);
 }

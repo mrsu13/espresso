@@ -9,9 +9,7 @@ esp_inc_dirs("${CMAKE_CURRENT_LIST_DIR}" esp_inc_dir_list)
 esp_src_dirs("${CMAKE_CURRENT_LIST_DIR}" esp_src_dir_list)
 
 # Компоненты ESP-IDF, которыми пользуется программа. Каталога main в
-# проекте нет, поэтому ESP-IDF не подключает их сам. Заголовок
-# tools/esp_tools.h берёт из esp_wifi.h номер ядра задачи Wi-Fi, чтобы
-# занять под видеовывод другое ядро.
+# проекте нет, поэтому ESP-IDF не подключает их сам.
 idf_component_register(INCLUDE_DIRS ${esp_inc_dir_list}
                        SRC_DIRS ${esp_src_dir_list}
                        PRIV_REQUIRES efuse
@@ -21,7 +19,6 @@ idf_component_register(INCLUDE_DIRS ${esp_inc_dir_list}
                                      esp_driver_sdspi
                                      esp_driver_spi
                                      esp_timer
-                                     esp_wifi
                                      fatfs
                                      sdmmc
                                      spi_flash
@@ -32,9 +29,10 @@ idf_component_register(INCLUDE_DIRS ${esp_inc_dir_list}
 # в сборках с проверками (без NDEBUG).
 target_compile_definitions(${COMPONENT_LIB} PRIVATE LOG_LOCAL_LEVEL=ESP_LOG_DEBUG)
 
-# Код, полученный из FabGL (gfx, vga, ps2, sound и tools/esp_tools.cpp),
-# отлажен с оптимизацией по размеру (-Os), как в ядре Arduino и в порте
-# FabGL; самые нагруженные файлы к тому же сами включают -O2 или -O3.
+# Код, полученный из FabGL (gfx, vga, ps2, sound и в tools — esp_tools,
+# esp_core_usage, esp_current_video_mode), отлажен с оптимизацией по
+# размеру (-Os), как в ядре Arduino и в порте FabGL; самые нагруженные
+# файлы к тому же сами включают -O2 или -O3.
 # Обработчики прерываний видеовывода должны успевать подготовить строки к
 # выводу, поэтому этот код собирается с -Os и при отладочной сборке
 # проекта (-Og).
@@ -43,6 +41,8 @@ file(GLOB esp_size_optimized_sources
      "${CMAKE_CURRENT_LIST_DIR}/vga/*.cpp"
      "${CMAKE_CURRENT_LIST_DIR}/ps2/*.cpp"
      "${CMAKE_CURRENT_LIST_DIR}/sound/*.cpp"
+     "${CMAKE_CURRENT_LIST_DIR}/tools/esp_core_usage.cpp"
+     "${CMAKE_CURRENT_LIST_DIR}/tools/esp_current_video_mode.cpp"
      "${CMAKE_CURRENT_LIST_DIR}/tools/esp_tools.cpp")
 set_source_files_properties(${esp_size_optimized_sources} PROPERTIES COMPILE_OPTIONS -Os)
 

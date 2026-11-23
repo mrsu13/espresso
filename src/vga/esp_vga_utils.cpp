@@ -15,14 +15,15 @@
 
 #include "esp_vga_utils_p.h"
 
-#include "esp_tools.h"
 #include "esp_vga_config.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
 
 #include <driver/gpio.h>
+#include <soc/gpio_periph.h>
 #include <soc/io_mux_reg.h>
 #include <soc/rtc.h>
 
@@ -94,8 +95,8 @@ void esp::vga::p::rgb222_to_hsv(int red, int green, int blue, double *h, double 
     const double r = red / 3.0;
     const double g = green / 3.0;
     const double b = blue / 3.0;
-    const double cmax = esp::tmax<double>(esp::tmax<double>(r, g), b);
-    const double cmin = esp::tmin<double>(esp::tmin<double>(r, g), b);
+    const double cmax = std::max(std::max(r, g), b);
+    const double cmin = std::min(std::min(r, g), b);
     const double diff = cmax - cmin;
     if (cmax == cmin)
         *h = 0;
@@ -295,7 +296,7 @@ void esp::vga::p::apll_calc_params(double freq, apll_params *params, std::uint8_
             const int start_sdm1 =
                 ((apll_freq * idivisor - fxtal * 4.0 - fxtal * sdm2) * 256.0 / fxtal);
 #if ESP_VGA_USE_APLL_AB_COEF
-            for (int isdm1 = esp::tmax(min_sdm1, start_sdm1); isdm1 <= max_sdm1; ++isdm1)
+            for (int isdm1 = std::max(min_sdm1, start_sdm1); isdm1 <= max_sdm1; ++isdm1)
             {
 #else
             int isdm1 = start_sdm1;
@@ -303,8 +304,8 @@ void esp::vga::p::apll_calc_params(double freq, apll_params *params, std::uint8_
 #endif
 
                 int sdm1 = isdm1;
-                sdm1 = esp::tmax(min_sdm1, sdm1);
-                sdm1 = esp::tmin(max_sdm1, sdm1);
+                sdm1 = std::max(min_sdm1, sdm1);
+                sdm1 = std::min(max_sdm1, sdm1);
 
                 // apll_freq = XTAL * (4 + sdm2 + sdm1 / 256 + sdm0 / 65536) / divisor ->
                 // sdm0 = (apll_freq * divisor - XTAL * 4 - XTAL * sdm2 - XTAL * sdm1 / 256)
@@ -313,8 +314,8 @@ void esp::vga::p::apll_calc_params(double freq, apll_params *params, std::uint8_
                     ((apll_freq * idivisor - fxtal * 4.0 - fxtal * sdm2 - fxtal * sdm1 / 256.0)
                      * 65536.0 / fxtal);
                 // Предел sdm0 — из таблицы выше.
-                sdm0 = (sdm2 == 8 && sdm1 == 128 ? 0 : esp::tmin(255, sdm0));
-                sdm0 = esp::tmax(0, sdm0);
+                sdm0 = (sdm2 == 8 && sdm1 == 128 ? 0 : std::min(255, sdm0));
+                sdm0 = std::max(0, sdm0);
 
                 // Делимое должно быть от 350 до 500 МГц.
                 const double dividend = fxtal * (4.0 + sdm2 + sdm1 / 256.0 + sdm0 / 65536.0);
@@ -334,8 +335,8 @@ void esp::vga::p::apll_calc_params(double freq, apll_params *params, std::uint8_
                     {
                         int num, den;
                         esp::vga::p::float_to_fraction(abr, 63, &num, &den);
-                        ob = esp::tclamp(num, 0, 63);
-                        oa = esp::tclamp(den, 0, 63);
+                        ob = std::clamp(num, 0, 63);
+                        oa = std::clamp(den, 0, 63);
                     }
 #endif
 

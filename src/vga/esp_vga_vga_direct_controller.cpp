@@ -15,11 +15,13 @@
 
 #include "esp_vga_vga_direct_controller.h"
 
+#include "esp_core_usage.h"
 #include "esp_tools.h"
 
 #include <cstdint>
 
 #include <esp_attr.h>
+#include <esp_err.h>
 #include <esp_heap_caps.h>
 #include <esp_intr_alloc.h>
 #include <soc/i2s_struct.h>
@@ -110,7 +112,8 @@ void esp::vga::vga_direct_controller::read_screen(const esp::gfx::rect &rect,
 /**
  * @brief Начинает вывод: запускает поток DMA и ставит обработчик прерывания.
  *
- * Нужен, только если контроллер создан с @c auto_run = @c false.
+ * Нужен, только если контроллер создан с @c auto_run = @c false. Если выделить прерывание не удалось, программа останавливается с
+ * сообщением об ошибке.
  */
 void esp::vga::vga_direct_controller::run()
 {
@@ -123,9 +126,9 @@ void esp::vga::vga_direct_controller::run()
     if (!_isr_handle)
     {
         esp::core_usage::set_busiest_core(esp::VIDEO_TASKS_CORE);
-        esp::esp_intr_alloc_pinned_to_core(ETS_I2S1_INTR_SOURCE,
-                                           ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM, isr_handler,
-                                           this, &_isr_handle, esp::VIDEO_TASKS_CORE);
+        ESP_ERROR_CHECK(esp::esp_intr_alloc_pinned_to_core(
+            ETS_I2S1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM, isr_handler, this,
+            &_isr_handle, esp::VIDEO_TASKS_CORE));
         I2S1.int_clr.val = 0xFFFFFFFF;
         I2S1.int_ena.out_eof = 1;
     }

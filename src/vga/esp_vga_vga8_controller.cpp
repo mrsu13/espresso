@@ -15,11 +15,11 @@
 
 #include "esp_vga_vga8_controller.h"
 
-#include "esp_tools.h"
 #include "esp_vga_utils_p.h"
 
 #include <cstdint>
 #include <cstring>
+#include <utility>
 
 #include <esp_attr.h>
 #include <esp_heap_caps.h>
@@ -289,7 +289,7 @@ void esp::vga::vga8_controller::v_scroll(int scroll, esp::gfx::rect &update_rect
         scroll, update_rect,
         [&](int y_a, int y_b, int x1, int x2) { swap_rows(y_a, y_b, x1, x2); }, // swap_rows_copying
         [&](int y_a, int y_b)
-        { esp::tswap(_view_port[y_a], _view_port[y_b]); }, // swap_rows_pointers
+        { std::swap(_view_port[y_a], _view_port[y_b]); }, // swap_rows_pointers
         [&](int y, int x1, int x2, esp::gfx::rgb888 color)
         { raw_fill_row(y, x1, x2, color); } // raw_fill_row
     );

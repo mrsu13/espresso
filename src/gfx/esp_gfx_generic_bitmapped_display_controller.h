@@ -23,11 +23,12 @@
 #include "esp_gfx_rgba8888.h"
 #include "esp_gfx_size.h"
 #include "esp_gfx_utils.h"
-#include "esp_tools.h"
 
+#include <algorithm>
 #include <alloca.h>
 #include <cstdint>
 #include <cstdlib>
+#include <utility>
 
 
 namespace esp::gfx
@@ -239,13 +240,12 @@ void esp::gfx::generic_bitmapped_display_controller::generic_abs_draw_line(
         if (y1 < paint_state().abs_clipping_rect.y1 || y1 > paint_state().abs_clipping_rect.y2)
             return;
         if (x1 > x2)
-            esp::tswap(x1, x2);
+            std::swap(x1, x2);
         if (x1 > paint_state().abs_clipping_rect.x2 || x2 < paint_state().abs_clipping_rect.x1)
             return;
-        x1 =
-            esp::iclamp(x1, paint_state().abs_clipping_rect.x1, paint_state().abs_clipping_rect.x2);
-        x2 =
-            esp::iclamp(x2, paint_state().abs_clipping_rect.x1, paint_state().abs_clipping_rect.x2);
+        // Пересечение с областью отсечения.
+        x1 = std::max<int>(x1, paint_state().abs_clipping_rect.x1);
+        x2 = std::min<int>(x2, paint_state().abs_clipping_rect.x2);
         if (paint_state().paint_options.negate)
             raw_invert_row(y1, x1, x2);
         else
@@ -257,13 +257,12 @@ void esp::gfx::generic_bitmapped_display_controller::generic_abs_draw_line(
         if (x1 < paint_state().abs_clipping_rect.x1 || x1 > paint_state().abs_clipping_rect.x2)
             return;
         if (y1 > y2)
-            esp::tswap(y1, y2);
+            std::swap(y1, y2);
         if (y1 > paint_state().abs_clipping_rect.y2 || y2 < paint_state().abs_clipping_rect.y1)
             return;
-        y1 =
-            esp::iclamp(y1, paint_state().abs_clipping_rect.y1, paint_state().abs_clipping_rect.y2);
-        y2 =
-            esp::iclamp(y2, paint_state().abs_clipping_rect.y1, paint_state().abs_clipping_rect.y2);
+        // Пересечение с областью отсечения.
+        y1 = std::max<int>(y1, paint_state().abs_clipping_rect.y1);
+        y2 = std::min<int>(y2, paint_state().abs_clipping_rect.y2);
         if (paint_state().paint_options.negate)
         {
             for (int y = y1; y <= y2; ++y)
@@ -563,7 +562,7 @@ void esp::gfx::generic_bitmapped_display_controller::generic_draw_glyph_full(
     hide_sprites(update_rect);
 
     if (glyph_options.invert ^ paint_state().paint_options.swap_fgbg)
-        esp::tswap(pen_color, brush_color);
+        std::swap(pen_color, brush_color);
 
     // Пониженная яркость: каналы пера ограничиваются значением 128.
     if (glyph_options.reduce_luminosity)
@@ -735,7 +734,7 @@ void esp::gfx::generic_bitmapped_display_controller::generic_draw_glyph_light(
     hide_sprites(update_rect);
 
     if (glyph_options.invert ^ paint_state().paint_options.swap_fgbg)
-        esp::tswap(pen_color, brush_color);
+        std::swap(pen_color, brush_color);
 
     // Пониженная яркость: каналы пера ограничиваются значением 128.
     if (glyph_options.reduce_luminosity)
@@ -802,10 +801,16 @@ void esp::gfx::generic_bitmapped_display_controller::generic_invert_rect(
     const int clip_x2 = paint_state().abs_clipping_rect.x2;
     const int clip_y2 = paint_state().abs_clipping_rect.y2;
 
-    const int x1 = esp::iclamp(rect.x1 + orig_x, clip_x1, clip_x2);
-    const int y1 = esp::iclamp(rect.y1 + orig_y, clip_y1, clip_y2);
-    const int x2 = esp::iclamp(rect.x2 + orig_x, clip_x1, clip_x2);
-    const int y2 = esp::iclamp(rect.y2 + orig_y, clip_y1, clip_y2);
+    // Прямоугольник вне области отсечения.
+    if (rect.x1 + orig_x > clip_x2 || rect.x2 + orig_x < clip_x1 || rect.y1 + orig_y > clip_y2
+        || rect.y2 + orig_y < clip_y1)
+        return;
+
+    // Пересечение с областью отсечения.
+    const int x1 = std::max(rect.x1 + orig_x, clip_x1);
+    const int y1 = std::max(rect.y1 + orig_y, clip_y1);
+    const int x2 = std::min(rect.x2 + orig_x, clip_x2);
+    const int y2 = std::min(rect.y2 + orig_y, clip_y2);
 
     update_rect = update_rect.merge(esp::gfx::rect(x1, y1, x2, y2));
     hide_sprites(update_rect);
@@ -849,10 +854,16 @@ void esp::gfx::generic_bitmapped_display_controller::generic_swap_fgbg(
     const int clip_x2 = paint_state().abs_clipping_rect.x2;
     const int clip_y2 = paint_state().abs_clipping_rect.y2;
 
-    const int x1 = esp::iclamp(rect.x1 + orig_x, clip_x1, clip_x2);
-    const int y1 = esp::iclamp(rect.y1 + orig_y, clip_y1, clip_y2);
-    const int x2 = esp::iclamp(rect.x2 + orig_x, clip_x1, clip_x2);
-    const int y2 = esp::iclamp(rect.y2 + orig_y, clip_y1, clip_y2);
+    // Прямоугольник вне области отсечения.
+    if (rect.x1 + orig_x > clip_x2 || rect.x2 + orig_x < clip_x1 || rect.y1 + orig_y > clip_y2
+        || rect.y2 + orig_y < clip_y1)
+        return;
+
+    // Пересечение с областью отсечения.
+    const int x1 = std::max(rect.x1 + orig_x, clip_x1);
+    const int y1 = std::max(rect.y1 + orig_y, clip_y1);
+    const int x2 = std::min(rect.x2 + orig_x, clip_x2);
+    const int y2 = std::min(rect.y2 + orig_y, clip_y2);
 
     update_rect = update_rect.merge(esp::gfx::rect(x1, y1, x2, y2));
     hide_sprites(update_rect);

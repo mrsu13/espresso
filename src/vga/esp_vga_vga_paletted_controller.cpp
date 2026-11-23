@@ -15,6 +15,7 @@
 
 #include "esp_vga_vga_paletted_controller.h"
 
+#include "esp_core_usage.h"
 #include "esp_gfx_primitive.h"
 #include "esp_gfx_rect.h"
 #include "esp_tools.h"
@@ -26,6 +27,7 @@
 #include <cstdint>
 #include <cstring>
 
+#include <esp_err.h>
 #include <esp_heap_caps.h>
 #include <esp_intr_alloc.h>
 #include <freertos/FreeRTOS.h>
@@ -122,7 +124,8 @@ void esp::vga::vga_paletted_controller::suspend_background_primitive_execution()
  *
  * Очищает буфер кадра, задаёт палитру по умолчанию, ставит обработчик
  * прерывания I2S1 (уровень 1: ниже, чем у контроллера PS/2 на том же
- * ядре) и создаёт задачу примитивов на другом ядре.
+ * ядре) и создаёт задачу примитивов на другом ядре. Если выделить прерывание не удалось, программа останавливается с
+ * сообщением об ошибке.
  *
  * @param timings Развёртка.
  * @param view_port_width Ширина области вывода, пиксели; −1 — вся видимая ширина.
@@ -158,9 +161,9 @@ void esp::vga::vga_paletted_controller::set_resolution(const vga_timings &timing
     if (!_isr_handle)
     {
         esp::core_usage::set_busiest_core(esp::VIDEO_TASKS_CORE);
-        esp::esp_intr_alloc_pinned_to_core(ETS_I2S1_INTR_SOURCE,
-                                           ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM, _isr_handler,
-                                           this, &_isr_handle, esp::VIDEO_TASKS_CORE);
+        ESP_ERROR_CHECK(esp::esp_intr_alloc_pinned_to_core(
+            ETS_I2S1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM, _isr_handler, this,
+            &_isr_handle, esp::VIDEO_TASKS_CORE));
         I2S1.int_clr.val = 0xFFFFFFFF;
         I2S1.int_ena.out_eof = 1;
     }

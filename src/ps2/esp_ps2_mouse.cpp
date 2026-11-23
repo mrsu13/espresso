@@ -21,6 +21,7 @@
 #include "esp_ps2_utils.h"
 #include "esp_tools.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 
@@ -238,8 +239,8 @@ bool esp::ps2::mouse::get_next_delta(esp::ps2::mouse_delta *delta, int time_out_
  * которая сама вызывает update_absolute_position() на каждое перемещение.
  * Вызывать один раз.
  *
- * @param width Ширина области.
- * @param height Высота области.
+ * @param width Ширина области; не меньше 1.
+ * @param height Высота области; не меньше 1.
  * @param create_absolute_positions_queue @c true — ставить состояния в
  *        очередь для get_next_status().
  * @param update_display_controller Контроллер дисплея, курсор которого
@@ -298,7 +299,8 @@ void esp::ps2::mouse::terminate_absolute_positioner()
  * Перемещение умножается на ускорение, которое растёт со скоростью
  * движения; поэтому вызывать метод нужно часто и регулярно. Если
  * настроены очередь состояний или курсор дисплея, метод вызывает задача
- * мыши.
+ * мыши. Область положения задаёт setup_absolute_positioner(); до её вызова
+ * метод вызывать нельзя.
  *
  * @param delta Перемещение мыши.
  */
@@ -338,8 +340,8 @@ void esp::ps2::mouse::update_absolute_position(esp::ps2::mouse_delta *delta)
         }
     }
 
-    _status.x = esp::tclamp(static_cast<int>(_status.x) + dx, 0, _area.width - 1);
-    _status.y = esp::tclamp(static_cast<int>(_status.y) - dy, 0, _area.height - 1);
+    _status.x = std::clamp(static_cast<int>(_status.x) + dx, 0, _area.width - 1);
+    _status.y = std::clamp(static_cast<int>(_status.y) - dy, 0, _area.height - 1);
     _status.wheel_delta = dz;
     _prev_delta_time = now;
 }

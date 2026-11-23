@@ -3,52 +3,98 @@
 // Изменено для Espresso в 2026 г.
 
 
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <unistd.h>
+/**
+ * @file esp_tools.h
+ * @brief Объявление общих вспомогательных функций и констант пространства esp.
+ */
 
-#include "driver/rtc_io.h"
-#include "esp_ipc.h"
-#include "esp_task_wdt.h"
-#include "soc/dport_reg.h"
-#include "soc/efuse_reg.h"
-#include "soc/rtc.h"
-#include "soc/rtc_io_struct.h"
-#include "soc/sens_struct.h"
+/**
+ * @file esp_tools.cpp
+ * @brief Общие вспомогательные функции: тики FreeRTOS, включение модулей
+ *        I2S, выделение прерывания на заданном ядре.
+ */
 
 #include "esp_tools.h"
 
-#include "esp_private/periph_ctrl.h"
+#include <cstdint>
+
+#include <esp_err.h>
+#include <esp_intr_alloc.h>
+#include <esp_ipc.h>
+#include <esp_private/periph_ctrl.h>
+#include <freertos/FreeRTOS.h>
+#include <soc/dport_reg.h>
 
 
 #pragma GCC optimize("O2")
 
 
-namespace esp
+namespace esp::p
 {
 
+/**
+ * @brief Параметры esp_intr_alloc(), передаваемые на другое ядро.
+ *
+ * esp::esp_intr_alloc_pinned_to_core() заполняет структуру на своём стеке и
+ * ждёт, пока esp::p::intr_alloc() выполнится на нужном ядре, поэтому
+ * указатель на неё действителен всё время вызова.
+ */
+struct intr_alloc_args
+{
+    /** @brief Источник прерывания (@c ETS_*_INTR_SOURCE). */
+    int source;
 
-////////////////////////////////////////////////////////////////////////////////////////////
-// msToTicks
+    /** @brief Флаги @c ESP_INTR_FLAG_*: уровень прерывания, размещение обработчика в IRAM. */
+    int flags;
 
-uint32_t ms_to_ticks(int ms)
+    /** @brief Обработчик прерывания. */
+    intr_handler_t handler;
+
+    /** @brief Аргумент обработчика. */
+    void *arg;
+
+    /** @brief Куда записать дескриптор прерывания; может быть @c nullptr. */
+    intr_handle_t *ret_handle;
+
+    /** @brief Результат esp_intr_alloc(); его записывает esp::p::intr_alloc(). */
+    esp_err_t result;
+};
+
+void intr_alloc(void *arg);
+
+}
+
+
+// Открытые
+
+/**
+ * @brief Переводит миллисекунды в тики FreeRTOS для функций ожидания.
+ * @param ms Время ожидания, мс; отрицательное — ждать без ограничения.
+ * @return Число тиков; @c portMAX_DELAY, если @p ms отрицательно.
+ */
+TickType_t esp::ms_to_ticks(int ms)
 {
     return ms < 0 ? portMAX_DELAY : pdMS_TO_TICKS(ms);
 }
 
-
-////////////////////////////////////////////////////////////////////////////////////////////
-// I2SModuleEnable
-
-void i2s_module_enable(int num, bool enable)
+/**
+ * @brief Включает или выключает модуль I2S.
+ *
+ * Включение подаёт на модуль тактовую частоту шины и снимает с него сброс,
+ * выключение снимает тактовую частоту и переводит модуль в сброс. Модуль
+ * I2S0 выводит звук на ЦАП (esp::sound::sound_generator), I2S1 — поток
+ * разрядов VGA (esp::vga::gpio_stream).
+ *
+ * @param num Номер модуля: 0 — I2S0, 1 — I2S1.
+ * @param enable @c true — включить, @c false — выключить.
+ */
+void esp::i2s_module_enable(int num, bool enable)
 {
-#ifdef PERIPH_RCC_ATOMIC
-    // PERIPH_I2S1_MODULE is no more available, so set bus clock and reset directly
-    uint32_t clk = num == 0 ? DPORT_I2S0_CLK_EN : DPORT_I2S1_CLK_EN;
-    uint32_t rst = num == 0 ? DPORT_I2S0_RST : DPORT_I2S1_RST;
+    // Модуля PERIPH_I2S1_MODULE для periph_module_enable() в ESP-IDF больше
+    // нет, поэтому разряды тактирования и сброса меняются прямо в регистрах
+    // DPORT — в критической секции, общей с драйверами ESP-IDF.
+    const std::uint32_t clk = num == 0 ? DPORT_I2S0_CLK_EN : DPORT_I2S1_CLK_EN;
+    const std::uint32_t rst = num == 0 ? DPORT_I2S0_RST : DPORT_I2S1_RST;
     PERIPH_RCC_ATOMIC()
     {
         if (enable)
@@ -62,67 +108,58 @@ void i2s_module_enable(int num, bool enable)
             DPORT_SET_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, rst);
         }
     }
-#else
-    auto module = num == 0 ? PERIPH_I2S0_MODULE : PERIPH_I2S1_MODULE;
-    if (enable)
-        periph_module_enable(module);
-    else
-        periph_module_disable(module);
-#endif
+}
+
+/**
+ * @brief Выделяет прерывание на заданном ядре.
+ *
+ * esp_intr_alloc() ставит обработчик на то ядро, на котором её вызвали,
+ * поэтому функция вызывает её на ядре @p core через IPC и ждёт завершения.
+ * Так обработчик прерывания VGA попадает на ядро видеовывода
+ * (esp::VIDEO_TASKS_CORE), а обработчик звука — на менее загруженное ядро
+ * (esp::core_usage::quiet_core()).
+ *
+ * @param source Источник прерывания (@c ETS_*_INTR_SOURCE).
+ * @param flags Флаги @c ESP_INTR_FLAG_*: уровень прерывания, размещение
+ *        обработчика в IRAM.
+ * @param handler Обработчик прерывания.
+ * @param arg Аргумент обработчика.
+ * @param ret_handle Куда записать дескриптор прерывания для
+ *        esp_intr_free(); может быть @c nullptr.
+ * @param core Ядро: 0 или 1.
+ * @return @c ESP_OK или код ошибки: esp_ipc_call_blocking() возвращает
+ *         @c ESP_ERR_INVALID_ARG при неверном номере ядра, esp_intr_alloc()
+ *         — например, @c ESP_ERR_NOT_FOUND, если свободного прерывания с
+ *         такими флагами нет. При ошибке @p ret_handle не меняется.
+ */
+esp_err_t esp::esp_intr_alloc_pinned_to_core(int source, int flags, intr_handler_t handler,
+                                             void *arg, intr_handle_t *ret_handle, int core)
+{
+    esp::p::intr_alloc_args args{.source = source,
+                                 .flags = flags,
+                                 .handler = handler,
+                                 .arg = arg,
+                                 .ret_handle = ret_handle,
+                                 .result = ESP_FAIL};
+    const esp_err_t ipc_result = esp_ipc_call_blocking(core, esp::p::intr_alloc, &args);
+    return ipc_result != ESP_OK ? ipc_result : args.result;
 }
 
 
-////////////////////////////////////////////////////////////////////////////////////////////
-// esp_intr_alloc_pinnedToCore
+// Закрытые
 
-
-struct esp_intr_alloc_args
+/**
+ * @brief Выделяет прерывание на текущем ядре.
+ *
+ * Функция IPC для esp::esp_intr_alloc_pinned_to_core(): выполняется на
+ * выбранном ядре, вызывает esp_intr_alloc() с параметрами из @p arg и
+ * записывает туда же её результат.
+ *
+ * @param arg Параметры: указатель на esp::p::intr_alloc_args.
+ */
+void esp::p::intr_alloc(void *arg)
 {
-    int source;
-    int flags;
-    intr_handler_t handler;
-    void *arg;
-    intr_handle_t *ret_handle;
-    TaskHandle_t waiting_task;
-};
-
-
-void esp_intr_alloc_pinned_to_core_call(void *arg)
-{
-    auto args = (esp_intr_alloc_args *)arg;
-    esp_intr_alloc(args->source, args->flags, args->handler, args->arg, args->ret_handle);
+    esp::p::intr_alloc_args *args = static_cast<esp::p::intr_alloc_args *>(arg);
+    args->result =
+        esp_intr_alloc(args->source, args->flags, args->handler, args->arg, args->ret_handle);
 }
-
-
-void esp_intr_alloc_pinned_to_core(int source, int flags, intr_handler_t handler, void *arg,
-                                   intr_handle_t *ret_handle, int core)
-{
-    esp_intr_alloc_args args = {source, flags,      handler,
-                                arg,    ret_handle, xTaskGetCurrentTaskHandle()};
-    esp_ipc_call_blocking(core, esp_intr_alloc_pinned_to_core_call, &args);
-}
-
-
-///////////////////////////////////////////////////////////////////////////////////
-// CoreUsage
-
-
-int core_usage::_busiest_core = VIDEO_TASKS_CORE;
-
-
-// CoreUsage
-///////////////////////////////////////////////////////////////////////////////////
-
-
-///////////////////////////////////////////////////////////////////////////////////
-// CurrentVideoMode
-
-
-video_mode current_video_mode::_video_mode = video_mode::none;
-
-
-// CurrentVideoMode
-///////////////////////////////////////////////////////////////////////////////////
-
-
-} // end of namespace

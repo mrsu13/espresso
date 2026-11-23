@@ -35,7 +35,8 @@ class sound_generator : esp::non_copyable
 
 public:
 
-    explicit sound_generator(int sample_rate = DEFAULT_SAMPLE_RATE, gpio_num_t gpio = GPIO_AUTO,
+    explicit sound_generator(int sample_rate = DEFAULT_SAMPLE_RATE,
+                             gpio_num_t gpio = esp::GPIO_AUTO,
                              sound_gen_method gen_method = sound_gen_method::automatic);
     ~sound_generator();
 
@@ -120,7 +121,7 @@ private:
     /**
      * @brief Вывод звука.
      *
-     * До первого запуска может быть @c GPIO_AUTO; init() заменяет его на
+     * До первого запуска может быть @c esp::GPIO_AUTO; init() заменяет его на
      * GPIO25 для ЦАП или GPIO23 для сигма-дельта-модулятора.
      */
     gpio_num_t _gpio;

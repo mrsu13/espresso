@@ -15,7 +15,7 @@
 
 #include "esp_gfx_rect.h"
 
-#include "esp_tools.h"
+#include <algorithm>
 
 #include <esp_attr.h>
 
@@ -52,8 +52,8 @@
  */
 esp::gfx::rect IRAM_ATTR esp::gfx::rect::intersection(const rect &rect) const
 {
-    return esp::gfx::rect(esp::tmax(x1, rect.x1), esp::tmax(y1, rect.y1), esp::tmin(x2, rect.x2),
-                          esp::tmin(y2, rect.y2));
+    return esp::gfx::rect(std::max(x1, rect.x1), std::max(y1, rect.y1), std::min(x2, rect.x2),
+                          std::min(y2, rect.y2));
 }
 
 /**
@@ -66,6 +66,6 @@ esp::gfx::rect IRAM_ATTR esp::gfx::rect::intersection(const rect &rect) const
  */
 esp::gfx::rect IRAM_ATTR esp::gfx::rect::merge(const rect &rect) const
 {
-    return esp::gfx::rect(esp::imin(rect.x1, x1), esp::imin(rect.y1, y1), esp::imax(rect.x2, x2),
-                          esp::imax(rect.y2, y2));
+    return esp::gfx::rect(std::min(rect.x1, x1), std::min(rect.y1, y1), std::max(rect.x2, x2),
+                          std::max(rect.y2, y2));
 }

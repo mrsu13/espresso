@@ -71,19 +71,19 @@ void esp::vga::gpio_stream::begin()
  * После play() на выводы выдаётся частота, делённая на 2, 4, …, 256:
  * @code
  * esp::vga::gpio_stream stream;
- * stream.begin(true, GPIO_UNUSED, GPIO_NUM_5); // 25 МГц на GPIO0, 6,25 МГц на GPIO5.
+ * stream.begin(true, esp::GPIO_UNUSED, GPIO_NUM_5); // 25 МГц на GPIO0, 6,25 МГц на GPIO5.
  * stream.play(25000000);
  * @endcode
  *
  * @param div_1_on_gpio0 @c true — выдавать частоту без деления на GPIO0.
- * @param div2 Вывод частоты / 2 или @c GPIO_UNUSED.
- * @param div4 Вывод частоты / 4 или @c GPIO_UNUSED.
- * @param div8 Вывод частоты / 8 или @c GPIO_UNUSED.
- * @param div16 Вывод частоты / 16 или @c GPIO_UNUSED.
- * @param div32 Вывод частоты / 32 или @c GPIO_UNUSED.
- * @param div64 Вывод частоты / 64 или @c GPIO_UNUSED.
- * @param div128 Вывод частоты / 128 или @c GPIO_UNUSED.
- * @param div256 Вывод частоты / 256 или @c GPIO_UNUSED.
+ * @param div2 Вывод частоты / 2 или @c esp::GPIO_UNUSED.
+ * @param div4 Вывод частоты / 4 или @c esp::GPIO_UNUSED.
+ * @param div8 Вывод частоты / 8 или @c esp::GPIO_UNUSED.
+ * @param div16 Вывод частоты / 16 или @c esp::GPIO_UNUSED.
+ * @param div32 Вывод частоты / 32 или @c esp::GPIO_UNUSED.
+ * @param div64 Вывод частоты / 64 или @c esp::GPIO_UNUSED.
+ * @param div128 Вывод частоты / 128 или @c esp::GPIO_UNUSED.
+ * @param div256 Вывод частоты / 256 или @c esp::GPIO_UNUSED.
  */
 void esp::vga::gpio_stream::begin(bool div_1_on_gpio0, gpio_num_t div2, gpio_num_t div4,
                                   gpio_num_t div8, gpio_num_t div16, gpio_num_t div32,
@@ -239,13 +239,13 @@ void esp::vga::gpio_stream::setup_clock(int freq)
 
 /**
  * @brief Подключает вывод к разряду выхода I2S1.
- * @param gpio Вывод или @c GPIO_UNUSED — не подключать.
+ * @param gpio Вывод или @c esp::GPIO_UNUSED — не подключать.
  * @param bit Разряд выхода: 0…7; −1 — тактовый сигнал I2S1 (только GPIO0).
  * @param mode Режим вывода.
  */
 void esp::vga::gpio_stream::setup_gpio(gpio_num_t gpio, int bit, gpio_mode_t mode)
 {
-    if (gpio != GPIO_UNUSED)
+    if (gpio != esp::GPIO_UNUSED)
     {
         if (bit == -1)
         {

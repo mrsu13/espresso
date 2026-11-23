@@ -15,12 +15,14 @@
 
 #include "esp_vga_vga_base_controller.h"
 
-#include "esp_tools.h"
+#include "esp_current_video_mode.h"
 #include "esp_vga_config.h"
 #include "esp_vga_utils_p.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <utility>
 
 #include <esp_attr.h>
 #include <esp_heap_caps.h>
@@ -277,7 +279,7 @@ void esp::vga::vga_base_controller::suspend_background_primitive_execution()
  */
 void esp::vga::vga_base_controller::resume_background_primitive_execution()
 {
-    _primitive_processing_suspended = esp::tmax(0, _primitive_processing_suspended - 1);
+    _primitive_processing_suspended = std::max(0, _primitive_processing_suspended - 1);
 }
 
 /**
@@ -409,11 +411,11 @@ void esp::vga::vga_base_controller::shrink_screen(int shrink_x, int shrink_y)
 {
     vga_timings *const curr_timings = resolution_timings();
 
-    curr_timings->h_back_porch = esp::tmax(curr_timings->h_back_porch + 4 * shrink_x, 4);
-    curr_timings->h_front_porch = esp::tmax(curr_timings->h_front_porch + 4 * shrink_x, 4);
+    curr_timings->h_back_porch = std::max(curr_timings->h_back_porch + 4 * shrink_x, 4);
+    curr_timings->h_front_porch = std::max(curr_timings->h_front_porch + 4 * shrink_x, 4);
 
-    curr_timings->v_back_porch = esp::tmax(curr_timings->v_back_porch + shrink_y, 1);
-    curr_timings->v_front_porch = esp::tmax(curr_timings->v_front_porch + shrink_y, 1);
+    curr_timings->v_back_porch = std::max(curr_timings->v_back_porch + shrink_y, 1);
+    curr_timings->v_front_porch = std::max(curr_timings->v_front_porch + shrink_y, 1);
 
     set_resolution(*curr_timings, _view_port_width, _view_port_height, is_double_buffered());
 }
@@ -658,8 +660,8 @@ std::uint8_t IRAM_ATTR esp::vga::vga_base_controller::prepare_pixel_with_sync(es
 void esp::vga::vga_base_controller::fill_vert_buffers(int offset_y)
 {
     const std::int16_t porch_sum = _timings.v_front_porch + _timings.v_back_porch;
-    _timings.v_front_porch = esp::tmax(1, _timings.v_front_porch - offset_y);
-    _timings.v_back_porch = esp::tmax(1, porch_sum - _timings.v_front_porch);
+    _timings.v_front_porch = std::max(1, _timings.v_front_porch - offset_y);
+    _timings.v_back_porch = std::max(1, porch_sum - _timings.v_front_porch);
     _timings.v_front_porch = porch_sum - _timings.v_back_porch;
 
     // По вертикали: видимая часть, передний гасящий интервал, синхроимпульс,
@@ -784,8 +786,8 @@ void esp::vga::vga_base_controller::fill_horiz_buffers(int offset_x)
 
     // Затем синхроимпульс на своём месте.
     const std::int16_t porch_sum = _timings.h_front_porch + _timings.h_back_porch;
-    _timings.h_front_porch = esp::tmax(8, _timings.h_front_porch - offset_x);
-    _timings.h_back_porch = esp::tmax(8, porch_sum - _timings.h_front_porch);
+    _timings.h_front_porch = std::max(8, _timings.h_front_porch - offset_x);
+    _timings.h_back_porch = std::max(8, porch_sum - _timings.h_front_porch);
     _timings.h_front_porch = porch_sum - _timings.h_back_porch;
 
     int sync_pos = 0;
@@ -1018,10 +1020,9 @@ void esp::vga::vga_base_controller::allocate_view_port(std::uint32_t alloc_caps,
         const int largest_block = heap_caps_get_largest_free_block(alloc_caps);
         if (largest_block < esp::vga::MIN_FREE_LARGEST_BLOCK)
             break;
-        lines_count[pools_count] =
-            esp::tmax(1,
-                      esp::tmin(remaining_lines,
-                                (largest_block - esp::vga::MIN_FREE_LARGEST_BLOCK) / rowlen));
+        lines_count[pools_count] = std::max(
+            1,
+            std::min(remaining_lines, (largest_block - esp::vga::MIN_FREE_LARGEST_BLOCK) / rowlen));
         _view_port_memory_pool[pools_count] = static_cast<std::uint8_t *>(
             heap_caps_malloc(lines_count[pools_count] * rowlen, alloc_caps));
         if (!_view_port_memory_pool[pools_count])
@@ -1066,10 +1067,10 @@ void esp::vga::vga_base_controller::allocate_view_port(std::uint32_t alloc_caps,
  */
 void IRAM_ATTR esp::vga::vga_base_controller::swap_buffers()
 {
-    esp::tswap(_view_port, _view_port_visible);
+    std::swap(_view_port, _view_port_visible);
     if (_double_buffer_over_dma)
     {
-        esp::tswap(_dma_buffers, _dma_buffers_visible);
+        std::swap(_dma_buffers, _dma_buffers_visible);
         _dma_buffers_head->qe.stqe_next = const_cast<lldesc_t *>(&_dma_buffers_visible[0]);
     }
 }

@@ -19,8 +19,8 @@
 #include "esp_ps2_ps2_device_lock.h"
 #include "esp_ps2_ps2_port_auto_disable_rx.h"
 #include "esp_ps2_time_out.h"
-#include "esp_tools.h"
 
+#include <algorithm>
 #include <cstdint>
 
 #include <freertos/FreeRTOS.h>
@@ -308,7 +308,7 @@ int esp::ps2::ps2_device::get_data(int time_out_ms)
     constexpr int INTER_GETDATA_TIMEOUT_MS = 100;
     constexpr int INTER_GETDATA_PAUSE_MS = 10;
 
-    const int inter_time_out = time_out_ms > -1 ? esp::imin(time_out_ms, INTER_GETDATA_TIMEOUT_MS)
+    const int inter_time_out = time_out_ms > -1 ? std::min(time_out_ms, INTER_GETDATA_TIMEOUT_MS)
                                                 : INTER_GETDATA_TIMEOUT_MS;
 
     int ret = -1;

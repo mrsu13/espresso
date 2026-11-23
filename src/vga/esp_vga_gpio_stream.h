@@ -27,10 +27,11 @@ class gpio_stream
 public:
 
     void begin();
-    void begin(bool div_1_on_gpio0, gpio_num_t div2 = GPIO_UNUSED, gpio_num_t div4 = GPIO_UNUSED,
-               gpio_num_t div8 = GPIO_UNUSED, gpio_num_t div16 = GPIO_UNUSED,
-               gpio_num_t div32 = GPIO_UNUSED, gpio_num_t div64 = GPIO_UNUSED,
-               gpio_num_t div128 = GPIO_UNUSED, gpio_num_t div256 = GPIO_UNUSED);
+    void begin(bool div_1_on_gpio0, gpio_num_t div2 = esp::GPIO_UNUSED,
+               gpio_num_t div4 = esp::GPIO_UNUSED, gpio_num_t div8 = esp::GPIO_UNUSED,
+               gpio_num_t div16 = esp::GPIO_UNUSED, gpio_num_t div32 = esp::GPIO_UNUSED,
+               gpio_num_t div64 = esp::GPIO_UNUSED, gpio_num_t div128 = esp::GPIO_UNUSED,
+               gpio_num_t div256 = esp::GPIO_UNUSED);
     void end();
 
     void play(int freq, lldesc_t volatile *dma_buffers = nullptr);

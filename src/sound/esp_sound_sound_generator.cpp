@@ -22,15 +22,19 @@
 
 #include "esp_sound_sound_generator.h"
 
+#include "esp_core_usage.h"
+#include "esp_current_video_mode.h"
 #include "esp_sound_config.h"
 #include "esp_tools.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 
 #include <driver/rtc_io.h>
 #include <esp_attr.h>
+#include <esp_err.h>
 #include <esp_heap_caps.h>
 #include <soc/i2s_struct.h>
 #include <soc/rtc_io_struct.h>
@@ -118,7 +122,7 @@ static_assert(esp::sound::VOICE_SIZE % alignof(std::max_align_t) == 0,
  *        действительная частота немного отличается: делители тактовой
  *        частоты I2S подбираются к заданной как можно точнее.
  * @param gpio Вывод звука: для ЦАП — GPIO25 или GPIO26, для
- *        сигма-дельта-модулятора — почти любой. @c GPIO_AUTO выбирает
+ *        сигма-дельта-модулятора — почти любой. @c esp::GPIO_AUTO выбирает
  *        GPIO25 для ЦАП и GPIO23 для модулятора.
  * @param gen_method Способ вывода звука.
  */
@@ -382,7 +386,7 @@ void esp::sound::sound_generator::timer_handler(void *arg)
  *
  * Сначала разрешает автоматические параметры: способ
  * @c sound_gen_method::automatic становится сигма-дельта-модулятором при
- * композитном видеовыходе и ЦАП в остальных случаях, вывод @c GPIO_AUTO —
+ * композитном видеовыходе и ЦАП в остальных случаях, вывод @c esp::GPIO_AUTO —
  * GPIO25 для ЦАП и GPIO23 для модулятора. Повторные вызовы ничего не
  * делают.
  */
@@ -395,7 +399,7 @@ void esp::sound::sound_generator::init()
             _gen_method = esp::current_video_mode::get() == esp::video_mode::cvbs
                 ? sound_gen_method::sigma_delta
                 : sound_gen_method::dac;
-        if (_gpio == GPIO_AUTO)
+        if (_gpio == esp::GPIO_AUTO)
             _gpio = _gen_method == sound_gen_method::dac ? GPIO_NUM_25 : GPIO_NUM_23;
 
         if (_gen_method == sound_gen_method::dac)
@@ -417,7 +421,8 @@ void esp::sound::sound_generator::init()
  * тактовой частоты подбираются к заданной частоте дискретизации, и в
  * @c _sample_rate записывается действительная. Прерывание закрепляется за
  * менее загруженным ядром (esp::core_usage::quiet_core()) — по умолчанию
- * не тем, на котором работают задачи видео.
+ * не тем, на котором работают задачи видео. Если выделить прерывание не
+ * удалось, программа останавливается с сообщением об ошибке.
  */
 void esp::sound::sound_generator::dac_init()
 {
@@ -488,8 +493,9 @@ void esp::sound::sound_generator::dac_init()
 
     if (!_isr_handle)
     {
-        esp::esp_intr_alloc_pinned_to_core(ETS_I2S0_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, isr_handler,
-                                           this, &_isr_handle, esp::core_usage::quiet_core());
+        ESP_ERROR_CHECK(esp::esp_intr_alloc_pinned_to_core(
+            ETS_I2S0_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, isr_handler, this, &_isr_handle,
+            esp::core_usage::quiet_core()));
         I2S0.int_clr.val = 0xFFFFFFFF;
         I2S0.int_ena.out_eof = 1;
     }
@@ -693,7 +699,7 @@ int IRAM_ATTR esp::sound::sound_generator::sample()
 
     // Смесь ослабляется, если сумма громкостей каналов больше 127,
     // затем применяется общая громкость.
-    const int mix_volume = total_volume ? esp::imin(127, 127 * 127 / total_volume) : 127;
+    const int mix_volume = total_volume ? std::min(127, 127 * 127 / total_volume) : 127;
     value = value * mix_volume / 127;
     value = value * volume() / 127;
 

@@ -26,6 +26,7 @@
 #include <memory>
 
 #include <driver/rtc_io.h>
+#include <esp_err.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
@@ -1001,15 +1002,16 @@ bool esp::ps2::ps2_controller::_init_done = false;
  * @brief Запускает контроллер на заданных выводах.
  *
  * Загружает и запускает программу ULP и ставит обработчик её прерывания
- * на ядро 1. Сопроцессор работает и после end(); повторный вызов только
- * сбрасывает состояние портов. Годятся только выводы, доступные
- * сопроцессору ULP: GPIO2, 4, 12 (с ограничениями), 13, 14, 15, 25, 26,
- * 27, 32 и 33.
+ * на ядро 1; если выделить прерывание не удалось, программа
+ * останавливается с сообщением об ошибке. Сопроцессор работает и после
+ * end(); повторный вызов только сбрасывает состояние портов. Годятся
+ * только выводы, доступные сопроцессору ULP: GPIO2, 4, 12 (с
+ * ограничениями), 13, 14, 15, 25, 26, 27, 32 и 33.
  *
  * @param port_0_clk_gpio Вывод CLK порта 0.
  * @param port_0_dat_gpio Вывод DATA порта 0.
- * @param port_1_clk_gpio Вывод CLK порта 1; @c GPIO_UNUSED — порта 1 нет.
- * @param port_1_dat_gpio Вывод DATA порта 1; @c GPIO_UNUSED — порта 1 нет.
+ * @param port_1_clk_gpio Вывод CLK порта 1; @c esp::GPIO_UNUSED — порта 1 нет.
+ * @param port_1_dat_gpio Вывод DATA порта 1; @c esp::GPIO_UNUSED — порта 1 нет.
  */
 void esp::ps2::ps2_controller::begin(gpio_num_t port_0_clk_gpio, gpio_num_t port_0_dat_gpio,
                                      gpio_num_t port_1_clk_gpio, gpio_num_t port_1_dat_gpio)
@@ -1017,8 +1019,10 @@ void esp::ps2::ps2_controller::begin(gpio_num_t port_0_clk_gpio, gpio_num_t port
     // Сопроцессор ULP запускается один раз и работает и после end().
     if (!_init_done)
     {
-        _port_enabled[0] = (port_0_clk_gpio != GPIO_UNUSED && port_0_dat_gpio != GPIO_UNUSED);
-        _port_enabled[1] = (port_1_clk_gpio != GPIO_UNUSED && port_1_dat_gpio != GPIO_UNUSED);
+        _port_enabled[0] =
+            (port_0_clk_gpio != esp::GPIO_UNUSED && port_0_dat_gpio != esp::GPIO_UNUSED);
+        _port_enabled[1] =
+            (port_1_clk_gpio != esp::GPIO_UNUSED && port_1_dat_gpio != esp::GPIO_UNUSED);
 
         if (_port_enabled[0])
         {
@@ -1089,8 +1093,9 @@ void esp::ps2::ps2_controller::begin(gpio_num_t port_0_clk_gpio, gpio_num_t port
         // прерываниями VGA на том же ядре. На некоторых платах читать
         // медленную память RTC и получать прерывания может только ядро 1,
         // поэтому обработчик ставится на него.
-        esp::esp_intr_alloc_pinned_to_core(ETS_RTC_CORE_INTR_SOURCE, ESP_INTR_FLAG_LEVEL2,
-                                           ulp_wake_isr, nullptr, &_ulp_wake_isr_handle, 1);
+        ESP_ERROR_CHECK(esp::esp_intr_alloc_pinned_to_core(ETS_RTC_CORE_INTR_SOURCE,
+                                                           ESP_INTR_FLAG_LEVEL2, ulp_wake_isr,
+                                                           nullptr, &_ulp_wake_isr_handle, 1));
         SET_PERI_REG_MASK(RTC_CNTL_INT_ENA_REG, RTC_CNTL_ULP_CP_INT_ENA);
 
         _init_done = true;

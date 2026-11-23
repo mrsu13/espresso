@@ -35,8 +35,8 @@ public:
     ps2_controller() = delete;
 
     static void begin(gpio_num_t port_0_clk_gpio, gpio_num_t port_0_dat_gpio,
-                      gpio_num_t port_1_clk_gpio = GPIO_UNUSED,
-                      gpio_num_t port_1_dat_gpio = GPIO_UNUSED);
+                      gpio_num_t port_1_clk_gpio = esp::GPIO_UNUSED,
+                      gpio_num_t port_1_dat_gpio = esp::GPIO_UNUSED);
     static void begin(ps2_preset preset = ps2_preset::keyboard_port_0_mouse_port_1,
                       kbd_mode keyboard_mode = kbd_mode::create_virtual_keys_queue);
     static void end();
