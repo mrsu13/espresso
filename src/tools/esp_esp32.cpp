@@ -10,11 +10,11 @@
 
 #include "esp_esp32.h"
 
-#include "sdkconfig.h"
+#include <sdkconfig.h>
 
 #if CONFIG_IDF_TARGET_ESP32
-#   include "esp_efuse.h"
-#   include "soc/efuse_defs.h"
+#   include <esp_efuse.h>
+#   include <soc/efuse_defs.h>
 #endif
 
 

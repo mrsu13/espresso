@@ -26,14 +26,15 @@
 #include "esp_vga_modelines.h"
 #include "ter_10x18.h"
 
-#include "esp_heap_caps.h"
-#include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <iterator>
+
+#include <esp_heap_caps.h>
+#include <esp_log.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 
 /**
@@ -65,7 +66,7 @@
  */
 
 
-namespace
+namespace esp::p
 {
 
 /** @brief Тег журнала модуля. */
@@ -105,17 +106,35 @@ const char *const SAMPLES[] = {
 /** @brief Строки текста под цветными полосами сверху вниз. */
 enum row
 {
-    row_keyboard, /**< Клавиатура и её раскладка. */
-    row_key, /**< Последняя нажатая или отпущенная клавиша. */
-    row_input, /**< Набранная строка. */
-    row_mouse, /**< Положение и кнопки мыши. */
-    row_button, /**< Кнопка K1. */
-    row_sound, /**< Форма звуковой волны. */
-    row_memory, /**< Свободная память. */
-    row_samples, /**< Первая строка образцов текста SAMPLES. */
-    row_help = row_samples
-        + static_cast<int>(std::size(SAMPLES)), /**< Подсказка о мыши и образец цвета рисования. */
-    rows /**< Число строк. */
+    /** @brief Клавиатура и её раскладка. */
+    row_keyboard,
+
+    /** @brief Последняя нажатая или отпущенная клавиша. */
+    row_key,
+
+    /** @brief Набранная строка. */
+    row_input,
+
+    /** @brief Положение и кнопки мыши. */
+    row_mouse,
+
+    /** @brief Кнопка K1. */
+    row_button,
+
+    /** @brief Форма звуковой волны. */
+    row_sound,
+
+    /** @brief Свободная память. */
+    row_memory,
+
+    /** @brief Первая строка образцов текста SAMPLES. */
+    row_samples,
+
+    /** @brief Подсказка о мыши и образец цвета рисования. */
+    row_help = row_samples + static_cast<int>(std::size(SAMPLES)),
+
+    /** @brief Число строк. */
+    rows
 };
 
 /** @brief Толщина линии при рисовании мышью, точки. */
@@ -134,7 +153,7 @@ constexpr int TEST_GAP_X = 24;
 constexpr int TEST_GAP_Y = 12;
 
 /** @brief Наибольшая длина набираемой строки, символы. */
-constexpr size_t INPUT_MAX = 60;
+constexpr std::size_t INPUT_MAX = 60;
 
 /** @brief Громкость звуков: от 0 до 127. */
 constexpr int VOLUME = 64;
@@ -177,21 +196,22 @@ esp::gfx::color color(int index)
  * клавиатура CLK 33, DATA 32; мышь CLK 26, DATA 27; звук — ЦАП на GPIO25.
  */
 esp::board_test::board_test()
-    : _canvas(&_display)
-    , _font(ter_10x18::WIDTH, ter_10x18::HEIGHT, ter_10x18::CODEPOINTS, ter_10x18::GLYPHS,
-            ter_10x18::COUNT, ter_10x18::FALLBACK)
-    , _waveform(0)
-    , _paint_color(static_cast<int>(esp::gfx::color::bright_yellow))
-    , _presses(0)
-    , _keyboard_found(false)
-    , _mouse_found(false)
-    , _clipping_test_shown(false)
+    : _canvas{&_display}
+    , _font{ter_10x18::WIDTH,  ter_10x18::HEIGHT, ter_10x18::CODEPOINTS,
+            ter_10x18::GLYPHS, ter_10x18::COUNT,  ter_10x18::FALLBACK}
+    , _waveform{0}
+    , _paint_color{static_cast<int>(esp::gfx::color::bright_yellow)}
+    , _presses{0}
+    , _keyboard_found{false}
+    , _mouse_found{false}
+    , _clipping_test_shown{false}
 {
     // По два бита на каждую составляющую цвета; контроллер выбирает из
     // этих 64 цветов палитру из 16. Кадр — 4 бита на точку, 150 КБ памяти.
     _display.begin();
-    _display.set_resolution(VGA_MODE);
-    ESP_LOGI(TAG, "VGA %dx%d, %d colours.", _canvas.width(), _canvas.height(), COLORS);
+    _display.set_resolution(esp::p::VGA_MODE);
+    ESP_LOGI(esp::p::TAG, "VGA %dx%d, %d colours.", _canvas.width(), _canvas.height(),
+             esp::p::COLORS);
 
     // Знаки шрифта заливают фон знакоместа цветом кисти, поэтому новый
     // текст закрывает прежний.
@@ -211,19 +231,19 @@ esp::board_test::board_test()
     _mouse = mouse->status();
     _mouse_found = mouse->is_mouse_available();
     if (_mouse_found)
-        _display.set_mouse_cursor(CURSOR);
+        _display.set_mouse_cursor(esp::p::CURSOR);
 
-    ESP_LOGI(TAG, "Keyboard %s, mouse %s.", _keyboard_found ? "found" : "not found",
+    ESP_LOGI(esp::p::TAG, "Keyboard %s, mouse %s.", _keyboard_found ? "found" : "not found",
              _mouse_found ? "found" : "not found");
 
     draw_screen();
 
     // Два звука при запуске проверяют звук и без клавиатуры.
-    play(NOTES[2], 120);
+    play(esp::p::NOTES[2], 120);
     vTaskDelay(pdMS_TO_TICKS(150));
-    play(NOTES[7], 200);
+    play(esp::p::NOTES[7], 200);
 
-    ESP_LOGI(TAG, "Free memory %zu kB, largest block %zu kB.",
+    ESP_LOGI(esp::p::TAG, "Free memory %zu kB, largest block %zu kB.",
              heap_caps_get_free_size(MALLOC_CAP_8BIT) / 1024,
              heap_caps_get_largest_free_block(MALLOC_CAP_8BIT) / 1024);
 }
@@ -265,7 +285,7 @@ void esp::board_test::button_pressed()
 {
     ++_presses;
     show_button();
-    play(NOTES[0], 100);
+    play(esp::p::NOTES[0], 100);
     check_devices();
     show_memory();
 }
@@ -283,7 +303,7 @@ void esp::board_test::button_pressed()
  */
 int esp::board_test::status_top() const
 {
-    return TITLE_TOP + _font.height() + 6 + BAR_HEIGHT + 2 + _font.height() + 6;
+    return esp::p::TITLE_TOP + _font.height() + 6 + esp::p::BAR_HEIGHT + 2 + _font.height() + 6;
 }
 
 /**
@@ -292,7 +312,7 @@ int esp::board_test::status_top() const
  */
 int esp::board_test::paint_top() const
 {
-    return status_top() + rows * _font.height() + 6;
+    return status_top() + esp::p::rows * _font.height() + 6;
 }
 
 /**
@@ -315,23 +335,24 @@ void esp::board_test::draw_screen()
     // Заголовок: белый текст на синем; справа — режим (в строке только
     // знаки ASCII, поэтому число знаков равно её длине).
     _canvas.set_brush_color(esp::gfx::color::blue);
-    _canvas.fill_rectangle(1, 1, width - 2, TITLE_TOP + line);
-    _font.draw_text(_canvas, MARGIN, TITLE_TOP, "Espresso: board test");
+    _canvas.fill_rectangle(1, 1, width - 2, esp::p::TITLE_TOP + line);
+    _font.draw_text(_canvas, esp::p::MARGIN, esp::p::TITLE_TOP, "Espresso: board test");
     char mode[32];
-    std::snprintf(mode, sizeof(mode), "%dx%d, %d colours", width, height, COLORS);
-    _font.draw_text(_canvas, width - MARGIN - _font.width() * static_cast<int>(std::strlen(mode)),
-                    TITLE_TOP, mode);
+    std::snprintf(mode, sizeof(mode), "%dx%d, %d colours", width, height, esp::p::COLORS);
+    _font.draw_text(_canvas,
+                    width - esp::p::MARGIN - _font.width() * static_cast<int>(std::strlen(mode)),
+                    esp::p::TITLE_TOP, mode);
 
     // Полосы всех цветов палитры с номерами под ними; между полосами
     // остаётся чёрный промежуток в одну точку.
-    const int bars_top = TITLE_TOP + line + 6;
-    const int bar_width = (width - 2 * MARGIN) / COLORS;
-    const int bars_left = (width - bar_width * COLORS) / 2;
-    for (int i = 0; i < COLORS; ++i)
+    const int bars_top = esp::p::TITLE_TOP + line + 6;
+    const int bar_width = (width - 2 * esp::p::MARGIN) / esp::p::COLORS;
+    const int bars_left = (width - bar_width * esp::p::COLORS) / 2;
+    for (int i = 0; i < esp::p::COLORS; ++i)
     {
         const int x = bars_left + i * bar_width;
-        _canvas.set_brush_color(color(i));
-        _canvas.fill_rectangle(x, bars_top, x + bar_width - 2, bars_top + BAR_HEIGHT - 1);
+        _canvas.set_brush_color(esp::p::color(i));
+        _canvas.fill_rectangle(x, bars_top, x + bar_width - 2, bars_top + esp::p::BAR_HEIGHT - 1);
 
         char number[4];
         std::snprintf(number, sizeof(number), "%d", i);
@@ -339,22 +360,23 @@ void esp::board_test::draw_screen()
         _canvas.set_brush_color(esp::gfx::color::black);
         _font.draw_text(_canvas,
                         x + (bar_width - _font.width() * static_cast<int>(std::strlen(number))) / 2,
-                        bars_top + BAR_HEIGHT + 2, number);
+                        bars_top + esp::p::BAR_HEIGHT + 2, number);
     }
 
     show_keyboard();
-    draw_line(row_key, "Key:      none yet");
+    draw_line(esp::p::row_key, "Key:      none yet");
     show_input();
     show_mouse();
     show_button();
     show_sound();
     show_memory();
-    for (size_t i = 0; i < std::size(SAMPLES); ++i)
-        draw_line(row_samples + static_cast<int>(i), SAMPLES[i]);
+    for (size_t i = 0; i < std::size(esp::p::SAMPLES); ++i)
+        draw_line(esp::p::row_samples + static_cast<int>(i), esp::p::SAMPLES[i]);
     show_help();
 
     _canvas.set_pen_color(esp::gfx::color::white);
-    _canvas.draw_rectangle(MARGIN, paint_top(), width - MARGIN - 1, height - MARGIN - 1);
+    _canvas.draw_rectangle(esp::p::MARGIN, paint_top(), width - esp::p::MARGIN - 1,
+                           height - esp::p::MARGIN - 1);
 }
 
 /**
@@ -371,18 +393,18 @@ void esp::board_test::draw_line(int row, const char *text)
 {
     const int line = _font.height();
     const int y = status_top() + row * line;
-    const int right = _canvas.width() - MARGIN - 1;
+    const int right = _canvas.width() - esp::p::MARGIN - 1;
 
     // Отсечение по правому полю: при широком знакоместе длинная строка
     // иначе залезла бы на рамку по краю изображения.
-    _canvas.set_clipping_rect(esp::gfx::rect(MARGIN, y, right, y + line - 1));
+    _canvas.set_clipping_rect(esp::gfx::rect(esp::p::MARGIN, y, right, y + line - 1));
     _canvas.set_pen_color(esp::gfx::color::bright_white);
     _canvas.set_brush_color(esp::gfx::color::black);
-    const int cells = _font.draw_text(_canvas, MARGIN, y, text);
+    const int cells = _font.draw_text(_canvas, esp::p::MARGIN, y, text);
 
     // Число знаков в UTF-8 не равно числу байтов, поэтому хвост строки
     // стирается прямоугольником, а не дополнением пробелами.
-    const int x = MARGIN + cells * _font.width();
+    const int x = esp::p::MARGIN + cells * _font.width();
     if (x <= right)
         _canvas.fill_rectangle(x, y, right, y + line - 1);
     _canvas.set_clipping_rect(esp::gfx::rect(0, 0, _canvas.width() - 1, _canvas.height() - 1));
@@ -399,7 +421,7 @@ void esp::board_test::show_keyboard()
                       esp::ps2::ps2_controller::keyboard()->layout()->desc);
     else
         std::snprintf(text, sizeof(text), "%s", "Keyboard: not found; connect it and press K1");
-    draw_line(row_keyboard, text);
+    draw_line(esp::p::row_keyboard, text);
 }
 
 /**
@@ -412,7 +434,7 @@ void esp::board_test::show_key(const esp::ps2::virtual_key_item &item)
     std::snprintf(text, sizeof(text), "Key:      %s %s, ASCII 0x%02x",
                   esp::ps2::keyboard::virtual_key_to_string(item.vk), item.down ? "down" : "up",
                   item.ascii);
-    draw_line(row_key, text);
+    draw_line(esp::p::row_key, text);
 }
 
 /**
@@ -422,7 +444,7 @@ void esp::board_test::show_input()
 {
     char text[96];
     std::snprintf(text, sizeof(text), "Input:    %s_", _input.c_str());
-    draw_line(row_input, text);
+    draw_line(esp::p::row_input, text);
 }
 
 /**
@@ -437,7 +459,7 @@ void esp::board_test::show_mouse()
                       _mouse.buttons.right ? 'R' : '-');
     else
         std::snprintf(text, sizeof(text), "%s", "Mouse:    not found; connect it and press K1");
-    draw_line(row_mouse, text);
+    draw_line(esp::p::row_mouse, text);
 }
 
 /**
@@ -447,7 +469,7 @@ void esp::board_test::show_button()
 {
     char text[96];
     std::snprintf(text, sizeof(text), "Button:   K1 (GPIO36), presses: %d", _presses);
-    draw_line(row_button, text);
+    draw_line(esp::p::row_button, text);
 }
 
 /**
@@ -457,8 +479,8 @@ void esp::board_test::show_sound()
 {
     char text[96];
     std::snprintf(text, sizeof(text), "Sound:    %s; F1-F8 play notes, F9 changes the waveform",
-                  WAVEFORMS[_waveform]);
-    draw_line(row_sound, text);
+                  esp::p::WAVEFORMS[_waveform]);
+    draw_line(esp::p::row_sound, text);
 }
 
 /**
@@ -470,7 +492,7 @@ void esp::board_test::show_memory()
     std::snprintf(text, sizeof(text), "Memory:   %zu kB free, largest block %zu kB",
                   heap_caps_get_free_size(MALLOC_CAP_8BIT) / 1024,
                   heap_caps_get_largest_free_block(MALLOC_CAP_8BIT) / 1024);
-    draw_line(row_memory, text);
+    draw_line(esp::p::row_memory, text);
 }
 
 /**
@@ -481,7 +503,7 @@ void esp::board_test::show_memory()
  */
 void esp::board_test::show_help()
 {
-    draw_line(row_help,
+    draw_line(esp::p::row_help,
               _clipping_test_shown ? "Test: shapes must stay inside the inner frame. F10: back"
                                    : "Mouse: left draws, right clears, wheel: colour. F10: test");
     show_paint_color();
@@ -492,12 +514,12 @@ void esp::board_test::show_help()
  */
 void esp::board_test::show_paint_color()
 {
-    const int right = _canvas.width() - MARGIN - 1;
-    const int top = status_top() + row_help * _font.height() + 1;
+    const int right = _canvas.width() - esp::p::MARGIN - 1;
+    const int top = status_top() + esp::p::row_help * _font.height() + 1;
     const int bottom = top + _font.height() - 3;
 
     _canvas.set_pen_color(esp::gfx::color::white);
-    _canvas.set_brush_color(color(_paint_color));
+    _canvas.set_brush_color(esp::p::color(_paint_color));
     _canvas.fill_rectangle(right - 31, top, right, bottom);
     _canvas.draw_rectangle(right - 31, top, right, bottom);
 }
@@ -510,8 +532,9 @@ void esp::board_test::show_paint_color()
 void esp::board_test::clear_paint_area()
 {
     _canvas.set_brush_color(esp::gfx::color::black);
-    _canvas.fill_rectangle(MARGIN + 1, paint_top() + 1, _canvas.width() - MARGIN - 2,
-                           _canvas.height() - MARGIN - 2);
+    _canvas.fill_rectangle(esp::p::MARGIN + 1, paint_top() + 1,
+                           _canvas.width() - esp::p::MARGIN - 2,
+                           _canvas.height() - esp::p::MARGIN - 2);
     if (_clipping_test_shown)
     {
         _clipping_test_shown = false;
@@ -537,10 +560,11 @@ void esp::board_test::paint(int x1, int y1, int x2, int y2)
     // Отсечение по внутренней части поля: рамка и строки над полем
     // остаются нетронутыми. Затем отсечение и толщина линии
     // возвращаются к обычным.
-    _canvas.set_clipping_rect(
-        esp::gfx::rect(MARGIN + 1, paint_top() + 1, width - MARGIN - 2, height - MARGIN - 2));
-    _canvas.set_pen_color(color(_paint_color));
-    _canvas.set_pen_width(PAINT_PEN_WIDTH);
+    _canvas.set_clipping_rect(esp::gfx::rect(esp::p::MARGIN + 1, paint_top() + 1,
+                                             width - esp::p::MARGIN - 2,
+                                             height - esp::p::MARGIN - 2));
+    _canvas.set_pen_color(esp::p::color(_paint_color));
+    _canvas.set_pen_width(esp::p::PAINT_PEN_WIDTH);
     _canvas.draw_line(x1, y1, x2, y2);
     _canvas.set_pen_width(1);
     _canvas.set_clipping_rect(esp::gfx::rect(0, 0, width - 1, height - 1));
@@ -572,16 +596,16 @@ void esp::board_test::paint(int x1, int y1, int x2, int y2)
 void esp::board_test::draw_clipping_test()
 {
     // Поле для рисования без его рамки.
-    const int left = MARGIN + 1;
+    const int left = esp::p::MARGIN + 1;
     const int top = paint_top() + 1;
-    const int right = _canvas.width() - MARGIN - 2;
-    const int bottom = _canvas.height() - MARGIN - 2;
+    const int right = _canvas.width() - esp::p::MARGIN - 2;
+    const int bottom = _canvas.height() - esp::p::MARGIN - 2;
 
     // Окно, по которому идёт отсечение; его рамка — на точку снаружи.
-    const int x1 = left + TEST_GAP_X + 1;
-    const int y1 = top + TEST_GAP_Y + 1;
-    const int x2 = right - TEST_GAP_X - 1;
-    const int y2 = bottom - TEST_GAP_Y - 1;
+    const int x1 = left + esp::p::TEST_GAP_X + 1;
+    const int y1 = top + esp::p::TEST_GAP_Y + 1;
+    const int x2 = right - esp::p::TEST_GAP_X - 1;
+    const int y2 = bottom - esp::p::TEST_GAP_Y - 1;
     const int center_x = (x1 + x2) / 2;
     const int center_y = (y1 + y2) / 2;
 
@@ -640,7 +664,7 @@ void esp::board_test::draw_clipping_test()
     _canvas.swap_rectangle(x1 + 270, y2 + 3, x1 + 370, bottom - 2);
     _canvas.set_brush_color(esp::gfx::color::bright_yellow);
     for (int y = y1 + 14; y <= y1 + 25; ++y)
-        _canvas.fill_ellipse(x2 + 1 + TEST_GAP_X / 2, y, 15, 1);
+        _canvas.fill_ellipse(x2 + 1 + esp::p::TEST_GAP_X / 2, y, 15, 1);
 
     // Пустые области отсечения (ширина или высота −1 точка): через них не
     // рисуется ничего, иначе посередине окна появилась бы белая линия.
@@ -683,27 +707,28 @@ void esp::board_test::on_key(const esp::ps2::virtual_key_item &item)
     const char *const name = esp::ps2::keyboard::virtual_key_to_string(item.vk);
     if (!item.down)
     {
-        ESP_LOGD(TAG, "Key %s up.", name);
+        ESP_LOGD(esp::p::TAG, "Key %s up.", name);
         return;
     }
 
-    ESP_LOGI(TAG, "Key %s down, ASCII 0x%02x.", name, item.ascii);
+    ESP_LOGI(esp::p::TAG, "Key %s down, ASCII 0x%02x.", name, item.ascii);
 
     // Коды F1–F8 в перечислении esp::ps2::virtual_key идут подряд.
     if (item.vk >= esp::ps2::virtual_key::vk_f1 && item.vk <= esp::ps2::virtual_key::vk_f8)
     {
-        play(NOTES[static_cast<int>(item.vk) - static_cast<int>(esp::ps2::virtual_key::vk_f1)],
-             NOTE_MS);
+        play(esp::p::NOTES[static_cast<int>(item.vk)
+                           - static_cast<int>(esp::ps2::virtual_key::vk_f1)],
+             esp::p::NOTE_MS);
         return;
     }
 
     switch (item.vk)
     {
         case esp::ps2::virtual_key::vk_f9:
-            _waveform = (_waveform + 1) % static_cast<int>(std::size(WAVEFORMS));
+            _waveform = (_waveform + 1) % static_cast<int>(std::size(esp::p::WAVEFORMS));
             show_sound();
-            ESP_LOGI(TAG, "Waveform %s.", WAVEFORMS[_waveform]);
-            play(NOTES[0], NOTE_MS);
+            ESP_LOGI(esp::p::TAG, "Waveform %s.", esp::p::WAVEFORMS[_waveform]);
+            play(esp::p::NOTES[0], esp::p::NOTE_MS);
             return;
 
         case esp::ps2::virtual_key::vk_f10:
@@ -726,7 +751,7 @@ void esp::board_test::on_key(const esp::ps2::virtual_key_item &item)
 
         case esp::ps2::virtual_key::vk_return:
         case esp::ps2::virtual_key::vk_kp_enter:
-            ESP_LOGI(TAG, "Input: \"%s\".", _input.c_str());
+            ESP_LOGI(esp::p::TAG, "Input: \"%s\".", _input.c_str());
             _input.clear();
             show_input();
             return;
@@ -737,7 +762,7 @@ void esp::board_test::on_key(const esp::ps2::virtual_key_item &item)
 
     // В строку попадают только печатные символы ASCII; клавиатура уже
     // учла Shift, Caps Lock и раскладку.
-    if (item.ascii >= 0x20 && item.ascii < 0x7f && _input.size() < INPUT_MAX)
+    if (item.ascii >= 0x20 && item.ascii < 0x7f && _input.size() < esp::p::INPUT_MAX)
     {
         _input += static_cast<char>(item.ascii);
         show_input();
@@ -772,21 +797,22 @@ void esp::board_test::on_mouse(const esp::ps2::mouse_status &status)
         clear_paint_area();
 
     if (status.buttons.middle && !previous.buttons.middle)
-        play(NOTES[4], 100);
+        play(esp::p::NOTES[4], 100);
 
     // Колесо перебирает 16 цветов палитры по кругу в обе стороны.
     if (status.wheel_delta)
     {
-        _paint_color = (_paint_color + (status.wheel_delta > 0 ? 1 : COLORS - 1)) % COLORS;
+        _paint_color =
+            (_paint_color + (status.wheel_delta > 0 ? 1 : esp::p::COLORS - 1)) % esp::p::COLORS;
         show_paint_color();
-        ESP_LOGD(TAG, "Paint colour %d.", _paint_color);
+        ESP_LOGD(esp::p::TAG, "Paint colour %d.", _paint_color);
     }
 
     const auto report = [&status](bool now, bool before, const char *name)
     {
         if (now != before)
-            ESP_LOGI(TAG, "Mouse %s button %s at %d, %d.", name, now ? "pressed" : "released",
-                     status.x, status.y);
+            ESP_LOGI(esp::p::TAG, "Mouse %s button %s at %d, %d.", name,
+                     now ? "pressed" : "released", status.x, status.y);
     };
     report(status.buttons.left, previous.buttons.left, "left");
     report(status.buttons.middle, previous.buttons.middle, "middle");
@@ -803,22 +829,22 @@ void esp::board_test::check_devices()
 {
     if (!_keyboard_found)
     {
-        draw_line(row_keyboard, "Keyboard: searching...");
+        draw_line(esp::p::row_keyboard, "Keyboard: searching...");
         esp::ps2::keyboard *const keyboard = esp::ps2::ps2_controller::keyboard();
         _keyboard_found = keyboard->reset();
         // Сброс ставит раскладку US; здесь она та же, но задаётся явно.
         keyboard->set_layout(&esp::ps2::US_LAYOUT);
-        ESP_LOGI(TAG, "Keyboard %s.", _keyboard_found ? "found" : "not found");
+        ESP_LOGI(esp::p::TAG, "Keyboard %s.", _keyboard_found ? "found" : "not found");
         show_keyboard();
     }
 
     if (!_mouse_found)
     {
-        draw_line(row_mouse, "Mouse:    searching...");
+        draw_line(esp::p::row_mouse, "Mouse:    searching...");
         _mouse_found = esp::ps2::ps2_controller::mouse()->reset();
         if (_mouse_found)
-            _display.set_mouse_cursor(CURSOR);
-        ESP_LOGI(TAG, "Mouse %s.", _mouse_found ? "found" : "not found");
+            _display.set_mouse_cursor(esp::p::CURSOR);
+        ESP_LOGI(esp::p::TAG, "Mouse %s.", _mouse_found ? "found" : "not found");
         show_mouse();
     }
 }
@@ -840,23 +866,23 @@ void esp::board_test::play(int frequency, int duration_ms)
     {
         case 0:
             _sound.play_sound(esp::sound::sine_waveform_generator(), frequency, duration_ms,
-                              VOLUME);
+                              esp::p::VOLUME);
             break;
         case 1:
             _sound.play_sound(esp::sound::square_waveform_generator(), frequency, duration_ms,
-                              VOLUME);
+                              esp::p::VOLUME);
             break;
         case 2:
             _sound.play_sound(esp::sound::triangle_waveform_generator(), frequency, duration_ms,
-                              VOLUME);
+                              esp::p::VOLUME);
             break;
         case 3:
             _sound.play_sound(esp::sound::sawtooth_waveform_generator(), frequency, duration_ms,
-                              VOLUME);
+                              esp::p::VOLUME);
             break;
         default:
             _sound.play_sound(esp::sound::noise_waveform_generator(), frequency, duration_ms,
-                              VOLUME);
+                              esp::p::VOLUME);
             break;
     }
 }

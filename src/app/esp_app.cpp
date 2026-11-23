@@ -12,20 +12,20 @@
 
 #include "esp_esp32.h"
 
-#include "esp_app_desc.h"
-#include "esp_chip_info.h"
-#include "esp_flash.h"
-#include "esp_heap_caps.h"
-#include "esp_idf_version.h"
-#include "esp_log.h"
-#include "esp_mac.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "sdkconfig.h"
-
 #include <cinttypes>
 #include <cstdio>
 #include <string>
+
+#include <esp_app_desc.h>
+#include <esp_chip_info.h>
+#include <esp_flash.h>
+#include <esp_heap_caps.h>
+#include <esp_idf_version.h>
+#include <esp_log.h>
+#include <esp_mac.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <sdkconfig.h>
 
 
 /**
@@ -40,7 +40,7 @@
  */
 
 
-namespace
+namespace esp::p
 {
 
 /** @brief Тег журнала модуля. */
@@ -82,25 +82,25 @@ constexpr int POLL_PERIOD_MS = 10;
  * учитывает память, занятую видеовыводом, PS/2 и звуком.
  */
 esp::app::app()
-    : _button(BUTTON_GPIO, "K1")
+    : _button{esp::p::BUTTON_GPIO, "K1"}
 {
 #ifndef NDEBUG
     // Вызовы ESP_LOGD программы компилируются всегда (LOG_LOCAL_LEVEL в
     // src/CMakeLists.txt), а выводятся только здесь, в сборках с
     // проверками; уровень журнала компонентов ESP-IDF не меняется.
-    for (const char *tag : DEBUG_TAGS)
+    for (const char *tag : esp::p::DEBUG_TAGS)
         esp_log_level_set(tag, ESP_LOG_DEBUG);
 #endif
 
     // Слот для карты памяти на плате есть (CS 13, MOSI 12, MISO 2, CLK 14),
     // но монтирование пока не нужно.
     // if (!_sd_card.mount())
-    //     ESP_LOGW(TAG, "No SD card.");
+    //     ESP_LOGW(esp::p::TAG, "No SD card.");
 
     hello();
 
-    ESP_LOGD(TAG, "Pins: button K1 GPIO%d.", (int)BUTTON_GPIO);
-    ESP_LOGD(TAG, "Application initialized.");
+    ESP_LOGD(esp::p::TAG, "Pins: button K1 GPIO%d.", static_cast<int>(esp::p::BUTTON_GPIO));
+    ESP_LOGD(esp::p::TAG, "Application initialized.");
 }
 
 /**
@@ -110,20 +110,20 @@ esp::app::app()
  */
 esp::app::~app()
 {
-    ESP_LOGD(TAG, "Application finished.");
+    ESP_LOGD(esp::p::TAG, "Application finished.");
 }
 
 /**
  * @brief Выполняет один шаг основного цикла.
  *
- * Ждёт период POLL_PERIOD_MS, опрашивает кнопку K1 и передаёт проверке
+ * Ждёт период esp::p::POLL_PERIOD_MS, опрашивает кнопку K1 и передаёт проверке
  * платы накопившиеся события клавиатуры и мыши.
  */
 void esp::app::dispatch()
 {
     // Задержка задаёт период опроса и отдаёт процессор другим задачам,
     // в том числе задаче простоя, за которой следит сторожевой таймер.
-    vTaskDelay(pdMS_TO_TICKS(POLL_PERIOD_MS));
+    vTaskDelay(pdMS_TO_TICKS(esp::p::POLL_PERIOD_MS));
 
     if (_button.pressed())
         _test.button_pressed();
@@ -257,7 +257,7 @@ void esp::app::hello()
                 heap_caps_get_free_size(MALLOC_CAP_32BIT) / 1024, sdcard, mac[0], mac[1], mac[2],
                 mac[3], mac[4], mac[5], esp_get_idf_version());
 
-    ESP_LOGD(TAG, "Package %s, features 0x%08" PRIx32 ", largest free block %zu bytes.",
+    ESP_LOGD(esp::p::TAG, "Package %s, features 0x%08" PRIx32 ", largest free block %zu bytes.",
              esp::chip_package_name(package), info.features,
              heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
 }

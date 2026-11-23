@@ -1,8 +1,8 @@
 #pragma once
 
-#include "sd_protocol_types.h"
-
 #include <cstdint>
+
+#include <sd_protocol_types.h>
 
 
 namespace esp

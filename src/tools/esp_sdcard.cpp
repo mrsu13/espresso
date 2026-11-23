@@ -12,12 +12,12 @@
 
 #include "esp_esp32.h"
 
-#include "driver/sdspi_host.h"
-#include "driver/spi_common.h"
-#include "esp_err.h"
-#include "esp_log.h"
-#include "esp_vfs_fat.h"
-#include "sdmmc_cmd.h"
+#include <driver/sdspi_host.h>
+#include <driver/spi_common.h>
+#include <esp_err.h>
+#include <esp_log.h>
+#include <esp_vfs_fat.h>
+#include <sdmmc_cmd.h>
 
 
 /**
@@ -31,7 +31,7 @@
  */
 
 
-namespace
+namespace esp::p
 {
 
 /** @brief Тег журнала модуля. */
@@ -58,7 +58,7 @@ bool esp::sd_card::mount()
     if (_card)
         return true;
 
-    ESP_LOGD(TAG, "Mounting SD card ...");
+    ESP_LOGD(esp::p::TAG, "Mounting SD card ...");
 
     const int MAX_FILES = 4; // Сколько файлов можно держать открытыми одновременно.
     const size_t ALLOCATION_UNIT_SIZE = 16 * 1024; // Размер кластера в байтах.
@@ -71,7 +71,7 @@ bool esp::sd_card::mount()
     switch (esp::detected_chip_package())
     {
         case chip_package::pico_d4:
-            ESP_LOGD(TAG, "TTGO VGA32 detected.");
+            ESP_LOGD(esp::p::TAG, "TTGO VGA32 detected.");
             miso = 2;
             mosi = 12;
             break;
@@ -85,7 +85,7 @@ bool esp::sd_card::mount()
             break;
     }
 
-    ESP_LOGD(TAG, "SPI pins: MISO %d, MOSI %d, CLK %d, CS %d.", miso, mosi, CLK, CS);
+    ESP_LOGD(esp::p::TAG, "SPI pins: MISO %d, MOSI %d, CLK %d, CS %d.", miso, mosi, CLK, CS);
 
     // Параметры монтирования. Если включить format_if_mount_failed, карта,
     // которую не удалось смонтировать, будет заново размечена и
@@ -114,7 +114,7 @@ bool esp::sd_card::mount()
     esp_err_t ret = spi_bus_initialize(host_id, &bus_cfg, SPI_DMA_CH_AUTO);
     if (ret != ESP_OK)
     {
-        ESP_LOGE(TAG, "Failed to initialize SD card SPI bus: %s.", esp_err_to_name(ret));
+        ESP_LOGE(esp::p::TAG, "Failed to initialize SD card SPI bus: %s.", esp_err_to_name(ret));
         return false;
     }
 
@@ -129,9 +129,9 @@ bool esp::sd_card::mount()
     if (ret != ESP_OK)
     {
         if (ret == ESP_FAIL)
-            ESP_LOGE(TAG, "Failed to mount filesystem: %s.", esp_err_to_name(ret));
+            ESP_LOGE(esp::p::TAG, "Failed to mount filesystem: %s.", esp_err_to_name(ret));
         else
-            ESP_LOGE(TAG, "Failed to initialize the card: %s.", esp_err_to_name(ret));
+            ESP_LOGE(esp::p::TAG, "Failed to initialize the card: %s.", esp_err_to_name(ret));
 
         // Шина освобождается, чтобы следующая попытка начиналась с нуля.
         _card = nullptr;
@@ -144,7 +144,7 @@ bool esp::sd_card::mount()
     // Карта инициализирована: вывести её параметры.
     sdmmc_card_print_info(stdout, _card);
 
-    ESP_LOGD(TAG, "SD card has been mounted to '%s'.", _mount_point);
+    ESP_LOGD(esp::p::TAG, "SD card has been mounted to '%s'.", _mount_point);
 
     return true;
 }
@@ -168,11 +168,11 @@ bool esp::sd_card::umount()
 
     if (ret != ESP_OK)
     {
-        ESP_LOGE(TAG, "Failed to unmount SD card: %s.", esp_err_to_name(ret));
+        ESP_LOGE(esp::p::TAG, "Failed to unmount SD card: %s.", esp_err_to_name(ret));
         return false;
     }
 
-    ESP_LOGD(TAG, "SD card has been unmounted.");
+    ESP_LOGD(esp::p::TAG, "SD card has been unmounted.");
 
     return true;
 }
@@ -184,5 +184,5 @@ bool esp::sd_card::umount()
 std::uint64_t esp::sd_card::capacity() const
 {
     // В регистре CSD ёмкость задана числом секторов.
-    return _card ? (std::uint64_t)_card->csd.capacity * _card->csd.sector_size : 0;
+    return _card ? static_cast<std::uint64_t>(_card->csd.capacity) * _card->csd.sector_size : 0;
 }

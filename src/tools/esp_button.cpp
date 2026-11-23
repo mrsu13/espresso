@@ -10,8 +10,8 @@
 
 #include "esp_button.h"
 
-#include "esp_err.h"
-#include "esp_log.h"
+#include <esp_err.h>
+#include <esp_log.h>
 
 
 /**
@@ -24,7 +24,7 @@
  */
 
 
-namespace
+namespace esp::p
 {
 
 /** @brief Тег журнала модуля. */
@@ -45,10 +45,10 @@ const char *const TAG = "button";
  * @param name Имя кнопки для сообщений в консоли, например «Left».
  */
 esp::button::button(gpio_num_t gpio, const char *name)
-    : _gpio(gpio)
-    , _name(name)
-    , _down(false)
-    , _count(0)
+    : _gpio{gpio}
+    , _name{name}
+    , _down{false}
+    , _count{0}
 {
     gpio_config_t config = {};
     config.pin_bit_mask = 1ULL << gpio;
@@ -61,7 +61,8 @@ esp::button::button(gpio_num_t gpio, const char *name)
 
     const esp_err_t ret = gpio_config(&config);
     if (ret != ESP_OK)
-        ESP_LOGE(TAG, "Failed to configure GPIO%d: %s.", (int)gpio, esp_err_to_name(ret));
+        ESP_LOGE(esp::p::TAG, "Failed to configure GPIO%d: %s.", static_cast<int>(gpio),
+                 esp_err_to_name(ret));
 
     // Кнопка, нажатая при запуске, — ещё не нажатие: сначала её нужно отпустить.
     _down = gpio_get_level(gpio) == 0;
@@ -96,7 +97,8 @@ bool esp::button::pressed()
     _down = down;
     _count = 0;
 
-    ESP_LOGI(TAG, "%s button (GPIO%d) %s.", _name, (int)_gpio, down ? "pressed" : "released");
+    ESP_LOGI(esp::p::TAG, "%s button (GPIO%d) %s.", _name, static_cast<int>(_gpio),
+             down ? "pressed" : "released");
 
     return down;
 }
