@@ -71,7 +71,7 @@ namespace
 const char *const TAG = "test";
 
 /** @brief Режим VGA: 640 × 480 точек, 60 Гц. */
-const char *const VGA_MODE = VGA_640x480_60Hz;
+const char *const VGA_MODE = esp::vga::VGA_640X480_60HZ;
 
 /** @brief Поле между краем изображения и содержимым экрана, точки. */
 constexpr int MARGIN = 8;

@@ -3,47 +3,67 @@
 // Изменено для Espresso в 2026 г.
 
 
-#include <math.h>
-#include <string.h>
+/**
+ * @file esp_vga_vga_controller.h
+ * @brief Объявление контроллера VGA на 64 цвета esp::vga::vga_controller.
+ */
 
-#include "freertos/FreeRTOS.h"
+/**
+ * @file esp_vga_vga_controller.cpp
+ * @brief Контроллер VGA на 64 цвета: байт на пиксель, рисование в обработчике прерывания.
+ */
 
-#include "soc/i2s_struct.h"
-
-#include "esp_gfx_utils.h"
-#include "esp_tools.h"
 #include "esp_vga_vga_controller.h"
+
+#include "esp_gfx_primitive.h"
+#include "esp_tools.h"
+
+#include <climits>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+
+#include <esp_attr.h>
+#include <esp_heap_caps.h>
+#include <esp_intr_alloc.h>
+#include <esp_timer.h>
+#include <soc/i2s_struct.h>
 
 
 #pragma GCC optimize("O2")
 
 
-namespace esp::vga
-{
+/**
+ * @class esp::vga::vga_controller
+ * @brief Контроллер VGA на 64 цвета: в буфере кадра байт на пиксель.
+ *
+ * Каждый байт буфера — пиксель с цветом (по 2 разряда на канал) и
+ * разрядами синхроимпульсов, и DMA выводит его прямо из буфера; поэтому
+ * буфер велик (при 640 × 480 — 300 КБ) и большие разрешения не всегда
+ * помещаются в память. Примитивы рисует обработчик прерывания в начале
+ * переднего гасящего интервала кадра, так что все функции рисования — в
+ * IRAM. Двойная буферизация — сменой цепочек DMA.
+ *
+ * С 8 цветами — по выводу на канал:
+ * @code
+ * esp::vga::vga_controller display;
+ * display.begin(GPIO_NUM_22, GPIO_NUM_21, GPIO_NUM_19, GPIO_NUM_18, GPIO_NUM_5);
+ * display.set_resolution(esp::vga::VGA_640X350_70HZ);
+ * @endcode
+ */
 
 
-/*************************************************************************************/
-/* VGAController definitions */
+// Открытые
 
+/**
+ * @brief Создаёт контроллер; выводы и развёртку задают begin() и set_resolution().
+ */
+esp::vga::vga_controller::vga_controller() {}
 
-vga_controller *vga_controller::_instance = nullptr;
-
-
-vga_controller::vga_controller()
-{
-    _instance = this;
-}
-
-
-void vga_controller::init()
-{
-    vga_base_controller::init();
-
-    _double_buffer_over_dma = true;
-}
-
-
-void vga_controller::suspend_background_primitive_execution()
+/**
+ * @brief Приостанавливает рисование примитивов: на первом уровне вложенности запрещает прерывание.
+ */
+void esp::vga::vga_controller::suspend_background_primitive_execution()
 {
     vga_base_controller::suspend_background_primitive_execution();
     if (_primitive_processing_suspended == 1)
@@ -53,13 +73,17 @@ void vga_controller::suspend_background_primitive_execution()
     }
 }
 
-
-void vga_controller::resume_background_primitive_execution()
+/**
+ * @brief Возобновляет рисование примитивов: когда приостановок не осталось, разрешает прерывание.
+ *
+ * При первом вызове ставит обработчик прерывания I2S1.
+ */
+void esp::vga::vga_controller::resume_background_primitive_execution()
 {
     vga_base_controller::resume_background_primitive_execution();
     if (_primitive_processing_suspended == 0)
     {
-        if (_isr_handle == nullptr)
+        if (!_isr_handle)
             esp_intr_alloc(ETS_I2S1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, v_sync_interrupt, this,
                            &_isr_handle);
         I2S1.int_clr.val = 0xFFFFFFFF;
@@ -67,191 +91,341 @@ void vga_controller::resume_background_primitive_execution()
     }
 }
 
-
-void vga_controller::allocate_view_port()
-{
-    vga_base_controller::allocate_view_port(MALLOC_CAP_DMA, _view_port_width);
-}
-
-
-void vga_controller::set_resolution(vga_timings const &timings, int view_port_width,
-                                    int view_port_height, bool double_buffered)
+/**
+ * @brief Задаёт развёртку, очищает буфер кадра и запускает вывод.
+ *
+ * Обработчику прерывания даётся время всех гасящих интервалов кадра и
+ * строк над областью вывода.
+ *
+ * @param timings Развёртка.
+ * @param view_port_width Ширина области вывода, пиксели; −1 — вся видимая ширина.
+ * @param view_port_height Высота области вывода, строки; −1 — вся видимая
+ *        высота, если хватит памяти.
+ * @param double_buffered @c true — второй буфер того же размера для рисования.
+ */
+void esp::vga::vga_controller::set_resolution(const vga_timings &timings, int view_port_width,
+                                              int view_port_height, bool double_buffered)
 {
     vga_base_controller::set_resolution(timings, view_port_width, view_port_height,
                                         double_buffered);
 
-    // fill view port
     for (int i = 0; i < _view_port_height; ++i)
         fill(_view_port[i], 0, _view_port_width, 0, 0, 0, false, false);
 
-    // number of microseconds usable in VSynch ISR
-    _max_v_sync_isr_time = ceil(1000000.0 / _timings.frequency * _timings.scan_count * _h_line_size
-                                * (_timings.v_sync_pulse + _timings.v_back_porch
-                                   + _timings.v_front_porch + _view_port_row));
+    // Сколько микросекунд может работать обработчик кадрового синхроимпульса.
+    _max_v_sync_isr_time =
+        std::ceil(1000000.0 / _timings.frequency * _timings.scan_count * _h_line_size
+                  * (_timings.v_sync_pulse + _timings.v_back_porch + _timings.v_front_porch
+                     + _view_port_row));
 
     start_gpio_stream();
     resume_background_primitive_execution();
 }
 
-
-void vga_controller::on_setup_dma_buffer(lldesc_t volatile *buffer,
-                                         bool is_start_of_vert_front_porch, int scan,
-                                         bool is_visible, int visible_row)
+/**
+ * @brief Читает пиксели области вывода цветами RGB222.
+ *
+ * Границы не проверяются. Чтобы прочитать уже нарисованное, сначала
+ * дождитесь примитивов (process_primitives()):
+ * @code
+ * esp::gfx::rgb222 buf[100 * 100];
+ * const esp::gfx::rect rect{0, 0, 99, 99};
+ * display.process_primitives();
+ * display.read_screen(rect, buf);
+ * display.write_screen(rect.translate(110, 0), buf);
+ * @endcode
+ *
+ * @param rect Прямоугольник.
+ * @param dest_buf Буфер на ширину × высоту прямоугольника цветов, построчно.
+ */
+void esp::vga::vga_controller::read_screen(const esp::gfx::rect &rect, esp::gfx::rgb222 *dest_buf)
 {
-    // generate interrupt at the beginning of vertical front porch
+    std::uint8_t *dbuf = reinterpret_cast<std::uint8_t *>(dest_buf);
+    for (int y = rect.y1; y <= rect.y2; ++y)
+    {
+        std::uint8_t *row = const_cast<std::uint8_t *>(_view_port[y]);
+        for (int x = rect.x1; x <= rect.x2; ++x, ++dbuf)
+            *dbuf = pixel_in_row(row, x) & ~SYNC_MASK;
+    }
+}
+
+/**
+ * @brief Читает пиксели области вывода цветами RGB888.
+ *
+ * Границы не проверяются.
+ *
+ * @param rect Прямоугольник.
+ * @param dest_buf Буфер на ширину × высоту прямоугольника цветов, построчно.
+ */
+void esp::vga::vga_controller::read_screen(const esp::gfx::rect &rect, esp::gfx::rgb888 *dest_buf)
+{
+    for (int y = rect.y1; y <= rect.y2; ++y)
+    {
+        std::uint8_t *row = const_cast<std::uint8_t *>(_view_port[y]);
+        for (int x = rect.x1; x <= rect.x2; ++x, ++dest_buf)
+        {
+            std::uint8_t rawpix = pixel_in_row(row, x);
+            *dest_buf = esp::gfx::rgb888((rawpix & 3) * 85, ((rawpix >> 2) & 3) * 85,
+                                         ((rawpix >> 4) & 3) * 85);
+        }
+    }
+}
+
+/**
+ * @brief Записывает пиксели в буфер рисования без очереди примитивов.
+ *
+ * Границы не проверяются; пример — в read_screen().
+ *
+ * @param rect Прямоугольник.
+ * @param src_buf Цвета на ширину × высоту прямоугольника, построчно.
+ */
+void esp::vga::vga_controller::write_screen(const esp::gfx::rect &rect, esp::gfx::rgb222 *src_buf)
+{
+    std::uint8_t *sbuf = reinterpret_cast<std::uint8_t *>(src_buf);
+    for (int y = rect.y1; y <= rect.y2; ++y)
+    {
+        std::uint8_t *row = const_cast<std::uint8_t *>(_view_port[y]);
+        for (int x = rect.x1; x <= rect.x2; ++x, ++sbuf)
+            pixel_in_row(row, x) = *sbuf | _hv_sync;
+    }
+}
+
+// Закрытые
+
+/**
+ * @brief Сбрасывает состояние контроллера и включает двойную буферизацию через DMA; его вызывает begin().
+ */
+void esp::vga::vga_controller::init()
+{
+    vga_base_controller::init();
+
+    _double_buffer_over_dma = true;
+}
+
+/**
+ * @brief Выделяет буфер кадра: байт на пиксель в памяти DMA.
+ */
+void esp::vga::vga_controller::allocate_view_port()
+{
+    vga_base_controller::allocate_view_port(MALLOC_CAP_DMA, _view_port_width);
+}
+
+/**
+ * @brief Отмечает прерыванием дескриптор начала переднего гасящего интервала кадра.
+ * @param buffer Дескриптор.
+ * @param is_start_of_vert_front_porch Первый ли это дескриптор переднего
+ *        гасящего интервала кадра.
+ * @param scan Номер повтора строки.
+ * @param is_visible @c true — дескриптор строки области вывода.
+ * @param visible_row Строка области вывода.
+ */
+void esp::vga::vga_controller::on_setup_dma_buffer(lldesc_t volatile *buffer,
+                                                   bool is_start_of_vert_front_porch, int scan,
+                                                   bool is_visible, int visible_row)
+{
+    // Прерывание — в начале переднего гасящего интервала кадра.
     if (is_start_of_vert_front_porch)
         buffer->eof = 1;
 }
 
-
-void IRAM_ATTR vga_controller::v_sync_interrupt(void *arg)
+/**
+ * @brief Обработчик прерывания в начале переднего гасящего интервала кадра: рисует примитивы.
+ *
+ * Рисует, пока не кончится очередь или отведённое время
+ * (@c _max_v_sync_isr_time), затем возвращает спрайты. Работает в IRAM.
+ *
+ * @param arg Контроллер.
+ */
+void IRAM_ATTR esp::vga::vga_controller::v_sync_interrupt(void *arg)
 {
     if (I2S1.int_st.out_eof)
     {
-        auto vga_ctrl = (vga_controller *)arg;
-        int64_t start_time =
-            vga_ctrl->background_primitive_timeout_enabled() ? esp_timer_get_time() : 0;
-        esp::gfx::rect update_rect = esp::gfx::rect(SHRT_MAX, SHRT_MAX, SHRT_MIN, SHRT_MIN);
+        auto *const self = static_cast<esp::vga::vga_controller *>(arg);
+        const std::int64_t start_time =
+            self->background_primitive_timeout_enabled() ? esp_timer_get_time() : 0;
+        esp::gfx::rect update_rect{SHRT_MAX, SHRT_MAX, SHRT_MIN, SHRT_MIN};
         do
         {
             esp::gfx::primitive prim;
-            if (vga_ctrl->get_primitive_isr(&prim) == false)
+            if (!self->get_primitive_isr(&prim))
                 break;
 
-            vga_ctrl->exec_primitive(prim, update_rect, true);
+            self->exec_primitive(prim, update_rect, true);
 
-            if (vga_ctrl->_primitive_processing_suspended)
+            if (self->_primitive_processing_suspended)
                 break;
 
-        } while (!vga_ctrl->background_primitive_timeout_enabled()
-                 || (start_time + vga_ctrl->_max_v_sync_isr_time > esp_timer_get_time()));
-        vga_ctrl->show_sprites(update_rect);
+        } while (!self->background_primitive_timeout_enabled()
+                 || (start_time + self->_max_v_sync_isr_time > esp_timer_get_time()));
+        self->show_sprites(update_rect);
     }
     I2S1.int_clr.val = I2S1.int_st.val;
 }
 
-
-void IRAM_ATTR vga_controller::set_pixel_at(esp::gfx::pixel_desc const &pixel_desc,
-                                            esp::gfx::rect &update_rect)
+/**
+ * @brief Рисует точку заданного цвета.
+ * @param pixel_desc Положение относительно начала координат и цвет.
+ * @param update_rect Изменённая область; расширяется на нарисованное.
+ */
+void IRAM_ATTR esp::vga::vga_controller::set_pixel_at(const esp::gfx::pixel_desc &pixel_desc,
+                                                      esp::gfx::rect &update_rect)
 {
     generic_set_pixel_at(
         pixel_desc, update_rect,
         [&](esp::gfx::rgb888 const &color) { return prepare_pixel(color); },
-        [&](int x, int y, uint8_t pattern) { VGA_PIXEL(x, y) = pattern; });
+        [&](int x, int y, std::uint8_t pattern) { pixel(x, y) = pattern; });
 }
 
-
-// coordinates are absolute values (not relative to origin)
-// line clipped on current absolute clipping rectangle
-void IRAM_ATTR vga_controller::abs_draw_line(int x1, int y1, int x2, int y2, esp::gfx::rgb888 color)
+/**
+ * @brief Рисует линию в абсолютных координатах с отсечением по текущей области отсечения.
+ * @param x1 Абсцисса начала.
+ * @param y1 Ордината начала.
+ * @param x2 Абсцисса конца.
+ * @param y2 Ордината конца.
+ * @param color Цвет.
+ */
+void IRAM_ATTR esp::vga::vga_controller::abs_draw_line(int x1, int y1, int x2, int y2,
+                                                       esp::gfx::rgb888 color)
 {
     generic_abs_draw_line(
         x1, y1, x2, y2, color, [&](esp::gfx::rgb888 const &color) { return prepare_pixel(color); },
-        [&](int y, int x1, int x2, uint8_t pattern) { raw_fill_row(y, x1, x2, pattern); },
+        [&](int y, int x1, int x2, std::uint8_t pattern) { raw_fill_row(y, x1, x2, pattern); },
         [&](int y, int x1, int x2) { raw_invert_row(y, x1, x2); },
-        [&](int x, int y, uint8_t pattern) { VGA_PIXEL(x, y) = pattern; },
-        [&](int x, int y) { VGA_INVERT_PIXEL(x, y); });
+        [&](int x, int y, std::uint8_t pattern) { pixel(x, y) = pattern; },
+        [&](int x, int y) { invert_pixel(x, y); });
 }
 
-
-// parameters not checked
-void IRAM_ATTR vga_controller::raw_fill_row(int y, int x1, int x2, esp::gfx::rgb888 color)
+/**
+ * @brief Заливает отрезок строки цветом; параметры не проверяются.
+ * @param y Строка.
+ * @param x1 Первый столбец.
+ * @param x2 Последний столбец, включительно.
+ * @param color Цвет.
+ */
+void IRAM_ATTR esp::vga::vga_controller::raw_fill_row(int y, int x1, int x2, esp::gfx::rgb888 color)
 {
     raw_fill_row(y, x1, x2, prepare_pixel(color));
 }
 
-
-// parameters not checked
-void IRAM_ATTR vga_controller::raw_fill_row(int y, int x1, int x2, uint8_t pattern)
+/**
+ * @brief Заливает отрезок строки байтом пикселя; параметры не проверяются.
+ * @param y Строка.
+ * @param x1 Первый столбец.
+ * @param x2 Последний столбец, включительно.
+ * @param pattern Байт пикселя.
+ */
+void IRAM_ATTR esp::vga::vga_controller::raw_fill_row(int y, int x1, int x2, std::uint8_t pattern)
 {
     auto row = _view_port[y];
-    // fill first bytes before full 32 bits word
+    // Первые байты до целого 32-разрядного слова.
     int x = x1;
     for (; x <= x2 && (x & 3) != 0; ++x)
     {
-        VGA_PIXELINROW(row, x) = pattern;
+        pixel_in_row(row, x) = pattern;
     }
-    // fill whole 32 bits words (don't care about VGA_PIXELINROW adjusted alignment)
+    // Целые 32-разрядные слова (порядок пикселей в слове не важен).
     if (x <= x2)
     {
         int sz = (x2 & ~3) - x;
-        memset((void *)(row + x), pattern, sz);
+        std::memset(const_cast<std::uint8_t *>(row + x), pattern, sz);
         x += sz;
     }
-    // fill last unaligned bytes
+    // Последние невыровненные байты.
     for (; x <= x2; ++x)
     {
-        VGA_PIXELINROW(row, x) = pattern;
+        pixel_in_row(row, x) = pattern;
     }
 }
 
-
-// parameters not checked
-void IRAM_ATTR vga_controller::raw_invert_row(int y, int x1, int x2)
+/**
+ * @brief Инвертирует цвета в отрезке строки, не трогая синхроимпульсы; параметры не проверяются.
+ * @param y Строка.
+ * @param x1 Первый столбец.
+ * @param x2 Последний столбец, включительно.
+ */
+void IRAM_ATTR esp::vga::vga_controller::raw_invert_row(int y, int x1, int x2)
 {
     auto row = _view_port[y];
     for (int x = x1; x <= x2; ++x)
     {
-        uint8_t *px = (uint8_t *)&VGA_PIXELINROW(row, x);
+        std::uint8_t *const px = const_cast<std::uint8_t *>(&pixel_in_row(row, x));
         *px = _hv_sync | ~(*px);
     }
 }
 
-
-// swaps all pixels inside the range x1...x2 of yA and yB
-// parameters not checked
-void IRAM_ATTR vga_controller::swap_rows(int y_a, int y_b, int x1, int x2)
+/**
+ * @brief Меняет местами отрезки двух строк; параметры не проверяются.
+ * @param y_a Первая строка.
+ * @param y_b Вторая строка.
+ * @param x1 Первый столбец.
+ * @param x2 Последний столбец, включительно.
+ */
+void IRAM_ATTR esp::vga::vga_controller::swap_rows(int y_a, int y_b, int x1, int x2)
 {
-    uint8_t *row_a = (uint8_t *)_view_port[y_a];
-    uint8_t *row_b = (uint8_t *)_view_port[y_b];
-    // swap first bytes before full 32 bits word
+    std::uint8_t *row_a = const_cast<std::uint8_t *>(_view_port[y_a]);
+    std::uint8_t *row_b = const_cast<std::uint8_t *>(_view_port[y_b]);
+    // Первые байты до целого 32-разрядного слова.
     int x = x1;
     for (; x <= x2 && (x & 3) != 0; ++x)
-        esp::tswap(VGA_PIXELINROW(row_a, x), VGA_PIXELINROW(row_b, x));
-    // swap whole 32 bits words (don't care about VGA_PIXELINROW adjusted alignment)
-    uint32_t *a = (uint32_t *)(row_a + x);
-    uint32_t *b = (uint32_t *)(row_b + x);
+        esp::tswap(pixel_in_row(row_a, x), pixel_in_row(row_b, x));
+    // Целые 32-разрядные слова (порядок пикселей в слове не важен).
+    std::uint32_t *a = reinterpret_cast<std::uint32_t *>(row_a + x);
+    std::uint32_t *b = reinterpret_cast<std::uint32_t *>(row_b + x);
     for (int right = (x2 & ~3); x < right; x += 4)
         esp::tswap(*a++, *b++);
-    // swap last unaligned bytes
+    // Последние невыровненные байты.
     for (x = (x2 & ~3); x <= x2; ++x)
-        esp::tswap(VGA_PIXELINROW(row_a, x), VGA_PIXELINROW(row_b, x));
+        esp::tswap(pixel_in_row(row_a, x), pixel_in_row(row_b, x));
 }
 
-
-void IRAM_ATTR vga_controller::draw_ellipse(esp::gfx::size const &size, esp::gfx::rect &update_rect)
+/**
+ * @brief Рисует эллипс пером с центром в текущей позиции.
+ * @param size Размеры эллипса.
+ * @param update_rect Изменённая область; расширяется на нарисованное.
+ */
+void IRAM_ATTR esp::vga::vga_controller::draw_ellipse(const esp::gfx::size &size,
+                                                      esp::gfx::rect &update_rect)
 {
     generic_draw_ellipse(
         size, update_rect, [&](esp::gfx::rgb888 const &color) { return prepare_pixel(color); },
-        [&](int x, int y, uint8_t pattern) { VGA_PIXEL(x, y) = pattern; });
+        [&](int x, int y, std::uint8_t pattern) { pixel(x, y) = pattern; });
 }
 
-
-void IRAM_ATTR vga_controller::clear(esp::gfx::rect &update_rect)
+/**
+ * @brief Заливает область вывода цветом кисти.
+ * @param update_rect Изменённая область.
+ */
+void IRAM_ATTR esp::vga::vga_controller::clear(esp::gfx::rect &update_rect)
 {
     hide_sprites(update_rect);
-    uint8_t pattern = prepare_pixel(actual_brush_color());
+    std::uint8_t pattern = prepare_pixel(actual_brush_color());
     for (int y = 0; y < _view_port_height; ++y)
-        memset((uint8_t *)_view_port[y], pattern, _view_port_width);
+        std::memset(const_cast<std::uint8_t *>(_view_port[y]), pattern, _view_port_width);
 }
 
-
-// scroll < 0 -> scroll UP
-// scroll > 0 -> scroll DOWN
-// Speciying horizontal scrolling region slow-down scrolling!
-void IRAM_ATTR vga_controller::v_scroll(int scroll, esp::gfx::rect &update_rect)
+/**
+ * @brief Прокручивает область прокрутки по вертикали.
+ *
+ * Строки меняются местами вместе с указателями DMA; если задана область
+ * прокрутки уже экрана, строки копируются, а это медленнее.
+ *
+ * @param scroll Шаг: отрицательный — вверх, положительный — вниз.
+ * @param update_rect Изменённая область.
+ */
+void IRAM_ATTR esp::vga::vga_controller::v_scroll(int scroll, esp::gfx::rect &update_rect)
 {
     generic_v_scroll(
         scroll, update_rect,
-        [&](int y_a, int y_b, int x1, int x2) { swap_rows(y_a, y_b, x1, x2); }, // swapRowsCopying
-        [&](int y_a, int y_b) { esp::tswap(_view_port[y_a], _view_port[y_b]); }, // swapRowsPointers
+        [&](int y_a, int y_b, int x1, int x2) { swap_rows(y_a, y_b, x1, x2); }, // swap_rows_copying
+        [&](int y_a, int y_b)
+        { esp::tswap(_view_port[y_a], _view_port[y_b]); }, // swap_rows_pointers
         [&](int y, int x1, int x2, esp::gfx::rgb888 pattern)
-        { raw_fill_row(y, x1, x2, pattern); } // rawFillRow
+        { raw_fill_row(y, x1, x2, pattern); } // raw_fill_row
     );
 
     if (scroll != 0)
     {
-        // reassign DMA pointers
+        // Переназначаем указатели DMA.
         int view_port_buffers_per_line = 0;
         int line_pos = 1;
         switch (_timings.h_starting_block)
@@ -285,17 +459,23 @@ void IRAM_ATTR vga_controller::v_scroll(int scroll, esp::gfx::rect &update_rect)
     }
 }
 
-
-// Scrolling by 1, 2, 3 and 4 pixels is optimized. Also scrolling multiples of 4 (8, 16, 24...) is optimized.
-// Scrolling by other values requires up to three steps (scopose scrolling by 1, 2, 3 or 4): for example scrolling by 5 is scomposed to 4 and 1, scrolling
-// by 6 is 4 + 2, etc.
-// Horizontal scrolling region start and size (X2-X1+1) must be aligned to 32 bits, otherwise the unoptimized (very slow) version is used.
-void IRAM_ATTR vga_controller::h_scroll(int scroll, esp::gfx::rect &update_rect)
+/**
+ * @brief Прокручивает область прокрутки по горизонтали.
+ *
+ * Сдвиги на 1, 2, 3 и 4 пикселя и на кратное 4 быстрые; другие
+ * раскладываются на два-три быстрых (5 = 4 + 1, 6 = 4 + 2). Начало и
+ * ширина области прокрутки должны быть кратны 4 пикселям, иначе работает
+ * очень медленный вариант.
+ *
+ * @param scroll Шаг: отрицательный — влево, положительный — вправо.
+ * @param update_rect Изменённая область.
+ */
+void IRAM_ATTR esp::vga::vga_controller::h_scroll(int scroll, esp::gfx::rect &update_rect)
 {
     hide_sprites(update_rect);
-    uint8_t pattern8 = prepare_pixel(actual_brush_color());
-    uint16_t pattern16 = pattern8 << 8 | pattern8;
-    uint32_t pattern32 = pattern16 << 16 | pattern16;
+    std::uint8_t pattern8 = prepare_pixel(actual_brush_color());
+    std::uint16_t pattern16 = pattern8 << 8 | pattern8;
+    std::uint32_t pattern32 = pattern16 << 16 | pattern16;
 
     int y1 = paint_state().scrolling_region.y1;
     int y2 = paint_state().scrolling_region.y2;
@@ -308,30 +488,31 @@ void IRAM_ATTR vga_controller::h_scroll(int scroll, esp::gfx::rect &update_rect)
 
     if (scroll < 0)
     {
-        // scroll left
+        // Влево.
         for (int y = y1; y <= y2; ++y)
         {
             if (h_scrollling_region_aligned)
             {
-                // aligned horizontal scrolling region, fast version
-                uint8_t *row = (uint8_t *)(_view_port[y] + x1);
+                // Область прокрутки выровнена: быстрый вариант.
+                std::uint8_t *row = const_cast<std::uint8_t *>(_view_port[y] + x1);
                 for (int s = -scroll; s > 0;)
                 {
                     if (s >= 4)
                     {
-                        // scroll left 4, 8 12, etc.. pixels moving 32 bit words
-                        uint8_t *w = row;
+                        // Влево на 4, 8, 12… пикселя сдвигом 32-разрядных слов.
+                        std::uint8_t *w = row;
                         int sz = (s & ~3) >> 2;
                         for (int i = 0; i < width32 - sz; ++i, w += 4)
-                            *((uint32_t *)w) = *((uint32_t *)w + sz);
+                            *reinterpret_cast<std::uint32_t *>(w) =
+                                *(reinterpret_cast<std::uint32_t *>(w) + sz);
                         for (int i = esp::tmax(0, width32 - sz); i < width32; ++i, w += 4)
-                            *((uint32_t *)w) = pattern32;
+                            *reinterpret_cast<std::uint32_t *>(w) = pattern32;
                         s -= (s & ~3);
                     }
                     else if ((s & 3) == 3)
                     {
-                        // scroll left 3 pixels swapping 8 bit words
-                        uint8_t *b = row;
+                        // Влево на 3 пикселя перестановкой байтов.
+                        std::uint8_t *b = row;
                         for (int i = 1; i < width32; ++i, b += 4)
                         {
                             b[2] = b[1];
@@ -345,8 +526,8 @@ void IRAM_ATTR vga_controller::h_scroll(int scroll, esp::gfx::rect &update_rect)
                     }
                     else if (s & 2)
                     {
-                        // scroll left 2 pixels swapping 16 bit words
-                        uint16_t *w = (uint16_t *)row;
+                        // Влево на 2 пикселя перестановкой 16-разрядных слов.
+                        std::uint16_t *w = reinterpret_cast<std::uint16_t *>(row);
                         for (int i = 1; i < width32; ++i, w += 2)
                         {
                             w[1] = w[0];
@@ -358,14 +539,18 @@ void IRAM_ATTR vga_controller::h_scroll(int scroll, esp::gfx::rect &update_rect)
                     }
                     else if (s & 1)
                     {
-                        // scroll left 1 pixel by rotating 32 bit words
-                        uint8_t *w = row;
+                        // Влево на 1 пиксель вращением 32-разрядных слов.
+                        std::uint8_t *w = row;
                         for (int i = 1; i < width32; ++i, w += 4)
                         {
-                            *((uint32_t *)w) = *((uint32_t *)w) >> 8 | *((uint32_t *)w) << 24;
+                            *reinterpret_cast<std::uint32_t *>(w) =
+                                *reinterpret_cast<std::uint32_t *>(w) >> 8
+                                | *reinterpret_cast<std::uint32_t *>(w) << 24;
                             w[1] = w[6];
                         }
-                        *((uint32_t *)w) = *((uint32_t *)w) >> 8 | *((uint32_t *)w) << 24;
+                        *reinterpret_cast<std::uint32_t *>(w) =
+                            *reinterpret_cast<std::uint32_t *>(w) >> 8
+                            | *reinterpret_cast<std::uint32_t *>(w) << 24;
                         w[1] = pattern8;
                         --s;
                     }
@@ -373,42 +558,43 @@ void IRAM_ATTR vga_controller::h_scroll(int scroll, esp::gfx::rect &update_rect)
             }
             else
             {
-                // unaligned horizontal scrolling region, fallback to slow version
-                uint8_t *row = (uint8_t *)_view_port[y];
+                // Область прокрутки не выровнена: медленный вариант.
+                std::uint8_t *row = const_cast<std::uint8_t *>(_view_port[y]);
                 for (int x = x1; x <= x2 + scroll; ++x)
-                    VGA_PIXELINROW(row, x) = VGA_PIXELINROW(row, x - scroll);
-                // fill right area with brush color
+                    pixel_in_row(row, x) = pixel_in_row(row, x - scroll);
+                // Освободившееся место справа — цветом кисти.
                 for (int x = x2 + 1 + scroll; x <= x2; ++x)
-                    VGA_PIXELINROW(row, x) = pattern8;
+                    pixel_in_row(row, x) = pattern8;
             }
         }
     }
     else if (scroll > 0)
     {
-        // scroll right
+        // Вправо.
         for (int y = y1; y <= y2; ++y)
         {
             if (h_scrollling_region_aligned)
             {
-                // aligned horizontal scrolling region, fast version
-                uint8_t *row = (uint8_t *)(_view_port[y] + x1);
+                // Область прокрутки выровнена: быстрый вариант.
+                std::uint8_t *row = const_cast<std::uint8_t *>(_view_port[y] + x1);
                 for (int s = scroll; s > 0;)
                 {
                     if (s >= 4)
                     {
-                        // scroll right 4, 8 12, etc.. pixels moving 32 bit words
+                        // Вправо на 4, 8, 12… пикселя сдвигом 32-разрядных слов.
                         int sz = (s & ~3) >> 2;
-                        uint8_t *w = row + width - 4;
+                        std::uint8_t *w = row + width - 4;
                         for (int i = 0; i < width32 - sz; ++i, w -= 4)
-                            *((uint32_t *)w) = *((uint32_t *)w - sz);
+                            *reinterpret_cast<std::uint32_t *>(w) =
+                                *(reinterpret_cast<std::uint32_t *>(w) - sz);
                         for (int i = esp::tmax(0, width32 - sz); i < width32; ++i, w -= 4)
-                            *((uint32_t *)w) = pattern32;
+                            *reinterpret_cast<std::uint32_t *>(w) = pattern32;
                         s -= (s & ~3);
                     }
                     else if ((s & 3) == 3)
                     {
-                        // scroll right 3 pixels swapping 8 bit words
-                        uint8_t *b = row + width - 4;
+                        // Вправо на 3 пикселя перестановкой байтов.
+                        std::uint8_t *b = row + width - 4;
                         for (int i = 1; i < width32; ++i, b -= 4)
                         {
                             b[0] = b[-3];
@@ -422,8 +608,8 @@ void IRAM_ATTR vga_controller::h_scroll(int scroll, esp::gfx::rect &update_rect)
                     }
                     else if (s & 2)
                     {
-                        // scroll right 2 pixels swapping 16 bit words
-                        uint16_t *w = (uint16_t *)(row + width - 4);
+                        // Вправо на 2 пикселя перестановкой 16-разрядных слов.
+                        std::uint16_t *w = reinterpret_cast<std::uint16_t *>(row + width - 4);
                         for (int i = 1; i < width32; ++i, w -= 2)
                         {
                             w[0] = w[1];
@@ -435,14 +621,18 @@ void IRAM_ATTR vga_controller::h_scroll(int scroll, esp::gfx::rect &update_rect)
                     }
                     else if (s & 1)
                     {
-                        // scroll right 1 pixel by rotating 32 bit words
-                        uint8_t *w = row + width - 4;
+                        // Вправо на 1 пиксель вращением 32-разрядных слов.
+                        std::uint8_t *w = row + width - 4;
                         for (int i = 1; i < width32; ++i, w -= 4)
                         {
-                            *((uint32_t *)w) = *((uint32_t *)w) << 8 | *((uint32_t *)w) >> 24;
+                            *reinterpret_cast<std::uint32_t *>(w) =
+                                *reinterpret_cast<std::uint32_t *>(w) << 8
+                                | *reinterpret_cast<std::uint32_t *>(w) >> 24;
                             w[2] = w[-3];
                         }
-                        *((uint32_t *)w) = *((uint32_t *)w) << 8 | *((uint32_t *)w) >> 24;
+                        *reinterpret_cast<std::uint32_t *>(w) =
+                            *reinterpret_cast<std::uint32_t *>(w) << 8
+                            | *reinterpret_cast<std::uint32_t *>(w) >> 24;
                         w[2] = pattern8;
                         --s;
                     }
@@ -450,162 +640,180 @@ void IRAM_ATTR vga_controller::h_scroll(int scroll, esp::gfx::rect &update_rect)
             }
             else
             {
-                // unaligned horizontal scrolling region, fallback to slow version
-                uint8_t *row = (uint8_t *)_view_port[y];
+                // Область прокрутки не выровнена: медленный вариант.
+                std::uint8_t *row = const_cast<std::uint8_t *>(_view_port[y]);
                 for (int x = x2 - scroll; x >= x1; --x)
-                    VGA_PIXELINROW(row, x + scroll) = VGA_PIXELINROW(row, x);
-                // fill left area with brush color
+                    pixel_in_row(row, x + scroll) = pixel_in_row(row, x);
+                // Освободившееся место слева — цветом кисти.
                 for (int x = x1; x < x1 + scroll; ++x)
-                    VGA_PIXELINROW(row, x) = pattern8;
+                    pixel_in_row(row, x) = pattern8;
             }
         }
     }
 }
 
-
-void IRAM_ATTR vga_controller::draw_glyph(esp::gfx::glyph const &glyph,
-                                          esp::gfx::glyph_options glyph_options,
-                                          esp::gfx::rgb888 pen_color, esp::gfx::rgb888 brush_color,
-                                          esp::gfx::rect &update_rect)
+/**
+ * @brief Рисует знак.
+ * @param glyph Знак и его положение относительно начала координат.
+ * @param glyph_options Параметры рисования знаков.
+ * @param pen_color Цвет точек знака.
+ * @param brush_color Цвет фона знакоместа.
+ * @param update_rect Изменённая область; расширяется на нарисованное.
+ */
+void IRAM_ATTR esp::vga::vga_controller::draw_glyph(const esp::gfx::glyph &glyph,
+                                                    esp::gfx::glyph_options glyph_options,
+                                                    esp::gfx::rgb888 pen_color,
+                                                    esp::gfx::rgb888 brush_color,
+                                                    esp::gfx::rect &update_rect)
 {
     generic_draw_glyph(
         glyph, glyph_options, pen_color, brush_color, update_rect,
         [&](esp::gfx::rgb888 const &color) { return prepare_pixel(color); },
-        [&](int y) { return (uint8_t *)_view_port[y]; },
-        [&](uint8_t *row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) = pattern; });
+        [&](int y) { return const_cast<std::uint8_t *>(_view_port[y]); },
+        [&](std::uint8_t *row, int x, std::uint8_t pattern) { pixel_in_row(row, x) = pattern; });
 }
 
-
-void IRAM_ATTR vga_controller::invert_rect(esp::gfx::rect const &rect, esp::gfx::rect &update_rect)
+/**
+ * @brief Инвертирует цвета в прямоугольнике.
+ * @param rect Прямоугольник относительно начала координат.
+ * @param update_rect Изменённая область; расширяется на нарисованное.
+ */
+void IRAM_ATTR esp::vga::vga_controller::invert_rect(const esp::gfx::rect &rect,
+                                                     esp::gfx::rect &update_rect)
 {
     generic_invert_rect(rect, update_rect,
                         [&](int y, int x1, int x2) { raw_invert_row(y, x1, x2); });
 }
 
-
-void IRAM_ATTR vga_controller::swap_fgbg(esp::gfx::rect const &rect, esp::gfx::rect &update_rect)
+/**
+ * @brief Меняет в прямоугольнике цвета пера и кисти; другие цвета не трогает.
+ * @param rect Прямоугольник относительно начала координат.
+ * @param update_rect Изменённая область; расширяется на нарисованное.
+ */
+void IRAM_ATTR esp::vga::vga_controller::swap_fgbg(const esp::gfx::rect &rect,
+                                                   esp::gfx::rect &update_rect)
 {
     generic_swap_fgbg(
         rect, update_rect, [&](esp::gfx::rgb888 const &color) { return prepare_pixel(color); },
-        [&](int y) { return (uint8_t *)_view_port[y]; },
-        [&](uint8_t *row, int x) { return VGA_PIXELINROW(row, x); },
-        [&](uint8_t *row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) = pattern; });
+        [&](int y) { return const_cast<std::uint8_t *>(_view_port[y]); },
+        [&](std::uint8_t *row, int x) { return pixel_in_row(row, x); },
+        [&](std::uint8_t *row, int x, std::uint8_t pattern) { pixel_in_row(row, x) = pattern; });
 }
 
-
-// Slow operation!
-// supports overlapping of source and dest rectangles
-void IRAM_ATTR vga_controller::copy_rect(esp::gfx::rect const &source, esp::gfx::rect &update_rect)
+/**
+ * @brief Копирует прямоугольник в текущую позицию; области могут перекрываться.
+ *
+ * Медленно: пиксели копируются по одному.
+ *
+ * @param source Исходный прямоугольник относительно начала координат.
+ * @param update_rect Изменённая область; расширяется на нарисованное.
+ */
+void IRAM_ATTR esp::vga::vga_controller::copy_rect(const esp::gfx::rect &source,
+                                                   esp::gfx::rect &update_rect)
 {
     generic_copy_rect(
-        source, update_rect, [&](int y) { return (uint8_t *)_view_port[y]; },
-        [&](uint8_t *row, int x) { return VGA_PIXELINROW(row, x); },
-        [&](uint8_t *row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) = pattern; });
+        source, update_rect, [&](int y) { return const_cast<std::uint8_t *>(_view_port[y]); },
+        [&](std::uint8_t *row, int x) { return pixel_in_row(row, x); },
+        [&](std::uint8_t *row, int x, std::uint8_t pattern) { pixel_in_row(row, x) = pattern; });
 }
 
-
-// no bounds check is done!
-void vga_controller::read_screen(esp::gfx::rect const &rect, esp::gfx::rgb888 *dest_buf)
-{
-    for (int y = rect.y1; y <= rect.y2; ++y)
-    {
-        uint8_t *row = (uint8_t *)_view_port[y];
-        for (int x = rect.x1; x <= rect.x2; ++x, ++dest_buf)
-        {
-            uint8_t rawpix = VGA_PIXELINROW(row, x);
-            *dest_buf = esp::gfx::rgb888((rawpix & 3) * 85, ((rawpix >> 2) & 3) * 85,
-                                         ((rawpix >> 4) & 3) * 85);
-        }
-    }
-}
-
-
-// no bounds check is done!
-void vga_controller::read_screen(esp::gfx::rect const &rect, esp::gfx::rgb222 *dest_buf)
-{
-    uint8_t *dbuf = (uint8_t *)dest_buf;
-    for (int y = rect.y1; y <= rect.y2; ++y)
-    {
-        uint8_t *row = (uint8_t *)_view_port[y];
-        for (int x = rect.x1; x <= rect.x2; ++x, ++dbuf)
-            *dbuf = VGA_PIXELINROW(row, x) & ~VGA_SYNC_MASK;
-    }
-}
-
-
-// no bounds check is done!
-void vga_controller::write_screen(esp::gfx::rect const &rect, esp::gfx::rgb222 *src_buf)
-{
-    uint8_t *sbuf = (uint8_t *)src_buf;
-    for (int y = rect.y1; y <= rect.y2; ++y)
-    {
-        uint8_t *row = (uint8_t *)_view_port[y];
-        for (int x = rect.x1; x <= rect.x2; ++x, ++sbuf)
-            VGA_PIXELINROW(row, x) = *sbuf | _hv_sync;
-    }
-}
-
-
-void IRAM_ATTR vga_controller::raw_draw_bitmap_native(int dest_x, int dest_y,
-                                                      esp::gfx::bitmap const *bitmap, int x1,
-                                                      int y1, int x_count, int y_count)
+/**
+ * @brief Переносит часть растра собственного формата на экран без отсечения.
+ * @param dest_x Левая граница на экране.
+ * @param dest_y Верхняя граница на экране.
+ * @param bitmap Растр.
+ * @param x1 Первый столбец растра.
+ * @param y1 Первая строка растра.
+ * @param x_count Число столбцов.
+ * @param y_count Число строк.
+ */
+void IRAM_ATTR esp::vga::vga_controller::raw_draw_bitmap_native(int dest_x, int dest_y,
+                                                                const esp::gfx::bitmap *bitmap,
+                                                                int x1, int y1, int x_count,
+                                                                int y_count)
 {
     generic_raw_draw_bitmap_native(
-        dest_x, dest_y, (uint8_t *)bitmap->data, bitmap->width, x1, y1, x_count, y_count,
-        [&](int y) { return (uint8_t *)_view_port[y]; }, // rawGetRow
-        [&](uint8_t *row, int x, uint8_t src)
-        { VGA_PIXELINROW(row, x) = _hv_sync | src; } // rawSetPixelInRow
+        dest_x, dest_y, bitmap->data, bitmap->width, x1, y1, x_count, y_count,
+        [&](int y) { return const_cast<std::uint8_t *>(_view_port[y]); }, // raw_get_row
+        [&](std::uint8_t *row, int x, std::uint8_t src)
+        { pixel_in_row(row, x) = _hv_sync | src; } // raw_set_pixel_in_row
     );
 }
 
-
-void IRAM_ATTR vga_controller::raw_draw_bitmap_mask(int dest_x, int dest_y,
-                                                    esp::gfx::bitmap const *bitmap,
-                                                    void *save_background, int x1, int y1,
-                                                    int x_count, int y_count)
+/**
+ * @brief Рисует маску растра цветом его переднего плана без отсечения.
+ * @param dest_x Левая граница на экране.
+ * @param dest_y Верхняя граница на экране.
+ * @param bitmap Растр.
+ * @param save_background Куда сохранить фон под растром или @c nullptr.
+ * @param x1 Первый столбец растра.
+ * @param y1 Первая строка растра.
+ * @param x_count Число столбцов.
+ * @param y_count Число строк.
+ */
+void IRAM_ATTR esp::vga::vga_controller::raw_draw_bitmap_mask(int dest_x, int dest_y,
+                                                              const esp::gfx::bitmap *bitmap,
+                                                              void *save_background, int x1, int y1,
+                                                              int x_count, int y_count)
 {
     auto foreground_pattern = prepare_pixel(bitmap->foreground_color);
     generic_raw_draw_bitmap_mask(
-        dest_x, dest_y, bitmap, (uint8_t *)save_background, x1, y1, x_count, y_count,
-        [&](int y) { return (uint8_t *)_view_port[y]; }, // rawGetRow
-        [&](uint8_t *row, int x) { return VGA_PIXELINROW(row, x); }, // rawGetPixelInRow
-        [&](uint8_t *row, int x)
-        { VGA_PIXELINROW(row, x) = foreground_pattern; } // rawSetPixelInRow
+        dest_x, dest_y, bitmap, static_cast<std::uint8_t *>(save_background), x1, y1, x_count,
+        y_count, [&](int y) { return const_cast<std::uint8_t *>(_view_port[y]); }, // raw_get_row
+        [&](std::uint8_t *row, int x) { return pixel_in_row(row, x); }, // raw_get_pixel_in_row
+        [&](std::uint8_t *row, int x)
+        { pixel_in_row(row, x) = foreground_pattern; } // raw_set_pixel_in_row
     );
 }
 
-
-void IRAM_ATTR vga_controller::raw_draw_bitmap_rgba2222(int dest_x, int dest_y,
-                                                        esp::gfx::bitmap const *bitmap,
-                                                        void *save_background, int x1, int y1,
-                                                        int x_count, int y_count)
+/**
+ * @brief Переносит часть растра RGBA2222 на экран без отсечения; прозрачные пиксели пропускаются.
+ * @param dest_x Левая граница на экране.
+ * @param dest_y Верхняя граница на экране.
+ * @param bitmap Растр.
+ * @param save_background Куда сохранить фон под растром или @c nullptr.
+ * @param x1 Первый столбец растра.
+ * @param y1 Первая строка растра.
+ * @param x_count Число столбцов.
+ * @param y_count Число строк.
+ */
+void IRAM_ATTR esp::vga::vga_controller::raw_draw_bitmap_rgba2222(int dest_x, int dest_y,
+                                                                  const esp::gfx::bitmap *bitmap,
+                                                                  void *save_background, int x1,
+                                                                  int y1, int x_count, int y_count)
 {
     generic_raw_draw_bitmap_rgba2222(
-        dest_x, dest_y, bitmap, (uint8_t *)save_background, x1, y1, x_count, y_count,
-        [&](int y) { return (uint8_t *)_view_port[y]; }, // rawGetRow
-        [&](uint8_t *row, int x) { return VGA_PIXELINROW(row, x); }, // rawGetPixelInRow
-        [&](uint8_t *row, int x, uint8_t src)
-        { VGA_PIXELINROW(row, x) = _hv_sync | (src & 0x3f); } // rawSetPixelInRow
+        dest_x, dest_y, bitmap, static_cast<std::uint8_t *>(save_background), x1, y1, x_count,
+        y_count, [&](int y) { return const_cast<std::uint8_t *>(_view_port[y]); }, // raw_get_row
+        [&](std::uint8_t *row, int x) { return pixel_in_row(row, x); }, // raw_get_pixel_in_row
+        [&](std::uint8_t *row, int x, std::uint8_t src)
+        { pixel_in_row(row, x) = _hv_sync | (src & 0x3f); } // raw_set_pixel_in_row
     );
 }
 
-
-void IRAM_ATTR vga_controller::raw_draw_bitmap_rgba8888(int dest_x, int dest_y,
-                                                        esp::gfx::bitmap const *bitmap,
-                                                        void *save_background, int x1, int y1,
-                                                        int x_count, int y_count)
+/**
+ * @brief Переносит часть растра RGBA8888 на экран без отсечения; прозрачные пиксели пропускаются.
+ * @param dest_x Левая граница на экране.
+ * @param dest_y Верхняя граница на экране.
+ * @param bitmap Растр.
+ * @param save_background Куда сохранить фон под растром или @c nullptr.
+ * @param x1 Первый столбец растра.
+ * @param y1 Первая строка растра.
+ * @param x_count Число столбцов.
+ * @param y_count Число строк.
+ */
+void IRAM_ATTR esp::vga::vga_controller::raw_draw_bitmap_rgba8888(int dest_x, int dest_y,
+                                                                  const esp::gfx::bitmap *bitmap,
+                                                                  void *save_background, int x1,
+                                                                  int y1, int x_count, int y_count)
 {
     generic_raw_draw_bitmap_rgba8888(
-        dest_x, dest_y, bitmap, (uint8_t *)save_background, x1, y1, x_count, y_count,
-        [&](int y) { return (uint8_t *)_view_port[y]; }, // rawGetRow
-        [&](uint8_t *row, int x) { return VGA_PIXELINROW(row, x); }, // rawGetPixelInRow
-        [&](uint8_t *row, int x, esp::gfx::rgba8888 const &src)
+        dest_x, dest_y, bitmap, static_cast<std::uint8_t *>(save_background), x1, y1, x_count,
+        y_count, [&](int y) { return const_cast<std::uint8_t *>(_view_port[y]); }, // raw_get_row
+        [&](std::uint8_t *row, int x) { return pixel_in_row(row, x); }, // raw_get_pixel_in_row
+        [&](std::uint8_t *row, int x, esp::gfx::rgba8888 const &src)
         {
-            VGA_PIXELINROW(row, x) =
-                _hv_sync | (src.r >> 6) | (src.g >> 6 << 2) | (src.b >> 6 << 4);
-        } // rawSetPixelInRow
+            pixel_in_row(row, x) = _hv_sync | (src.r >> 6) | (src.g >> 6 << 2) | (src.b >> 6 << 4);
+        } // raw_set_pixel_in_row
     );
 }
-
-
-} // end of namespace

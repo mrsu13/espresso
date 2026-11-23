@@ -6,253 +6,190 @@
 #pragma once
 
 
-/**
- * @file
- *
- * @brief This file contains esp::vga::VGADirectController definition.
- */
-
-
-#include <atomic>
-#include <stddef.h>
-#include <stdint.h>
-
-#include "driver/gpio.h"
-
-#include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
-
-#include "esp_gfx_generic_bitmapped_display_controller.h"
-#include "esp_gfx_rgb222.h"
-#include "esp_gfx_utils.h"
-#include "esp_tools.h"
-#include "esp_vga_gpio_stream.h"
+#include "esp_gfx_bitmap.h"
+#include "esp_gfx_glyph.h"
+#include "esp_gfx_glyph_options.h"
+#include "esp_gfx_native_pixel_format.h"
+#include "esp_gfx_pixel_desc.h"
+#include "esp_gfx_rect.h"
+#include "esp_gfx_rgb888.h"
+#include "esp_gfx_size.h"
 #include "esp_vga_vga_base_controller.h"
+#include "esp_vga_vga_timings.h"
+
+#include <cstdint>
 
 
 namespace esp::vga
 {
 
 /**
- * @brief Callback used when VGADirectController needs to prepare a new scanline to be sent to the VGA output.
+ * @brief Функция, которая рисует строки для esp::vga::vga_direct_controller.
  *
- * @param arg Parameter arg passed to VGADirectController::setDrawScanlineCallback()
- * @param dest Buffer to fill with raw pixels
- * @param scanLine Line index (0 to screen height - 1)
+ * Её вызывает обработчик прерывания, поэтому она должна быть в IRAM.
+ *
+ * @param arg Аргумент, переданный в esp::vga::vga_direct_controller::set_draw_scanline_callback().
+ * @param dest Строка DMA, которую надо заполнить байтами пикселей.
+ * @param scan_line Строка экрана: от 0 до высоты − 1.
  */
-typedef void (*draw_scanline_callback)(void *arg, uint8_t *dest, int scan_line);
+using draw_scanline_callback = void (*)(void *arg, std::uint8_t *dest, int scan_line);
 
-
-/**
- * @brief Represents a base abstract class for direct draw VGA controller
- *
- * A direct draw VGA controller draws paint the screen in real time, for each scanline. Every two scanlines an interrupt is generated.
- * Put your drawing code inside a callback and call setDrawScanlineCallback() to assign it.
- *
- * See DirectVGA.ino example.
- */
 class vga_direct_controller : public vga_base_controller
 {
 
 public:
 
-    /**
-   * @brief Initializes a new instance of VGADirectController
-   *
-   * @param autoRun If True display is active after setResolution() has been called. If False you need to call VGADirectController.run() to start the display.
-   */
-    vga_direct_controller(bool auto_run = true);
+    explicit vga_direct_controller(bool auto_run = true);
 
-    // unwanted methods
-    vga_direct_controller(vga_direct_controller const &) = delete;
-    void operator=(vga_direct_controller const &) = delete;
+    inline esp::gfx::native_pixel_format native_pixel_format() override;
 
-
-    /**
-   * @brief Returns the singleton instance of VGADirectController class
-   *
-   * @return A pointer to VGADirectController singleton object
-   */
-    static vga_direct_controller *instance()
-    {
-        return _instance;
-    }
-
-    // abstract method of BitmappedDisplayController
-    esp::gfx::native_pixel_format native_pixel_format()
-    {
-        return esp::gfx::native_pixel_format::sbgr2222;
-    }
-
-    // import "modeline" version of setResolution
     using vga_base_controller::set_resolution;
+    void set_resolution(const vga_timings &timings, int view_port_width = -1,
+                        int view_port_height = -1, bool double_buffered = false) override;
 
-    void set_resolution(vga_timings const &timings, int view_port_width = -1,
-                        int view_port_height = -1, bool double_buffered = false);
+    void read_screen(const esp::gfx::rect &rect, esp::gfx::rgb888 *dest_buf) override;
 
-    void read_screen(esp::gfx::rect const &rect, esp::gfx::rgb888 *dest_buf);
-
-    /**
-   * @brief Sets the callback used when VGADirectController needs to prepare a new scanline to be sent to the VGA output.
-   *
-   * @param drawScanlineCallback The callback to call
-   * @param arg Argument to pass to the callback
-   */
-    void set_draw_scanline_callback(draw_scanline_callback draw_scanline_callback,
-                                    void *arg = nullptr)
-    {
-        _draw_scanline_callback = draw_scanline_callback;
-        _draw_scanline_arg = arg;
-    }
-
-    /**
-   * @brief Begins to call the callback function and to display video frames
-   *
-   * You need to call this only when VGADirectController constructor has been called with autoRun = false.
-   */
+    inline void set_draw_scanline_callback(draw_scanline_callback draw_scanline_callback,
+                                           void *arg = nullptr);
     void run();
+    inline void set_scanlines_per_call_back(int value);
 
-    /**
-   * @brief Sets number of scanlines to draw in a single callback
-   *
-   * Default scanlines per callback is 1.
-   *
-   * @param value Number of scanlines to fill in DrawScanlineCallback callback
-   */
-    void set_scanlines_per_call_back(int value)
-    {
-        _lines_count = value * 2;
-    }
+    void set_scanline_buffer(int scanline, std::uint8_t volatile *line_buffer);
+    std::uint8_t volatile *scanline_buffer(int scanline);
+    std::uint8_t volatile *default_scanline_buffer(int scanline);
 
-    /**
-   * @brief Sets a scanline buffer
-   *
-   * @param scanline Scanline index (0 up to screen height minus one)
-   * @param lineBuffer Scanline buffer (must be DMA memory)
-   */
-    void set_scanline_buffer(int scanline, uint8_t volatile *line_buffer);
-
-    /**
-   * @brief Gets current scanline buffer
-   *
-   * @param scanline Scanline index (0 up to screen height minus one)
-   */
-    uint8_t volatile *scanline_buffer(int scanline);
-
-    /**
-   * @brief Gets default scanline buffer
-   *
-   * VGADirectController automatically alocates a number of scanline buffers. The number
-   * of scanline buffers allocated is determined by setScanlinesPerCallBack() multipled by 2. The default is 2.
-   *
-   * @param scanline Scanline index (0 up to screen height minus one)
-   */
-    uint8_t volatile *default_scanline_buffer(int scanline);
-
-    /**
-   * @brief Determines if retracing is in progress
-   *
-   * @return True when retracing (vertical sync) is active
-   */
-    static bool v_sync()
-    {
-        return _v_sync;
-    }
+    inline static bool v_sync();
 
 private:
 
-    void init();
+    void init() override;
 
     void on_setup_dma_buffer(lldesc_t volatile *buffer, bool is_start_of_vert_front_porch, int scan,
-                             bool is_visible, int visible_row);
-    void allocate_view_port();
-    void free_view_port();
+                             bool is_visible, int visible_row) override;
+    void allocate_view_port() override;
+    void free_view_port() override;
 
-
-    // abstract method of BitmappedDisplayController
-    void set_pixel_at(esp::gfx::pixel_desc const &pixel_desc, esp::gfx::rect &update_rect);
-
-    // abstract method of BitmappedDisplayController
-    void draw_ellipse(esp::gfx::size const &size, esp::gfx::rect &update_rect);
-
-    // abstract method of BitmappedDisplayController
-    void clear(esp::gfx::rect &update_rect);
-
-    // abstract method of BitmappedDisplayController
-    void v_scroll(int scroll, esp::gfx::rect &update_rect);
-
-    // abstract method of BitmappedDisplayController
-    void h_scroll(int scroll, esp::gfx::rect &update_rect);
-
-    // abstract method of BitmappedDisplayController
-    void draw_glyph(esp::gfx::glyph const &glyph, esp::gfx::glyph_options glyph_options,
+    void set_pixel_at(const esp::gfx::pixel_desc &pixel_desc, esp::gfx::rect &update_rect) override;
+    void draw_ellipse(const esp::gfx::size &size, esp::gfx::rect &update_rect) override;
+    void clear(esp::gfx::rect &update_rect) override;
+    void v_scroll(int scroll, esp::gfx::rect &update_rect) override;
+    void h_scroll(int scroll, esp::gfx::rect &update_rect) override;
+    void draw_glyph(const esp::gfx::glyph &glyph, esp::gfx::glyph_options glyph_options,
                     esp::gfx::rgb888 pen_color, esp::gfx::rgb888 brush_color,
-                    esp::gfx::rect &update_rect);
-
-    // abstract method of BitmappedDisplayController
-    void invert_rect(esp::gfx::rect const &rect, esp::gfx::rect &update_rect);
-
-    // abstract method of BitmappedDisplayController
-    void copy_rect(esp::gfx::rect const &source, esp::gfx::rect &update_rect);
-
-    // abstract method of BitmappedDisplayController
-    void swap_fgbg(esp::gfx::rect const &rect, esp::gfx::rect &update_rect);
-
-    // abstract method of BitmappedDisplayController
-    void raw_draw_bitmap_native(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap, int x1,
-                                int y1, int x_count, int y_count);
-
-    // abstract method of BitmappedDisplayController
-    void raw_draw_bitmap_mask(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
-                              void *save_background, int x1, int y1, int x_count, int y_count);
-
-    // abstract method of BitmappedDisplayController
-    void raw_draw_bitmap_rgba2222(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
-                                  void *save_background, int x1, int y1, int x_count, int y_count);
-
-    // abstract method of BitmappedDisplayController
-    void raw_draw_bitmap_rgba8888(int dest_x, int dest_y, esp::gfx::bitmap const *bitmap,
-                                  void *save_background, int x1, int y1, int x_count, int y_count);
-
-    // abstract method of BitmappedDisplayController
-    void raw_fill_row(int y, int x1, int x2, esp::gfx::rgb888 color);
-
-    void raw_fill_row(int y, int x1, int x2, uint8_t color_index);
-
+                    esp::gfx::rect &update_rect) override;
+    void invert_rect(const esp::gfx::rect &rect, esp::gfx::rect &update_rect) override;
+    void copy_rect(const esp::gfx::rect &source, esp::gfx::rect &update_rect) override;
+    void swap_fgbg(const esp::gfx::rect &rect, esp::gfx::rect &update_rect) override;
+    void raw_draw_bitmap_native(int dest_x, int dest_y, const esp::gfx::bitmap *bitmap, int x1,
+                                int y1, int x_count, int y_count) override;
+    void raw_draw_bitmap_mask(int dest_x, int dest_y, const esp::gfx::bitmap *bitmap,
+                              void *save_background, int x1, int y1, int x_count,
+                              int y_count) override;
+    void raw_draw_bitmap_rgba2222(int dest_x, int dest_y, const esp::gfx::bitmap *bitmap,
+                                  void *save_background, int x1, int y1, int x_count,
+                                  int y_count) override;
+    void raw_draw_bitmap_rgba8888(int dest_x, int dest_y, const esp::gfx::bitmap *bitmap,
+                                  void *save_background, int x1, int y1, int x_count,
+                                  int y_count) override;
+    void raw_fill_row(int y, int x1, int x2, esp::gfx::rgb888 color) override;
+    void raw_fill_row(int y, int x1, int x2, std::uint8_t color_index);
     void raw_invert_row(int y, int x1, int x2);
-
     void raw_copy_row(int x1, int x2, int src_y, int dst_y);
-
     void swap_rows(int y_a, int y_b, int x1, int x2);
-
-    // abstract method of BitmappedDisplayController
-    void abs_draw_line(int x1, int y1, int x2, int y2, esp::gfx::rgb888 color);
-
-    // abstract method of BitmappedDisplayController
-    int bitmap_save_pixel_size()
-    {
-        return 1;
-    }
+    void abs_draw_line(int x1, int y1, int x2, int y2, esp::gfx::rgb888 color) override;
+    inline int bitmap_save_pixel_size() override;
 
     static void isr_handler(void *arg);
 
-
-    static vga_direct_controller *_instance;
+    /** @brief Строка экрана, с которой обработчик прерывания продолжит. */
     static volatile int _scan_line;
+
+    /** @brief Дескриптор DMA первой строки области вывода: по нему обработчик узнаёт начало кадра. */
     static lldesc_t volatile *_frame_reset_desc;
+
+    /** @brief Выведена ли последняя строка кадра: идёт обратный ход луча. */
     static bool _v_sync;
+
+    /** @brief Дескриптор DMA каждой строки области вывода. */
     static lldesc_t volatile **_dma_lines;
 
-    int32_t _lines_count;
-    uint8_t **_lines;
+    /** @brief Число строк DMA: вдвое больше строк за вызов функции рисования. */
+    std::int32_t _lines_count;
 
-    // here we use callbacks in place of virtual methods because vtables are stored in Flash and
-    // so it would not have been possible to put ISR into IRAM.
+    /** @brief Строки DMA, которые заполняет функция рисования. */
+    std::uint8_t **_lines;
+
+    /**
+     * @brief Функция, которая рисует строки.
+     *
+     * Функция, а не виртуальный метод: таблицы виртуальных методов лежат во
+     * флеш-памяти, и обработчик прерывания не мог бы работать из IRAM.
+     */
     draw_scanline_callback _draw_scanline_callback;
+
+    /** @brief Аргумент функции рисования. */
     void *_draw_scanline_arg;
 
+    /** @brief Начинать ли вывод сразу после set_resolution(). */
     bool _auto_run;
 };
 
+}
 
-} // end of namespace
+
+// Реализация
+
+// Открытые
+
+/**
+ * @brief Возвращает формат пикселя строк.
+ * @return Байт на пиксель: синхроимпульсы и по 2 разряда на канал цвета.
+ */
+esp::gfx::native_pixel_format esp::vga::vga_direct_controller::native_pixel_format()
+{
+    return esp::gfx::native_pixel_format::sbgr2222;
+}
+
+/**
+ * @brief Задаёт функцию, которая рисует строки; без неё set_resolution() ничего не делает.
+ * @param draw_scanline_callback Функция; должна быть в IRAM.
+ * @param arg Аргумент функции.
+ */
+void esp::vga::vga_direct_controller::set_draw_scanline_callback(
+    esp::vga::draw_scanline_callback draw_scanline_callback, void *arg)
+{
+    _draw_scanline_callback = draw_scanline_callback;
+    _draw_scanline_arg = arg;
+}
+
+/**
+ * @brief Задаёт, сколько строк функция рисования заполняет за вызов; по умолчанию одну.
+ *
+ * Менять до set_resolution().
+ *
+ * @param value Строк за вызов.
+ */
+void esp::vga::vga_direct_controller::set_scanlines_per_call_back(int value)
+{
+    _lines_count = value * 2;
+}
+
+/**
+ * @brief Сообщает, выведена ли последняя строка кадра: идёт обратный ход луча.
+ * @return @c true во время обратного хода луча.
+ */
+bool esp::vga::vga_direct_controller::v_sync()
+{
+    return _v_sync;
+}
+
+// Закрытые
+
+/**
+ * @brief Возвращает размер пикселя сохранённого под спрайтом фона.
+ * @return 1 байт.
+ */
+int esp::vga::vga_direct_controller::bitmap_save_pixel_size()
+{
+    return 1;
+}

@@ -6,98 +6,34 @@
 #pragma once
 
 
-/**
- * @file
- *
- * @brief This file contains esp::vga::GPIOStream definition.
- */
-
-
-#include <stddef.h>
-#include <stdint.h>
-
-
-#if __has_include("esp32/rom/lldesc.h")
-#   include "esp32/rom/lldesc.h"
-#else
-#   include "rom/lldesc.h"
-#endif
-
 #include "esp_tools.h"
+
+#include <cstdint>
+
+#include <driver/gpio.h>
+#if __has_include(<esp32/rom/lldesc.h>)
+#   include <esp32/rom/lldesc.h>
+#else
+#   include <rom/lldesc.h>
+#endif
 
 
 namespace esp::vga
 {
 
-
-/*
- * This is a square wave generator or DMA->GPIO stream generator that uses APLL internal Audio PLL clock.
- *
- * When ESP_VGA_USE_APLL_AB_COEF = 0 (the default) the frequency range is 2651514 Hz to 62500000 Hz.<br>
- * Average error is 21 Hz, Minimum error is 0, Maximum error is 1000 Hz except for range 41666667 Hz to 42708333 Hz while
- * frequency remains fixed at 41666666 Hz (error from 0 Hz to 1041666 Hz) and except for range 42708334 hz to 43748999 Hz while
- * frequency remains fixed at 43750000 Hz (error from 750001 Hz to 1041666 Hz).
- *
- * When ESP_VGA_USE_APLL_AB_COEF = 1 the frequency range is 82500 Hz to 62500000 Hz. Unfortunately the output has lot of frequency jittering.<br>
- * Average error is about 7 Hz, Minimum error is 0, Maximum error is 6349 Hz.
- */
 class gpio_stream
 {
 
 public:
 
     void begin();
-
-    /*
-   * Initializes GPIOStream and associate GPIOs to the outputs.
-   *
-   * div1_onGPIO0 If true the undivided frequency is delivered on GPIO0.
-   * div2 Specifies the GPIO where to send frequency / 2 (set GPIO_UNUSED to disable output).
-   * div4 Specifies the GPIO where to send frequency / 4 (set GPIO_UNUSED to disable output).
-   * div8 Specifies the GPIO where to send frequency / 8 (set GPIO_UNUSED to disable output).
-   * div16 Specifies the GPIO where to send frequency / 16 (set GPIO_UNUSED to disable output).
-   * div32 Specifies the GPIO where to send frequency / 32 (set GPIO_UNUSED to disable output).
-   * div64 Specifies the GPIO where to send frequency / 64 (set GPIO_UNUSED to disable output).
-   * div128 Specifies the GPIO where to send frequency / 128 (set GPIO_UNUSED to disable output).
-   * div256 Specifies the GPIO where to send frequency / 256 (set GPIO_UNUSED to disable output).
-   *
-   * Example:
-   *
-   *     // Outputs 25Mhz on GPIO0 and 6.25Mhz on GPIO5, for 5 seconds
-   *     GPIOStream.begin(true, GPIO_UNUSED, GPIO_NUM_5);
-   *     GPIOStream.play(25000000);
-   *     delay(5000);
-   *     // Outputs 20Mhz on GPIO and 5Mhz on GPIO5, for 10 seconds
-   *     GPIOStream.play(20000000);
-   *     delay(10000);
-   *     GPIOStream.stop();
-   */
     void begin(bool div_1_on_gpio0, gpio_num_t div2 = GPIO_UNUSED, gpio_num_t div4 = GPIO_UNUSED,
                gpio_num_t div8 = GPIO_UNUSED, gpio_num_t div16 = GPIO_UNUSED,
                gpio_num_t div32 = GPIO_UNUSED, gpio_num_t div64 = GPIO_UNUSED,
                gpio_num_t div128 = GPIO_UNUSED, gpio_num_t div256 = GPIO_UNUSED);
-
-    /*
-   * Disables all outputs.
-   */
     void end();
 
-    /*
-   * Sets the main frequency.
-   *
-   * freq Frequency in Hertz.
-   * dmaBuffers Use only to provide custom DMA buffers.
-   *
-   * Example:
-   *
-   *     // Set 25MHz as main frequency
-   *     GPIOStream.play(25000000);
-   */
     void play(int freq, lldesc_t volatile *dma_buffers = nullptr);
-
-    /*
-   * Disables all outputs.
-   */
     void stop();
 
 private:
@@ -105,10 +41,14 @@ private:
     void setup_clock(int freq);
     static void setup_gpio(gpio_num_t gpio, int bit, gpio_mode_t mode);
 
+    /** @brief Запущены ли модуль I2S1 и его DMA. */
     bool _dma_started;
+
+    /** @brief Дескриптор DMA потока делителей частоты; @c nullptr, пока поток не создан. */
     volatile lldesc_t *_dma_buffer;
-    volatile uint8_t *_dma_data;
+
+    /** @brief Данные потока делителей частоты: байты от 0 до 255. */
+    volatile std::uint8_t *_dma_data;
 };
 
-
-} // end of namespace
+}
