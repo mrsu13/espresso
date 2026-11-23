@@ -2,7 +2,8 @@
 
 #include "esp_gfx_canvas.h"
 #include "esp_gfx_font.h"
-#include "esp_ps2_utils.h"
+#include "esp_ps2_mouse_status.h"
+#include "esp_ps2_virtual_key_item.h"
 #include "esp_sound_sound_generator.h"
 #include "esp_vga_vga16_controller.h"
 

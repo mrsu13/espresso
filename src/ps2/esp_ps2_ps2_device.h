@@ -6,118 +6,36 @@
 #pragma once
 
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
+#include "esp_non_copyable.h"
+#include "esp_ps2_ps2_device_type.h"
 
-#include "esp_ps2_ps2_controller.h"
-#include "esp_tools.h"
-
-
-/**
- * @file
- *
- * @brief This file contains esp::ps2::PS2Device definition.
- */
+#include <cstdint>
 
 
 namespace esp::ps2
 {
 
-
-/** \ingroup Enumerations
- * @brief Represents the type of device attached to PS/2 port.
- */
-enum class ps2_device_type
-{
-    unknown_ps2_device, /**< Unknown device or unable to connect to the device */
-    old_at_keyboard, /**< Old AT keyboard */
-    mouse_standard, /**< Standard mouse */
-    mouse_with_scroll_wheel, /**< Mouse with Scroll Wheel */
-    mouse_5_buttons, /**< Mouse with 5 buttons */
-    mf2_keyboard_with_translation, /**< Standard MF2 keyboard with translation */
-    m2_keyboard, /**< Standard MF2 keyboard. This is the most common value returned by USB/PS2 modern keyboards */
-};
-
-
-/**
- * @brief Base class for PS2 devices (like mouse or keyboard).
- *
- * PS2Device connects to one port of the PS2 Controller class (esp::ps2::PS2Controller).<br>
- * The PS2 controller uses ULP coprocessor and RTC slow memory to communicate with the PS2 device.<br>
- */
-class ps2_device
+class ps2_device : esp::non_copyable
 {
 
 public:
 
-    /**
-   * @brief Identifies the device attached to the PS2 port.
-   *
-   * @return The identification ID sent by keyboard.
-   */
-    ps2_device_type identify()
-    {
-        ps2_device_type result;
-        send_cmd_identify(&result);
-        return result;
-    };
+    inline ps2_device_type identify();
 
-    /**
-   * @brief Gets exclusive access to the device.
-   *
-   * @param timeOutMS Timeout in milliseconds to wait before fail.
-   *
-   * @return True if the device has been locked.
-   */
     bool lock(int time_out_ms);
-
-    /**
-   * @brief Releases device from exclusive access.
-   */
     void unlock();
 
     bool parity_error();
-
     bool sync_error();
-
     bool clk_time_out_error();
 
-    /**
-   * @brief Sends a raw command to the PS/2 device and wait for reply
-   *
-   * @param cmd The command byte
-   * @param expectedReply Expected reply from PS/2 device
-   *
-   * @return True on success
-   */
-    bool send_command(uint8_t cmd, uint8_t expected_reply);
+    bool send_command(std::uint8_t cmd, std::uint8_t expected_reply);
+    void send_command(std::uint8_t cmd);
 
-    /**
-   * @brief Sends a raw command to the PS/2 device
-   *
-   * @param cmd The command byte
-   */
-    void send_command(uint8_t cmd);
-
-    /**
-   * @brief Suspends PS/2 port driving the CLK line Low
-   *
-   * Use resumePort() to release CLK line.
-   */
     void suspend_port();
-
-    /**
-   * @brief Resumes PS/2 port releasing CLK line
-   *
-   * Use suspendPort() to suspend.
-   */
     void resume_port();
 
-    uint16_t device_id()
-    {
-        return _device_id;
-    }
-
+    inline std::uint16_t device_id() const;
 
 protected:
 
@@ -135,8 +53,8 @@ protected:
 
     bool send_cmd_leds(bool num_lock, bool caps_lock, bool scroll_lock);
     bool send_cmd_echo();
-    bool send_cmd_get_scancode_set(uint8_t *result);
-    bool send_cmd_set_scancode_set(uint8_t scancode_set);
+    bool send_cmd_get_scancode_set(std::uint8_t *result);
+    bool send_cmd_set_scancode_set(std::uint8_t scancode_set);
     bool send_cmd_identify(ps2_device_type *result);
     bool send_cmd_disable_scanning();
     bool send_cmd_enable_scanning();
@@ -149,27 +67,51 @@ protected:
 
 private:
 
-    int16_t _ps2_port;
-    int16_t _cmd_time_out;
-    int16_t _cmd_sub_time_out;
-    uint16_t _device_id; // read by send_cmdIdentify()
+    /** @brief Порт PS/2 устройства: 0 или 1; задаёт begin(). */
+    std::int16_t _ps2_port;
+
+    /**
+     * @brief Время ожидания ответа на команду, мс.
+     *
+     * По умолчанию 500 мс; quick_check_hardware() уменьшает его до 50 мс,
+     * чтобы быстро понять, что устройства нет.
+     */
+    std::int16_t _cmd_time_out;
+
+    /** @brief Половина @c _cmd_time_out, мс; сейчас не используется. */
+    std::int16_t _cmd_sub_time_out;
+
+    /** @brief Код устройства из ответа на команду опознания (send_cmd_identify()). */
+    std::uint16_t _device_id;
 };
 
+}
 
-struct ps2_device_lock
+
+// Реализация
+
+// Открытые
+
+/**
+ * @brief Опознаёт устройство на порту.
+ *
+ * На время опознания сканирование выключается, затем снова включается.
+ *
+ * @return Тип устройства; @c ps2_device_type::unknown_ps2_device, если оно
+ *         не ответило.
+ */
+esp::ps2::ps2_device_type esp::ps2::ps2_device::identify()
 {
-    ps2_device_lock(esp::ps2::ps2_device *ps2_device)
-        : ps2_device(ps2_device)
-    {
-        ps2_device->lock(-1);
-    }
-    ~ps2_device_lock()
-    {
-        ps2_device->unlock();
-    }
+    ps2_device_type result;
+    send_cmd_identify(&result);
+    return result;
+}
 
-    esp::ps2::ps2_device *ps2_device;
-};
-
-
-} // end of namespace
+/**
+ * @brief Возвращает код устройства, полученный при опознании.
+ * @return Два байта ответа на команду опознания: первый — в младшем байте.
+ */
+std::uint16_t esp::ps2::ps2_device::device_id() const
+{
+    return _device_id;
+}

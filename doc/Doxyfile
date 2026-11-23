@@ -1124,7 +1124,6 @@ EXCLUDE_PATTERNS       = */.git/* \
                          */build/* \
                          */src/3rdparty \
                          */src/tools/esp_tools.* \
-                         */src/ps2 \
                          */src/vga
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names

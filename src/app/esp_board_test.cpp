@@ -533,34 +533,35 @@ void esp::board_test::on_key(const esp::ps2::virtual_key_item &item)
     ESP_LOGI(TAG, "Key %s down, ASCII 0x%02x.", name, item.ascii);
 
     // Коды F1–F8 в перечислении esp::ps2::virtual_key идут подряд.
-    if (item.vk >= esp::ps2::vk_f1 && item.vk <= esp::ps2::vk_f8)
+    if (item.vk >= esp::ps2::virtual_key::vk_f1 && item.vk <= esp::ps2::virtual_key::vk_f8)
     {
-        play(NOTES[item.vk - esp::ps2::vk_f1], NOTE_MS);
+        play(NOTES[static_cast<int>(item.vk) - static_cast<int>(esp::ps2::virtual_key::vk_f1)],
+             NOTE_MS);
         return;
     }
 
     switch (item.vk)
     {
-        case esp::ps2::vk_f9:
+        case esp::ps2::virtual_key::vk_f9:
             _waveform = (_waveform + 1) % static_cast<int>(std::size(WAVEFORMS));
             show_sound();
             ESP_LOGI(TAG, "Waveform %s.", WAVEFORMS[_waveform]);
             play(NOTES[0], NOTE_MS);
             return;
 
-        case esp::ps2::vk_escape:
+        case esp::ps2::virtual_key::vk_escape:
             _input.clear();
             show_input();
             return;
 
-        case esp::ps2::vk_backspace:
+        case esp::ps2::virtual_key::vk_backspace:
             if (!_input.empty())
                 _input.pop_back();
             show_input();
             return;
 
-        case esp::ps2::vk_return:
-        case esp::ps2::vk_kp_enter:
+        case esp::ps2::virtual_key::vk_return:
+        case esp::ps2::virtual_key::vk_kp_enter:
             ESP_LOGI(TAG, "Input: \"%s\".", _input.c_str());
             _input.clear();
             show_input();

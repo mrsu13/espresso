@@ -12,55 +12,74 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This file is identical to IDF ulp_macro.c, except for redefinition of CONFIG_ULP_COPROC_RESERVE_MEM to allow
-// larger ULP programs
+// Изменено для Espresso в 2026 г.: копия ulp_macro.c из ESP-IDF в
+// пространстве имён esp::ps2; размер памяти программы ULP задан здесь, а
+// не в sdkconfig.
+
+
+/**
+ * @file esp_ps2_ulp_macro_ex.h
+ * @brief Команды ULP для регистра STAGE и загрузчик программы ULP из макросов.
+ */
+
+/**
+ * @file esp_ps2_ulp_macro_ex.cpp
+ * @brief Загрузчик программы ULP из макросов — копия ulp_macro.c из ESP-IDF.
+ */
+
+#include "esp_ps2_ulp_macro_ex.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "esp_attr.h"
-#include "esp_err.h"
-#include "esp_log.h"
-#if !__has_include("esp32/ulp.h")
-#   error \
-       "FabGL needs the ULP FSM coprocessor: set CONFIG_ULP_COPROC_ENABLED=y, CONFIG_ULP_COPROC_TYPE_FSM=y and CONFIG_ULP_COPROC_RESERVE_MEM=4096 in sdkconfig"
-#endif
-#include "esp32/ulp.h"
-
-#include "soc/rtc_cntl_reg.h"
-#include "soc/sens_reg.h"
-#include "soc/soc.h"
-
-#include "sdkconfig.h"
-
-#include "esp_ps2_ulp_macro_ex.h"
+#include <esp_attr.h>
+#include <esp_err.h>
+#include <esp_log.h>
+#include <sdkconfig.h>
+#include <soc/rtc_cntl_reg.h>
+#include <soc/sens_reg.h>
+#include <soc/soc.h>
 
 
 namespace esp::ps2
 {
 
-// fabgl =>
 #undef CONFIG_ULP_COPROC_RESERVE_MEM
+/**
+ * @brief Память программы ULP, байты: первые 2048 байт (512 слов) медленной памяти RTC.
+ *
+ * За ними лежат переменные контроллера PS/2 (RTCMEM_VARS_START в
+ * esp_ps2_ps2_controller.cpp), поэтому значение из sdkconfig здесь не
+ * годится.
+ */
 #define CONFIG_ULP_COPROC_RESERVE_MEM 2048
-// <=
 
+/** @brief Тег журнала загрузчика. */
 static const char *TAG = "ulp";
 
+/** @brief Запись о метке или переходе (relocation) в программе ULP. */
 typedef struct
 {
+    /** @brief Номер метки. */
     uint32_t label : 16;
+    /** @brief Адрес команды в словах. */
     uint32_t addr : 11;
+    /** @brief Не используется. */
     uint32_t unused : 1;
+    /** @brief Тип записи: RELOC_TYPE_LABEL или RELOC_TYPE_BRANCH. */
     uint32_t type : 4;
 } reloc_info_t;
 
+/** @brief Тип записи: метка. */
 #define RELOC_TYPE_LABEL 0
+/** @brief Тип записи: переход к метке. */
 #define RELOC_TYPE_BRANCH 1
 
 /* This record means: there is a label at address
  * insn_addr, with number label_num.
  */
+/** @brief Запись о метке label_num по адресу insn_addr. */
 #define RELOC_INFO_LABEL(label_num, insn_addr) \
     (reloc_info_t) \
     { \
@@ -71,6 +90,7 @@ typedef struct
  * insn_addr, it needs to be changed to point to address
  * of label label_num.
  */
+/** @brief Запись о переходе по адресу insn_addr к метке label_num. */
 #define RELOC_INFO_BRANCH(label_num, insn_addr) \
     (reloc_info_t) \
     { \
@@ -78,6 +98,12 @@ typedef struct
     }
 
 /* Comparison function used to sort the relocations array */
+/**
+ * @brief Сравнивает записи для qsort(): по номеру метки, метка раньше переходов.
+ * @param p_lhs Первая запись.
+ * @param p_rhs Вторая запись.
+ * @return Отрицательное число, 0 или положительное число.
+ */
 static int reloc_sort_func(const void *p_lhs, const void *p_rhs)
 {
     const reloc_info_t lhs = *(const reloc_info_t *)p_lhs;
@@ -143,6 +169,14 @@ static int reloc_sort_func(const void *p_lhs, const void *p_rhs)
  *
  */
 
+/**
+ * @brief Подставляет в команду перехода адрес или смещение метки.
+ * @param program Загруженная программа.
+ * @param load_addr Адрес загрузки программы в словах.
+ * @param label_info Запись о метке.
+ * @param branch_info Запись о переходе к ней.
+ * @return @c ESP_OK или @c ESP_ERR_ULP_BRANCH_OUT_OF_RANGE.
+ */
 static esp_err_t do_single_reloc(ulp_insn_t *program, uint32_t load_addr, reloc_info_t label_info,
                                  reloc_info_t branch_info)
 {
@@ -183,8 +217,22 @@ static esp_err_t do_single_reloc(ulp_insn_t *program, uint32_t load_addr, reloc_
     return ESP_OK;
 }
 
-esp_err_t ulp_process_macros_and_load_ex(uint32_t load_addr, const ulp_insn_t *program,
-                                         size_t *psize)
+/**
+ * @brief Собирает программу ULP из макросов и загружает её в медленную память RTC.
+ *
+ * Копия ulp_process_macros_and_load() из ESP-IDF: метки (M_LABEL) и
+ * переходы к ним (M_BX, M_BL и другие) заменяются командами с настоящими
+ * смещениями. Программа не должна выходить за первые 2048 байт памяти.
+ *
+ * @param load_addr Адрес загрузки в медленной памяти RTC, в 32-разрядных словах.
+ * @param program Программа с макросами.
+ * @param psize На входе — размер программы с макросами, на выходе — без
+ *        них, в 32-разрядных словах.
+ * @return @c ESP_OK или код ошибки: неверный адрес, программа велика,
+ *         метка повторяется или её нет, нет памяти.
+ */
+esp_err_t ulp_process_macros_and_load_ex(std::uint32_t load_addr, const ulp_insn_t *program,
+                                         std::size_t *psize)
 {
     const ulp_insn_t *read_ptr = program;
     const ulp_insn_t *end = program + *psize;
@@ -304,4 +352,4 @@ esp_err_t ulp_process_macros_and_load_ex(uint32_t load_addr, const ulp_insn_t *p
 }
 
 
-} // end of namespace
+}

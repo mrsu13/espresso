@@ -3,55 +3,36 @@
 // Изменено для Espresso в 2026 г.
 
 
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <unistd.h>
+/**
+ * @file esp_ps2_utils.h
+ * @brief Объявление вспомогательных функций модуля esp::ps2.
+ */
 
-#include "driver/rtc_io.h"
-#include "esp_ipc.h"
-#include "esp_task_wdt.h"
-#include "soc/dport_reg.h"
-#include "soc/efuse_reg.h"
-#include "soc/rtc.h"
-#include "soc/rtc_io_struct.h"
-#include "soc/sens_struct.h"
+/**
+ * @file esp_ps2_utils.cpp
+ * @brief Вспомогательные функции PS/2: целый квадратный корень, чётность.
+ */
 
 #include "esp_ps2_utils.h"
 
-#include "esp_private/periph_ctrl.h"
+#include <cstdint>
 
 
 #pragma GCC optimize("O2")
 
 
-namespace esp::ps2
-{
+// Открытые
 
-
-////////////////////////////////////////////////////////////////////////////////////////////
-// TimeOut
-
-
-time_out::time_out()
-    : _start(esp_timer_get_time())
-{
-}
-
-
-bool time_out::expired(int value_ms)
-{
-    return value_ms > -1 && ((esp_timer_get_time() - _start) / 1000) > value_ms;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////
-// isqrt
-
-// Integer square root by Halleck's method, with Legalize's speedup
-int isqrt(int x)
+/**
+ * @brief Вычисляет целый квадратный корень.
+ *
+ * Метод Холлека с ускорением Legalize: разряды корня подбираются от
+ * старшего к младшему без умножений.
+ *
+ * @param x Число.
+ * @return Целая часть корня; 0 для чисел меньше 1.
+ */
+int esp::ps2::isqrt(int x)
 {
     if (x < 1)
         return 0;
@@ -73,16 +54,18 @@ int isqrt(int x)
     return root;
 }
 
-
-////////////////////////////////////////////////////////////////////////////////////////////
-// calcParity
-
-bool calc_parity(uint8_t v)
+/**
+ * @brief Вычисляет чётность числа единиц в байте.
+ *
+ * Байт сворачивается до четырёх разрядов, а их чётность берётся из
+ * 16-разрядной таблицы 0x6996.
+ *
+ * @param v Байт.
+ * @return @c true, если в байте нечётное число единиц.
+ */
+bool esp::ps2::calc_parity(std::uint8_t v)
 {
     v ^= v >> 4;
     v &= 0xf;
     return (0x6996 >> v) & 1;
 }
-
-
-} // end of namespace

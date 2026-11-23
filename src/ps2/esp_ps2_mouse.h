@@ -6,404 +6,205 @@
 #pragma once
 
 
-/**
- * @file
- *
- * @brief This file contains esp::ps2::Mouse definition.
- */
-
-
-#include "freertos/FreeRTOS.h"
-#include "freertos/timers.h"
-
 #include "esp_gfx_bitmapped_display_controller.h"
-#include "esp_gfx_utils.h"
+#include "esp_gfx_size.h"
+#include "esp_ps2_mouse_delta.h"
+#include "esp_ps2_mouse_packet.h"
+#include "esp_ps2_mouse_status.h"
+#include "esp_ps2_mouse_type.h"
 #include "esp_ps2_ps2_device.h"
-#include "esp_ps2_utils.h"
-#include "esp_tools.h"
+
+#include <cstdint>
+
+#include <driver/gpio.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/task.h>
 
 
 namespace esp::ps2
 {
 
-
-/**
- * @brief Describes mouse movement and buttons status.
- */
-struct mouse_delta
-{
-    int16_t
-        delta_x; /**< Horizontal movement since last report. Moving to the right generates positive values. */
-    int16_t
-        delta_y; /**< Vertical movement since last report. Upward movement generates positive values. */
-    int8_t
-        delta_z; /**< Scroll wheel movement since last report. Downward movement genrates positive values. */
-    mouse_buttons buttons; /**< Mouse buttons status. */
-    uint8_t overflow_x : 1; /**< Contains 1 when horizontal overflow has been detected. */
-    uint8_t overflow_y : 1; /**< Contains 1 when vertical overflow has been detected. */
-};
-
-
-/**
- * @brief Contains raw data received from mouse.
- */
-struct mouse_packet
-{
-    uint8_t data[4];
-};
-
-
-/** \ingroup Enumerations
- * @brief Describes mouse type.
- */
-enum mouse_type
-{
-    legacy_mouse, /**< Legacy PS2 mouse with three buttons, X and Y movements. */
-    intellimouse, /**< Microsoft Intellimouse compatible with three buttons, X and Y movements and a scroll wheel. */
-};
-
-
-/**
- * @brief The PS2 Mouse controller class.
- *
- * Mouse class connects to one port of the PS2 Controller class (esp::ps2::PS2Controller) to decode and get mouse movements.<br>
- * At the moment Mouse class supports standard PS/2 mouse (X and Y axis with three buttons) and Microsoft Intellimouse compatible mouse
- * (X and Y axis, scroll wheel with three buttons).<br>
- * Mouse class allows to set movement parameters, like sample rate, resolution and scaling.<br>
- * The PS2 controller uses ULP coprocessor and RTC slow memory to communicate with the PS2 device.<br>
- * <br>
- * Because esp::ps2::PS2Controller supports up to two PS/2 ports, it is possible to have connected two PS/2 devices. The most common
- * configuration is Keyboard on port 0 and Mouse on port 1. However you may have two mice connected at the same time using the Mouse
- * instance on port 0 and creating a new one on port 1.<br>
- *
- * Example:
- *
- *     // Setup pins GPIO26 for CLK and GPIO27 for DATA
- *     esp::ps2::Mouse Mouse;
- *     Mouse.begin(GPIO_NUM_26, GPIO_NUM_27);
- *
- *     if (Mouse.deltaAvailable()) {
- *       MouseDelta mouseDelta;
- *       Mouse.getNextDelta(&mouseDelta);
- *
- *       Serial.printf("deltaX = %d  deltaY = %d  deltaZ = %d  leftBtn = %d  midBtn = %d  rightBtn = %d\n",
- *                     mouseDelta.deltaX, mouseDelta.deltaY, mouseDelta.deltaZ,
- *                     mouseDelta.leftButton, mouseDelta.middleButton, mouseDelta.rightButton);
- *     }
- *
- */
 class mouse : public ps2_device
 {
 
 public:
 
     mouse();
-
     ~mouse();
 
-    /**
-   * @brief Initializes Mouse specifying CLOCK and DATA GPIOs.
-   *
-   * A reset command (Mouse.reset() method) is automatically sent to the mouse.<br>
-   * This method also initializes the PS2Controller to use port 0 only.
-   *
-   * Because PS/2 ports are handled by the ULP processor, just few GPIO ports are actually usable. They are:
-   * GPIO_NUM_2, GPIO_NUM_4, GPIO_NUM_12 (with some limitations), GPIO_NUM_13, GPIO_NUM_14, GPIO_NUM_15, GPIO_NUM_25, GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_32 and GPIO_NUM_33.
-   *
-   * @param clkGPIO The GPIO number of Clock line
-   * @param dataGPIO The GPIO number of Data line
-   *
-   * Example:
-   *
-   *     // Setup pins GPIO26 for CLK and GPIO27 for DATA
-   *     Mouse.begin(GPIO_NUM_26, GPIO_NUM_27);
-   */
     void begin(gpio_num_t clk_gpio, gpio_num_t data_gpio);
-
-    /**
-   * @brief Initializes Mouse without initializing the PS/2 controller.
-   *
-   * A reset command (Mouse.reset() method) is automatically sent to the mouse.<br>
-   * This method does not initialize the PS2Controller.
-   *
-   * @param PS2Port The PS/2 port to use (0 or 1).
-   *
-   * Example:
-   *
-   *     // Setup pins GPIO26 for CLK and GPIO27 for DATA on port 0
-   *     PS2Controller.begin(GPIO_NUM_26, GPIO_NUM_27); // clk, dat
-   *     Mouse.begin(0); // port 0
-   */
     void begin(int ps2_port);
-
-    /**
-   * @brief Sends a Reset command to the mouse.
-   *
-   * @return True if the mouse is correctly initialized.
-   */
     bool reset();
+    inline bool is_mouse_available() const;
 
-    /**
-   * @brief Checks if mouse has been detected and correctly initialized.
-   *
-   * isMouseAvailable() returns a valid value only after Mouse.begin() or Mouse.reset() has been called.
-   *
-   * @return True if the mouse is correctly initialized.
-   */
-    bool is_mouse_available()
-    {
-        return _mouse_available;
-    }
-
-    /**
-   * @brief Gets mouse packet size
-   *
-   * @return Mouse packet size in bytes
-   */
     int packet_size();
-
-    /**
-   * @brief Determines if there is a raw mouse movement available in the queue.
-   *
-   * @return Return true if there is a mouse movement (mouse packet) available to read.
-   */
     bool packet_available();
-
-    /**
-   * @brief Gets a mouse raw movement (packet) from the queue.
-   *
-   * @param packet Pointer to MousePacket structure to be filled with mouse movement.
-   * @param timeOutMS Timeout in milliseconds. -1 means no timeout (infinite time).
-   * @param requestResendOnTimeOut If true and timeout has expired then asks the mouse to resend the mouse movement.
-   *
-   * @return True if the mouse packet structure has been filled. False when there is no data in the queue.
-   *
-   * Example:
-   *
-   *     MousePacket mousePacket;
-   *     Mouse.getNextPacket(&mousePacket);
-   */
     bool get_next_packet(mouse_packet *packet, int time_out_ms = -1,
                          bool request_resend_on_time_out = false);
-
-    /**
-   * @brief Determines if there is a mouse movement available in the queue.
-   *
-   * @return Return true if there is a mouse movement (deltas) available to read.
-   */
     bool delta_available();
-
-    /**
-   * @brief Gets a mouse movement from the queue.
-   *
-   * @param delta Pointer to MouseDelta structure to be filled with mouse movement. May be nullptr if not required (in this case only Status().buttons is updated.
-   * @param timeOutMS Timeout in milliseconds. -1 means no timeout (infinite time).
-   * @param requestResendOnTimeOut If true and timeout has expired then asks the mouse to resend the mouse movement.
-   *
-   * @return True if the mouse movement structure has been filled. False when there is no data in the queue.
-   *
-   * Example:
-   *
-   *     MouseDelta mouseDelta;
-   *     Mouse.getNextDelta(&mouseDelta);
-   */
     bool get_next_delta(mouse_delta *delta, int time_out_ms = -1,
                         bool request_resend_on_time_out = false);
 
-    /**
-   * @brief Sets the maximum rate of mouse movements reporting.
-   *
-   * The default sample rate is 60 samples/sec.
-   *
-   * @param value Sample rate as samples per second. Valid values: 10, 20, 40, 60, 80, 100, and 200.
-   *
-   * @return True if command has been successfully delivered to the mouse.
-   */
-    bool set_sample_rate(int value)
-    {
-        return send_cmd_set_sample_rate(value);
-    }
+    inline bool set_sample_rate(int value);
+    inline bool set_resolution(int value);
+    inline bool set_scaling(int value);
 
-    /**
-   * @brief Sets the resolution.
-   *
-   * Resolution is the amount by which the movement counters are incremented/decremented measured as counts per millimeter.<br>
-   * The default resolution is 4 counts/mm.
-   *
-   * @param value Resolution encoded as follows: 0 = 1 count/mm (25 dpi), 1 = 2 counts/mm (50 dpi), 2 = 4 counts/mm (100 dpi), 3 = 8 counts/mm (200 dpi).
-   *
-   * @return True if command has been successfully delivered to the mouse.
-   */
-    bool set_resolution(int value)
-    {
-        return send_cmd_set_resolution(value);
-    }
-
-    /**
-   * @brief Sets the scaling.
-   *
-   * The default scaling is 1:1.
-   *
-   * @param value Scaling encoded as follows: 1 = 1:1, 2 = 1:2.
-   *
-   * @return True if command has been successfully delivered to the mouse.
-   */
-    bool set_scaling(int value)
-    {
-        return send_cmd_set_scaling(value);
-    }
-
-    /**
-   * @brief Initializes absolute position handler.
-   *
-   * Use this method to specify the absolute mouse area inside the rectangle (0, 0) to (width - 1, height - 1).<br>
-   * Optinally this method creates a queue that stores absolute positions generated by updateAbsolutePosition().<br>
-   * This method must be called one time to initialize absolute positioning.<br>
-   *
-   * @param width Absolute mouse area width. Mouse can travel from 0 up to width - 1.
-   * @param height Absolute mouse area height. Mouse can travel from 0 up to height - 1.
-   * @param createAbsolutePositionsQueue If true a queue of absolute positions is created.
-   * @param updateDisplayController If specified (not nullptr) display controller mouse pointer is automatically updated.
-   *
-   * Example:
-   *
-   *     Mouse.setupAbsolutePositioner(Canvas.getWidth(), Canvas.getHeight(), true);
-   */
     void setup_absolute_positioner(
         int width, int height, bool create_absolute_positions_queue,
         esp::gfx::bitmapped_display_controller *update_display_controller = nullptr);
-
-    /**
-   * @brief Terminates absolute position handler.
-   */
     void terminate_absolute_positioner();
-
-    /**
-   * @brief Updates absolute position from the specified mouse delta event.
-   *
-   * This method updates absolute mouse position, mouse wheel and buttons status.<br>
-   * In order to improve quality of acceleration it is important to call updateAbsolutePosition() often and at constant frequency.<br>
-   * updateAbsolutePosition() is automatically executed when updateDisplayController or createAbsolutePositionsQueue parameters of Mouse.setupAbsolutePositioner() is set.<br>
-   *
-   * @param delta Mouse event to process.
-   *
-   * Example:
-   *
-   *     // move a sprite (previously defined) at mouse absolute position
-   *     void loop() {
-   *       MouseDelta delta;
-   *       if (getNextDelta(&delta)) {
-   *         Mouse.updateAbsolutePosition(&delta);
-   *         mouseSprite.moveTo(Mouse.position().X, Mouse.position().Y);
-   *       }
-   *     }
-   */
     void update_absolute_position(mouse_delta *delta);
-
-    /**
-   * @brief Gets or sets current mouse status.
-   */
-    mouse_status &status()
-    {
-        return _status;
-    }
-
-    /**
-   * @brief Gets the number of available mouse status.
-   *
-   * Mouse status contains absolute mouse position, scroll wheel delta and buttons status.<br>
-   * Mouse status queue is populated only when createAbsolutePositionsQueue parameter of Mouse.setupAbsolutePositioner() is true.
-   *
-   * @return Number of available mouse status.
-   */
+    inline mouse_status &status();
     int available_status();
-
-    /**
-   * @brief Gets the next status from the status queue.
-   *
-   * Mouse status contains absolute mouse position, scroll wheel delta and buttons status.<br>
-   * Mouse status queue is populated only when createAbsolutePositionsQueue parameter of Mouse.setupAbsolutePositioner() is true.
-   *
-   * @param timeOutMS Timeout in milliseconds to wait for a new status. -1 = wait forever.
-   *
-   * @return The next status in queue.
-   *
-   * Example:
-   *
-   *     // wait for events from mouse and draw a pixel at the mouse position if left button is down
-   *     MouseStatus status = Mouse.getNextStatus();
-   *     if (status.buttons.left) {
-   *       Canvas.setPenColor(Color::BrightRed);
-   *       Canvas.setPixel(status.X, status.Y);
-   *     }
-   */
     mouse_status get_next_status(int time_out_ms = -1);
-
-    /**
-   * @brief Gets or set mouse movement acceleration factor.
-   *
-   * Mouse movement acceleration is calculated in Mouse.updateAbsolutePosition() and depends by the acceleration factor and time of call.<br>
-   * Lower values generate little acceleration, high values generate a lot of acceleration.<br>
-   * Suggested range is 0 ... 2000. Default value is 180.
-   */
-    int &movement_acceleration()
-    {
-        return _movement_acceleration;
-    }
-
-    /**
-   * @brief Gets or sets wheel acceleration factor.
-   *
-   * Wheel acceleration is calculated in Mouse.updateAbsolutePosition() and depends by the acceleration factor and time of call.<br>
-   * Lower values generate little acceleration, high values generate a lot of acceleration.<br>
-   * Suggested range is 0 ... 100000. Default value is 60000.
-   */
-    int &wheel_acceleration()
-    {
-        return _wheel_acceleration;
-    }
-
-    /**
-   * @brief Empties the mouse status and events queue
-   */
+    inline int &movement_acceleration();
+    inline int &wheel_acceleration();
     void empty_queue();
 
-
-    /**
-   * @brief Disable re-try when a mouse is not found
-   */
-    static void quick_check_hardware()
-    {
-        _quick_check_hardware = true;
-    }
-
+    inline static void quick_check_hardware();
 
 private:
 
     static void mouse_update_task(void *arg);
-    bool decode_mouse_packet(mouse_packet *mouse_packet, mouse_delta *delta);
+    bool decode_mouse_packet(mouse_packet *packet, mouse_delta *delta);
 
+    /**
+     * @brief Не повторять сброс, если мышь не нашлась.
+     *
+     * Устанавливает quick_check_hardware(): тогда сброс делается один раз
+     * с коротким временем ожидания, и отсутствие мыши выясняется быстро.
+     */
     static bool _quick_check_hardware;
 
+    /** @brief Найдена ли мышь при последнем сбросе. */
     bool _mouse_available;
+
+    /** @brief Тип мыши, определённый при сбросе; от него зависит размер пакета. */
     mouse_type _mouse_type;
 
+    /** @brief Задача обновления абсолютного положения; @c nullptr, если её нет. */
     TaskHandle_t _mouse_update_task;
 
-    // queue of one mouse packet
+    /** @brief Очередь из одного пакета мыши, собранного из принятых байтов. */
     QueueHandle_t _received_packet;
 
-    // absolute position support
+    /** @brief Включено ли обновление абсолютного положения. */
     bool _absolute_update;
+
+    /** @brief Область абсолютного положения: от (0, 0) до (ширина − 1, высота − 1). */
     esp::gfx::size _area;
+
+    /** @brief Текущее состояние: абсолютное положение, колесо, кнопки. */
     mouse_status _status;
+
+    /** @brief Предыдущее состояние; по нему видно, что изменилось. */
     mouse_status _prev_status;
-    int64_t _prev_delta_time;
-    int _movement_acceleration; // reasonable values: 0...2000
-    int _wheel_acceleration; // reasonable values: 0...100000
-    QueueHandle_t _absolute_queue; // a queue of messages generated by updateAbsolutePosition()
+
+    /** @brief Время предыдущего перемещения, мкс; нужно для ускорения. */
+    std::int64_t _prev_delta_time;
+
+    /** @brief Коэффициент ускорения перемещения; разумные значения — от 0 до 2000, по умолчанию 180. */
+    int _movement_acceleration;
+
+    /** @brief Коэффициент ускорения колеса; разумные значения — от 0 до 100000, по умолчанию 60000. */
+    int _wheel_acceleration;
+
+    /** @brief Очередь состояний, которые даёт update_absolute_position(); @c nullptr, если её нет. */
+    QueueHandle_t _absolute_queue;
+
+    /** @brief Контроллер дисплея, курсор которого следует за мышью; @c nullptr — не следует. */
     esp::gfx::bitmapped_display_controller *_update_display_controller;
 };
 
+}
 
-} // end of namespace
+
+// Реализация
+
+// Открытые
+
+/**
+ * @brief Сообщает, найдена ли мышь.
+ *
+ * Значение верно после begin() или reset().
+ *
+ * @return @c true, если мышь найдена и готова.
+ */
+bool esp::ps2::mouse::is_mouse_available() const
+{
+    return _mouse_available;
+}
+
+/**
+ * @brief Задаёт наибольшую частоту сообщений о перемещении.
+ * @param value Сообщений в секунду: 10, 20, 40, 60, 80, 100 или 200; по умолчанию 60.
+ * @return @c true, если мышь приняла команду.
+ */
+bool esp::ps2::mouse::set_sample_rate(int value)
+{
+    return send_cmd_set_sample_rate(value);
+}
+
+/**
+ * @brief Задаёт разрешение — сколько отсчётов перемещения приходится на миллиметр.
+ * @param value 0 — 1 отсчёт на мм (25 точек на дюйм), 1 — 2 (50), 2 — 4 (100, по умолчанию), 3 — 8 (200).
+ * @return @c true, если мышь приняла команду.
+ */
+bool esp::ps2::mouse::set_resolution(int value)
+{
+    return send_cmd_set_resolution(value);
+}
+
+/**
+ * @brief Задаёт масштабирование перемещений.
+ * @param value 1 — 1:1 (по умолчанию), 2 — 1:2.
+ * @return @c true, если мышь приняла команду.
+ */
+bool esp::ps2::mouse::set_scaling(int value)
+{
+    return send_cmd_set_scaling(value);
+}
+
+/**
+ * @brief Возвращает текущее состояние мыши; его можно и менять, например переносить указатель.
+ * @return Ссылка на состояние.
+ */
+esp::ps2::mouse_status &esp::ps2::mouse::status()
+{
+    return _status;
+}
+
+/**
+ * @brief Возвращает коэффициент ускорения перемещения; его можно менять.
+ *
+ * Ускорение вычисляется в update_absolute_position() по скорости движения:
+ * чем больше коэффициент, тем сильнее быстрое движение уносит указатель.
+ * Разумные значения — от 0 до 2000, по умолчанию 180.
+ *
+ * @return Ссылка на коэффициент.
+ */
+int &esp::ps2::mouse::movement_acceleration()
+{
+    return _movement_acceleration;
+}
+
+/**
+ * @brief Возвращает коэффициент ускорения колеса; его можно менять.
+ *
+ * Разумные значения — от 0 до 100000, по умолчанию 60000.
+ *
+ * @return Ссылка на коэффициент.
+ */
+int &esp::ps2::mouse::wheel_acceleration()
+{
+    return _wheel_acceleration;
+}
+
+/**
+ * @brief Отключает повторные попытки сброса, если мышь не нашлась.
+ */
+void esp::ps2::mouse::quick_check_hardware()
+{
+    _quick_check_hardware = true;
+}

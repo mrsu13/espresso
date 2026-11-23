@@ -6,280 +6,192 @@
 #pragma once
 
 
-/**
- * @file
- *
- * @brief This file contains esp::ps2::PS2Controller definition.
- */
-
-
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/timers.h"
-
+#include "esp_ps2_kbd_mode.h"
+#include "esp_ps2_ps2_preset.h"
 #include "esp_tools.h"
+
+#include <cstdint>
+#include <memory>
+
+#include <driver/gpio.h>
+#include <esp_attr.h>
+#include <esp_intr_alloc.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/semphr.h>
 
 
 namespace esp::ps2
 {
 
-
-/** \ingroup Enumerations
- * @brief This enum defines what is connected to PS/2 ports
- */
-enum class ps2_preset
-{
-    keyboard_port_0_mouse_port_1, /**< Keyboard on Port 0 and Mouse on Port 1 */
-    keyboard_port_1_mouse_port_0, /**< Keyboard on Port 1 and Mouse on Port 0 */
-    keyboard_port_0, /**< Keyboard on Port 0 (no mouse) */
-    keyboard_port_1, /**< Keyboard on Port 1 (no mouse) */
-    mouse_port_0, /**< Mouse on port 0 (no keyboard) */
-    mouse_port_1, /**< Mouse on port 1 (no keyboard) */
-};
-
-
-/** \ingroup Enumerations
- * @brief This enum defines how handle keyboard virtual keys
- */
-enum class kbd_mode
-{
-    no_virtual_keys, /**< No virtual keys are generated */
-    generate_virtual_keys, /**< Virtual keys are generated. You can call Keyboard.isVKDown() only. */
-    create_virtual_keys_queue, /**< Virtual keys are generated and put on a queue. You can call Keyboard.isVKDown(), Keyboard.virtualKeyAvailable() and Keyboard.getNextVirtualKey() */
-};
-
-
 class keyboard;
 class mouse;
 
-
-/**
- * @brief The PS2 device controller class.
- *
- * The PS2 controller uses ULP coprocessor and RTC slow memory to communicate with up to two PS2 devices.<br>
- * The ULP coprocessor continuously monitor CLK and DATA lines for incoming data. Optionally can send commands to the PS2 devices.
- */
 class ps2_controller
 {
 
 public:
 
-    ps2_controller();
-    ~ps2_controller();
+    ps2_controller() = delete;
 
-    // unwanted methods
-    ps2_controller(ps2_controller const &) = delete;
-    void operator=(ps2_controller const &) = delete;
-
-    /**
-  * @brief Initializes PS2 device controller.
-  *
-  * Initializes the PS2 controller assigning GPIOs to DAT and CLK lines.
-  *
-  * Because PS/2 ports are handled by the ULP processor, just few GPIO ports are actually usable. They are:
-  * GPIO_NUM_2, GPIO_NUM_4, GPIO_NUM_12 (with some limitations), GPIO_NUM_13, GPIO_NUM_14, GPIO_NUM_15, GPIO_NUM_25, GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_32 and GPIO_NUM_33.
-  *
-  * @param port0_clkGPIO The GPIO number of Clock line for PS/2 port 0.
-  * @param port0_datGPIO The GPIO number of Data line for PS/2 port 0.
-  * @param port1_clkGPIO The GPIO number of Clock line for PS/2 port 1 (GPIO_UNUSED to disable).
-  * @param port1_datGPIO The GPIO number of Data line for PS/2 port 1 (GPIO_UNUSED to disable).
-  */
     static void begin(gpio_num_t port_0_clk_gpio, gpio_num_t port_0_dat_gpio,
                       gpio_num_t port_1_clk_gpio = GPIO_UNUSED,
                       gpio_num_t port_1_dat_gpio = GPIO_UNUSED);
-
-    /**
-  * @brief Initializes PS2 device controller using default GPIOs.
-  *
-  * Initializes the PS2 controller assigning:
-  *   - GPIO_NUM_33 (CLK) and GPIO_NUM_32 (DATA) as PS/2 Port 0
-  *   - GPIO_NUM_26 (CLK) and GPIO_NUM_27 (DATA) as PS/2 Port 1
-  *
-  * @param preset Specifies what is connected to PS/2 ports (mouse, keyboard or boths).
-  * @param keyboardMode Specifies how handle keyboard virtual keys.
-  *
-  * Example:
-  *
-  *     // Keyboard connected to port 0 and mouse to port1
-  *     PSController.begin(PS2Preset::KeyboardPort0_MousePort1);
-  */
     static void begin(ps2_preset preset = ps2_preset::keyboard_port_0_mouse_port_1,
                       kbd_mode keyboard_mode = kbd_mode::create_virtual_keys_queue);
-
     static void end();
+    inline static bool initialized();
 
-    static bool initialized()
-    {
-        return _init_done;
-    }
-
-    /**
-   * @brief Determines if one byte has been received from the specified port
-   *
-   * @param PS2Port PS2 port number (0 = port 0, 1 = port1).
-   *
-   * @return True if one byte is available
-   */
     static bool data_available(int ps2_port);
-
-    /**
-   * @brief Gets a scancode from the queue.
-   *
-   * @param PS2Port PS2 port number (0 = port 0, 1 = port1).
-   * @param timeOutMS
-   *
-   * @return The first scancode of the queue (-1 if no data is available).
-   */
     static int get_data(int ps2_port, int time_out_ms);
+    static void send_data(std::uint8_t data, int ps2_port);
 
-    /**
-   * @brief Sends a command to the device.
-   *
-   * @param data Byte to send to the PS2 device.
-   * @param PS2Port PS2 port number (0 = port 0, 1 = port1).
-   */
-    static void send_data(uint8_t data, int ps2_port);
-
-    /**
-   * @brief Disables inputs from PS/2 port driving the CLK line Low
-   *
-   * Use enableRX() to release CLK line.
-   *
-   * @param PS2Port PS2 port number (0 = port 0, 1 = port1).
-   */
     static void disable_rx(int ps2_port);
-
-    /**
-   * @brief Enables inputs from PS/2 port releasing CLK line
-   *
-   * Use disableRX() to disable inputs from PS/2 port.
-   *
-   * @param PS2Port PS2 port number (0 = port 0, 1 = port1).
-   */
     static void enable_rx(int ps2_port);
 
-    /**
-   * @brief Returns the instance of Keyboard object automatically created by PS2Controller.
-   *
-   * @return A pointer to a Keyboard object
-   */
-    static esp::ps2::keyboard *keyboard()
-    {
-        return _keyboard;
-    }
+    inline static esp::ps2::keyboard *keyboard();
+    inline static void set_keyboard(esp::ps2::keyboard *value);
+    inline static esp::ps2::mouse *mouse();
+    inline static void set_mouse(esp::ps2::mouse *value);
 
-    static void set_keyboard(esp::ps2::keyboard *value)
-    {
-        _keyboard = value;
-    }
+    inline static bool parity_error(int ps2_port);
+    inline static bool sync_error(int ps2_port);
+    inline static bool clk_time_out_error(int ps2_port);
 
-    /**
-   * @brief Returns the instance of Mouse object automatically created by PS2Controller.
-   *
-   * @return A pointer to a Mouse object
-   */
-    static esp::ps2::mouse *mouse()
-    {
-        return _mouse;
-    }
-
-    static void set_mouse(esp::ps2::mouse *value)
-    {
-        _mouse = value;
-    }
-
-    /**
-   * @brief Returns the singleton instance of PS2Controller class
-   *
-   * @return A pointer to PS2Controller singleton object
-   */
-    static ps2_controller *instance()
-    {
-        return _instance;
-    }
-
-    static bool parity_error(int ps2_port)
-    {
-        return _parity_error[ps2_port];
-    }
-
-    static bool sync_error(int ps2_port)
-    {
-        return _sync_error[ps2_port];
-    }
-
-    static bool clk_time_out_error(int ps2_port)
-    {
-        return _clk_time_out_error[ps2_port];
-    }
-
-    /**
-   * @brief Gets exclusive access to the specified PS/2 port
-   *
-   * @param PS2Port PS2 port number (0 = port 0, 1 = port1).
-   * @param timeOutMS Timeout in milliseconds to wait before fail.
-   *
-   * @return True if the device has been locked.
-   */
     static bool lock(int ps2_port, int time_out_ms);
-
-    /**
-   * @brief Releases port from exclusive access.
-   *
-   * @param PS2Port PS2 port number (0 = port 0, 1 = port1).
-   */
     static void unlock(int ps2_port);
 
-
 private:
-
 
     static void IRAM_ATTR ulp_wake_isr(void *arg);
 
-    static ps2_controller *_instance;
-
-    // Keyboard and Mouse instances can be created by PS2Controller in one of the begin() calls, or can be
-    // set using setKeyboard() and setMouse() calls.
+    /**
+     * @brief Клавиатура.
+     *
+     * Её создаёт begin() по набору устройств или задаёт set_keyboard();
+     * @c nullptr — клавиатуры нет.
+     */
     static esp::ps2::keyboard *_keyboard;
+
+    /**
+     * @brief Мышь.
+     *
+     * Её создаёт begin() по набору устройств или задаёт set_mouse();
+     * @c nullptr — мыши нет.
+     */
     static esp::ps2::mouse *_mouse;
 
-    static bool _keyboard_allocated;
-    static bool _mouse_allocated;
+    /** @brief Клавиатура, созданная begin() по набору устройств; её удаляет end(). */
+    static std::unique_ptr<esp::ps2::keyboard> _own_keyboard;
 
+    /** @brief Мышь, созданная begin() по набору устройств; её удаляет end(). */
+    static std::unique_ptr<esp::ps2::mouse> _own_mouse;
+
+    /** @brief Настроены ли порты 0 и 1. */
     static bool _port_enabled[2];
 
+    /** @brief Обработчик прерывания, которым сопроцессор ULP будит процессор. */
     static intr_handle_t _ulp_wake_isr_handle;
 
-    // true if last call to getData() had a parity, sync error (start or stop missing bits) or CLK timeout
+    /** @brief Была ли ошибка чётности в последнем байте, полученном get_data(). */
     static bool _parity_error[2];
+
+    /** @brief Не было ли стартового или стопового разряда в последнем байте, полученном get_data(). */
     static bool _sync_error[2];
+
+    /** @brief Не ответила ли линия CLK при последнем приёме get_data(). */
     static bool _clk_time_out_error[2];
 
-    // one word queue (contains just the last received word)
+    /** @brief Очереди портов из одного слова: последнее принятое слово. */
     static QueueHandle_t _data_in[2];
 
+    /** @brief Рекурсивные мьютексы для монопольного доступа к портам. */
     static SemaphoreHandle_t _port_lock[2];
 
+    /** @brief Запущен ли сопроцессор ULP; он работает и после end(). */
     static bool _init_done;
 };
 
+}
 
-struct ps2_port_auto_disable_rx
+
+// Реализация
+
+// Открытые
+
+/**
+ * @brief Сообщает, запущен ли контроллер.
+ * @return @c true, если begin() уже вызывался.
+ */
+bool esp::ps2::ps2_controller::initialized()
 {
-    ps2_port_auto_disable_rx(int ps2_port)
-        : _port(ps2_port)
-    {
-        ps2_controller::disable_rx(_port);
-    }
-    ~ps2_port_auto_disable_rx()
-    {
-        ps2_controller::enable_rx(_port);
-    }
+    return _init_done;
+}
 
-private:
+/**
+ * @brief Возвращает клавиатуру.
+ * @return Клавиатура, созданная begin() или заданная set_keyboard();
+ *         @c nullptr, если её нет.
+ */
+esp::ps2::keyboard *esp::ps2::ps2_controller::keyboard()
+{
+    return _keyboard;
+}
 
-    int _port;
-};
+/**
+ * @brief Задаёт клавиатуру; контроллер ею не владеет.
+ * @param value Клавиатура или @c nullptr.
+ */
+void esp::ps2::ps2_controller::set_keyboard(esp::ps2::keyboard *value)
+{
+    _keyboard = value;
+}
 
+/**
+ * @brief Возвращает мышь.
+ * @return Мышь, созданная begin() или заданная set_mouse(); @c nullptr,
+ *         если её нет.
+ */
+esp::ps2::mouse *esp::ps2::ps2_controller::mouse()
+{
+    return _mouse;
+}
 
-} // end of namespace
+/**
+ * @brief Задаёт мышь; контроллер ею не владеет.
+ * @param value Мышь или @c nullptr.
+ */
+void esp::ps2::ps2_controller::set_mouse(esp::ps2::mouse *value)
+{
+    _mouse = value;
+}
+
+/**
+ * @brief Сообщает, была ли ошибка чётности в последнем байте порта.
+ * @param ps2_port Порт: 0 или 1.
+ * @return @c true, если была.
+ */
+bool esp::ps2::ps2_controller::parity_error(int ps2_port)
+{
+    return _parity_error[ps2_port];
+}
+
+/**
+ * @brief Сообщает, были ли в последнем байте порта стартовый и стоповый разряды.
+ * @param ps2_port Порт: 0 или 1.
+ * @return @c true, если какого-то не было.
+ */
+bool esp::ps2::ps2_controller::sync_error(int ps2_port)
+{
+    return _sync_error[ps2_port];
+}
+
+/**
+ * @brief Сообщает, ответила ли линия CLK при последнем приёме порта.
+ * @param ps2_port Порт: 0 или 1.
+ * @return @c true, если не ответила.
+ */
+bool esp::ps2::ps2_controller::clk_time_out_error(int ps2_port)
+{
+    return _clk_time_out_error[ps2_port];
+}
