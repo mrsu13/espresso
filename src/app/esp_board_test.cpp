@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <initializer_list>
 #include <iterator>
 
 #include <esp_heap_caps.h>
@@ -55,7 +56,11 @@
  * стирает последний, Enter выводит строку в консоль и очищает её, Esc
  * просто очищает. F1–F8 играют гамму до мажор (523–1047 Гц), F9 меняет
  * форму звуковой волны, F10 показывает на поле для рисования проверку
- * фигур и отсечения (draw_clipping_test()) и убирает её.
+ * фигур и отсечения (draw_clipping_test()) и убирает её. F12 по кругу
+ * переключает видеорежимы (esp::p::DISPLAY_MODES): 640 × 480 с 16, 8, 4 и
+ * 2 цветами, 800 × 600 с 4 и 2 цветами, 400 × 300 и 320 × 240 с 64
+ * цветами; на маленьком экране видны не все строки, а поля для рисования
+ * нет.
  *
  * Мышь: левая кнопка рисует, правая очищает поле, средняя подаёт звук,
  * колесо меняет цвет рисования.
@@ -72,8 +77,54 @@ namespace esp::p
 /** @brief Тег журнала модуля. */
 const char *const TAG = "test";
 
-/** @brief Режим VGA: 640 × 480 точек, 60 Гц. */
-const char *const VGA_MODE = esp::vga::VGA_640X480_60HZ;
+/** @brief Видеоконтроллер, которым выводится видеорежим проверки. */
+enum class vga_driver
+{
+    /** @brief esp::vga::vga16_controller: 16 цветов, 4 разряда на точку. */
+    vga16,
+
+    /** @brief esp::vga::vga8_controller: 8 цветов, 3 разряда на точку. */
+    vga8,
+
+    /** @brief esp::vga::vga4_controller: 4 цвета, 2 разряда на точку. */
+    vga4,
+
+    /** @brief esp::vga::vga2_controller: 2 цвета, разряд на точку. */
+    vga2,
+
+    /** @brief esp::vga::vga_controller: 64 цвета, байт на точку. */
+    vga64,
+};
+
+/** @brief Видеорежим проверки: видеоконтроллер и развёртка. */
+struct display_mode
+{
+    /** @brief Видеоконтроллер. */
+    vga_driver driver;
+
+    /** @brief Модлайн развёртки (esp_vga_modelines.h). */
+    const char *modeline;
+};
+
+/**
+ * @brief Видеорежимы, которые по кругу перебирает F12; первый включается при запуске.
+ *
+ * Буфер кадра при 640 × 480 занимает 150 КБ при 16 цветах, 113 КБ при 8,
+ * 75 КБ при 4 и 38 КБ при 2; при 800 × 600 — 117 КБ при 4 цветах и 59 КБ
+ * при 2; при 64 цветах (байт на точку) — 117 КБ при 400 × 300 и 75 КБ при
+ * 320 × 240. Если памяти не хватает, видеоконтроллер уменьшает высоту
+ * области вывода.
+ */
+constexpr display_mode DISPLAY_MODES[] = {
+    {vga_driver::vga16, esp::vga::VGA_640X480_60HZ},
+    {vga_driver::vga8, esp::vga::VGA_640X480_60HZ},
+    {vga_driver::vga4, esp::vga::VGA_640X480_60HZ},
+    {vga_driver::vga2, esp::vga::VGA_640X480_60HZ},
+    {vga_driver::vga4, esp::vga::SVGA_800X600_60HZ},
+    {vga_driver::vga2, esp::vga::SVGA_800X600_60HZ},
+    {vga_driver::vga64, esp::vga::VGA_400X300_60HZ},
+    {vga_driver::vga64, esp::vga::QVGA_320X240_60HZ},
+};
 
 /** @brief Поле между краем изображения и содержимым экрана, точки. */
 constexpr int MARGIN = 8;
@@ -84,7 +135,13 @@ constexpr int TITLE_TOP = 2;
 /** @brief Высота цветных полос, точки. */
 constexpr int BAR_HEIGHT = 24;
 
-/** @brief Число цветов палитры esp::vga::vga16_controller. */
+/**
+ * @brief Число именованных цветов esp::gfx::color.
+ *
+ * Столько цветных полос рисует проверочный экран и столько цветов
+ * перебирает колесо мыши; при меньшей палитре видеоконтроллер выводит
+ * вместо каждого ближайший цвет своей палитры.
+ */
 constexpr int COLORS = 16;
 
 /**
@@ -140,6 +197,9 @@ enum row
 /** @brief Толщина линии при рисовании мышью, точки. */
 constexpr int PAINT_PEN_WIDTH = 3;
 
+/** @brief Наименьшая высота поля для рисования без рамки, точки; на более низком экране поля нет. */
+constexpr int PAINT_AREA_MIN_HEIGHT = 32;
+
 /**
  * @brief Промежуток между рамкой поля для рисования и рамкой окна проверки
  *        отсечения слева и справа, точки.
@@ -151,6 +211,18 @@ constexpr int TEST_GAP_X = 24;
 
 /** @brief То же сверху и снизу, точки. */
 constexpr int TEST_GAP_Y = 12;
+
+/**
+ * @brief Наименьшая ширина окна проверки отсечения, точки.
+ *
+ * Фигуры проверки стоят на заданных расстояниях от краёв окна; в более
+ * узком окне они налезли бы друг на друга (см.
+ * esp::board_test::draw_clipping_test()).
+ */
+constexpr int TEST_WINDOW_MIN_WIDTH = 548;
+
+/** @brief Наименьшая высота окна проверки отсечения, точки. */
+constexpr int TEST_WINDOW_MIN_HEIGHT = 110;
 
 /** @brief Наибольшая длина набираемой строки, символы. */
 constexpr std::size_t INPUT_MAX = 60;
@@ -196,7 +268,7 @@ esp::gfx::color color(int index)
  * клавиатура CLK 33, DATA 32; мышь CLK 26, DATA 27; звук — ЦАП на GPIO25.
  */
 esp::board_test::board_test()
-    : _canvas{&_display}
+    : _display{nullptr}
     , _font{ter_10x18::WIDTH,  ter_10x18::HEIGHT, ter_10x18::CODEPOINTS,
             ter_10x18::GLYPHS, ter_10x18::COUNT,  ter_10x18::FALLBACK}
     , _waveform{0}
@@ -205,17 +277,9 @@ esp::board_test::board_test()
     , _keyboard_found{false}
     , _mouse_found{false}
     , _clipping_test_shown{false}
+    , _video_mode{0}
 {
-    // По два бита на каждую составляющую цвета; контроллер выбирает из
-    // этих 64 цветов палитру из 16. Кадр — 4 бита на точку, 150 КБ памяти.
-    _display.begin();
-    _display.set_resolution(esp::p::VGA_MODE);
-    ESP_LOGI(esp::p::TAG, "VGA %dx%d, %d colours.", _canvas.width(), _canvas.height(),
-             esp::p::COLORS);
-
-    // Знаки шрифта заливают фон знакоместа цветом кисти, поэтому новый
-    // текст закрывает прежний.
-    _canvas.set_glyph_options(esp::gfx::glyph_options().set_fill_background(true));
+    set_video_mode(0);
 
     // Контроллер PS/2 ищет устройства только здесь и при их сбросе
     // (check_devices()):
@@ -224,14 +288,8 @@ esp::board_test::board_test()
     esp::ps2::ps2_controller::keyboard()->set_layout(&esp::ps2::US_LAYOUT);
     _keyboard_found = esp::ps2::ps2_controller::keyboard()->is_keyboard_available();
 
-    // Указатель мыши двигает сам контроллер дисплея, а новые состояния мыши
-    // драйвер мыши кладёт в очередь, которую читает poll(). Указатель начинает с центра экрана.
-    esp::ps2::mouse *const mouse = esp::ps2::ps2_controller::mouse();
-    mouse->setup_absolute_positioner(_canvas.width(), _canvas.height(), true, &_display);
-    _mouse = mouse->status();
-    _mouse_found = mouse->is_mouse_available();
-    if (_mouse_found)
-        _display.set_mouse_cursor(esp::p::CURSOR);
+    _mouse_found = esp::ps2::ps2_controller::mouse()->is_mouse_available();
+    attach_mouse();
 
     ESP_LOGI(esp::p::TAG, "Keyboard %s, mouse %s.", _keyboard_found ? "found" : "not found",
              _mouse_found ? "found" : "not found");
@@ -316,31 +374,178 @@ int esp::board_test::paint_top() const
 }
 
 /**
+ * @brief Сообщает, есть ли на экране поле для рисования.
+ *
+ * На низком экране (меньше 640 × 480) под строками текста места для поля
+ * не остаётся; тогда мышь не рисует, а F10 не показывает проверку.
+ *
+ * @return @c true, если поле без рамки не ниже esp::p::PAINT_AREA_MIN_HEIGHT.
+ */
+bool esp::board_test::has_paint_area() const
+{
+    return _canvas->height() - esp::p::MARGIN - 2 - paint_top() >= esp::p::PAINT_AREA_MIN_HEIGHT;
+}
+
+/**
+ * @brief Сообщает, помещается ли строка текста на экране.
+ * @param row Номер строки (перечисление esp::p::row).
+ * @return @c true, если строка целиком выше нижнего поля экрана.
+ */
+bool esp::board_test::row_visible(int row) const
+{
+    return status_top() + (row + 1) * _font.height() <= _canvas->height() - esp::p::MARGIN;
+}
+
+/**
+ * @brief Сообщает, помещается ли проверка отсечения на поле для рисования.
+ *
+ * Окно проверки — поле без рамки и промежутков вокруг окна (см.
+ * draw_clipping_test()).
+ *
+ * @return @c true, если окно не меньше esp::p::TEST_WINDOW_MIN_WIDTH на
+ *         esp::p::TEST_WINDOW_MIN_HEIGHT.
+ */
+bool esp::board_test::clipping_test_fits() const
+{
+    const int window_width =
+        _canvas->width() - 2 * esp::p::MARGIN - 2 - 2 * (esp::p::TEST_GAP_X + 1);
+    const int window_height =
+        _canvas->height() - esp::p::MARGIN - 2 - paint_top() - 2 * (esp::p::TEST_GAP_Y + 1);
+    return window_width >= esp::p::TEST_WINDOW_MIN_WIDTH
+        && window_height >= esp::p::TEST_WINDOW_MIN_HEIGHT;
+}
+
+/**
+ * @brief Включает видеорежим из таблицы esp::p::DISPLAY_MODES.
+ *
+ * Прежний видеоконтроллер, если он был, останавливается и уничтожается:
+ * его буфер кадра, очередь примитивов и прерывание освобождаются. На его
+ * месте создаётся и запускается видеоконтроллер нового режима, для него —
+ * новый холст, и указатель мыши переходит к нему. Экран после этого
+ * пуст: его рисует draw_screen().
+ *
+ * @param index Номер видеорежима в esp::p::DISPLAY_MODES.
+ */
+void esp::board_test::set_video_mode(int index)
+{
+    if (_display)
+    {
+        detach_mouse();
+        // Деструктор видеоконтроллера вывод не останавливает.
+        _display->end();
+        // Холст не должен ссылаться на уничтоженный видеоконтроллер.
+        _canvas.reset();
+    }
+
+    const esp::p::display_mode &mode = esp::p::DISPLAY_MODES[index];
+    switch (mode.driver)
+    {
+        case esp::p::vga_driver::vga16:
+            _display = &_display_storage.emplace<esp::vga::vga16_controller>();
+            break;
+
+        case esp::p::vga_driver::vga8:
+            _display = &_display_storage.emplace<esp::vga::vga8_controller>();
+            break;
+
+        case esp::p::vga_driver::vga4:
+            _display = &_display_storage.emplace<esp::vga::vga4_controller>();
+            break;
+
+        case esp::p::vga_driver::vga2:
+            _display = &_display_storage.emplace<esp::vga::vga2_controller>();
+            break;
+
+        case esp::p::vga_driver::vga64:
+            _display = &_display_storage.emplace<esp::vga::vga_controller>();
+            break;
+    }
+    _video_mode = index;
+    _clipping_test_shown = false;
+
+    _display->begin();
+    _display->set_resolution(mode.modeline);
+
+    _canvas.emplace(_display);
+    // Знаки шрифта заливают фон знакоместа цветом кисти, поэтому новый
+    // текст закрывает прежний.
+    _canvas->set_glyph_options(esp::gfx::glyph_options().set_fill_background(true));
+
+    // При запуске контроллер PS/2 ещё не включён: мышь подключает конструктор.
+    if (esp::ps2::ps2_controller::initialized())
+        attach_mouse();
+
+    ESP_LOGI(esp::p::TAG, "VGA %dx%d, %d colours.", _canvas->width(), _canvas->height(),
+             _display->colors_count());
+}
+
+/**
+ * @brief Отдаёт мышь текущему видеоконтроллеру.
+ *
+ * Указатель двигает сам видеоконтроллер, а новые состояния мыши её
+ * драйвер кладёт в очередь, которую читает poll(). Указатель начинает с
+ * центра экрана.
+ */
+void esp::board_test::attach_mouse()
+{
+    esp::ps2::mouse *const mouse = esp::ps2::ps2_controller::mouse();
+    mouse->setup_absolute_positioner(_canvas->width(), _canvas->height(), true, _display);
+    _mouse = mouse->status();
+    if (_mouse_found)
+        _display->set_mouse_cursor(esp::p::CURSOR);
+}
+
+/**
+ * @brief Отнимает мышь у текущего видеоконтроллера перед его остановкой.
+ *
+ * Задача мыши перестаёт двигать указатель контроллера; перемещение,
+ * которое она уже начала ему передавать, успевает закончиться за паузу.
+ * Очередь состояний мыши остаётся.
+ */
+void esp::board_test::detach_mouse()
+{
+    esp::ps2::ps2_controller::mouse()->setup_absolute_positioner(_canvas->width(),
+                                                                 _canvas->height(), true, nullptr);
+    vTaskDelay(pdMS_TO_TICKS(50));
+}
+
+/**
  * @brief Рисует проверочный экран целиком.
  */
 void esp::board_test::draw_screen()
 {
-    const int width = _canvas.width();
-    const int height = _canvas.height();
+    const int width = _canvas->width();
+    const int height = _canvas->height();
     const int line = _font.height();
 
-    _canvas.set_brush_color(esp::gfx::color::black);
-    _canvas.clear();
+    _canvas->set_brush_color(esp::gfx::color::black);
+    _canvas->clear();
 
     // Рамка по самому краю изображения: по ней видно, помещается ли
     // изображение на экране монитора целиком и не сдвинуто ли оно.
-    _canvas.set_pen_color(esp::gfx::color::bright_white);
-    _canvas.draw_rectangle(0, 0, width - 1, height - 1);
+    _canvas->set_pen_color(esp::gfx::color::bright_white);
+    _canvas->draw_rectangle(0, 0, width - 1, height - 1);
 
-    // Заголовок: белый текст на синем; справа — режим (в строке только
-    // знаки ASCII, поэтому число знаков равно её длине).
-    _canvas.set_brush_color(esp::gfx::color::blue);
-    _canvas.fill_rectangle(1, 1, width - 2, esp::p::TITLE_TOP + line);
-    _font.draw_text(_canvas, esp::p::MARGIN, esp::p::TITLE_TOP, "Espresso: board test");
-    char mode[32];
-    std::snprintf(mode, sizeof(mode), "%dx%d, %d colours", width, height, esp::p::COLORS);
-    _font.draw_text(_canvas,
-                    width - esp::p::MARGIN - _font.width() * static_cast<int>(std::strlen(mode)),
+    // Заголовок: белый текст на синем; справа — видеорежим и клавиша,
+    // которая его меняет (в строках только знаки ASCII, поэтому число
+    // знаков равно длине строки). На узком экране название короче или его
+    // нет вовсе.
+    _canvas->set_brush_color(esp::gfx::color::blue);
+    _canvas->fill_rectangle(1, 1, width - 2, esp::p::TITLE_TOP + line);
+    char mode[40];
+    std::snprintf(mode, sizeof(mode), "%dx%d, %d colours (F12)", width, height,
+                  _display->colors_count());
+    const int mode_length = static_cast<int>(std::strlen(mode));
+    const int cells = (width - 2 * esp::p::MARGIN) / _font.width();
+    for (const char *title : {"Espresso: board test", "Espresso"})
+    {
+        if (static_cast<int>(std::strlen(title)) + 1 + mode_length <= cells)
+        {
+            _font.draw_text(*_canvas, esp::p::MARGIN, esp::p::TITLE_TOP, title);
+            break;
+        }
+    }
+    _font.draw_text(*_canvas, width - esp::p::MARGIN - _font.width() * mode_length,
                     esp::p::TITLE_TOP, mode);
 
     // Полосы всех цветов палитры с номерами под ними; между полосами
@@ -351,14 +556,14 @@ void esp::board_test::draw_screen()
     for (int i = 0; i < esp::p::COLORS; ++i)
     {
         const int x = bars_left + i * bar_width;
-        _canvas.set_brush_color(esp::p::color(i));
-        _canvas.fill_rectangle(x, bars_top, x + bar_width - 2, bars_top + esp::p::BAR_HEIGHT - 1);
+        _canvas->set_brush_color(esp::p::color(i));
+        _canvas->fill_rectangle(x, bars_top, x + bar_width - 2, bars_top + esp::p::BAR_HEIGHT - 1);
 
         char number[4];
         std::snprintf(number, sizeof(number), "%d", i);
-        _canvas.set_pen_color(esp::gfx::color::white);
-        _canvas.set_brush_color(esp::gfx::color::black);
-        _font.draw_text(_canvas,
+        _canvas->set_pen_color(esp::gfx::color::white);
+        _canvas->set_brush_color(esp::gfx::color::black);
+        _font.draw_text(*_canvas,
                         x + (bar_width - _font.width() * static_cast<int>(std::strlen(number))) / 2,
                         bars_top + esp::p::BAR_HEIGHT + 2, number);
     }
@@ -370,13 +575,16 @@ void esp::board_test::draw_screen()
     show_button();
     show_sound();
     show_memory();
-    for (size_t i = 0; i < std::size(esp::p::SAMPLES); ++i)
+    for (std::size_t i = 0; i < std::size(esp::p::SAMPLES); ++i)
         draw_line(esp::p::row_samples + static_cast<int>(i), esp::p::SAMPLES[i]);
     show_help();
 
-    _canvas.set_pen_color(esp::gfx::color::white);
-    _canvas.draw_rectangle(esp::p::MARGIN, paint_top(), width - esp::p::MARGIN - 1,
-                           height - esp::p::MARGIN - 1);
+    if (has_paint_area())
+    {
+        _canvas->set_pen_color(esp::gfx::color::white);
+        _canvas->draw_rectangle(esp::p::MARGIN, paint_top(), width - esp::p::MARGIN - 1,
+                                height - esp::p::MARGIN - 1);
+    }
 }
 
 /**
@@ -384,30 +592,34 @@ void esp::board_test::draw_screen()
  *
  * Текст, который не помещается до правого поля, обрезается. Остаток
  * строки закрашивается фоном, поэтому новый текст полностью закрывает
- * прежний, более длинный.
+ * прежний, более длинный. Строка, которая не помещается на экране по
+ * высоте, не выводится.
  *
- * @param row Номер строки (перечисление row).
+ * @param row Номер строки (перечисление esp::p::row).
  * @param text Текст в кодировке UTF-8.
  */
 void esp::board_test::draw_line(int row, const char *text)
 {
+    if (!row_visible(row))
+        return;
+
     const int line = _font.height();
     const int y = status_top() + row * line;
-    const int right = _canvas.width() - esp::p::MARGIN - 1;
+    const int right = _canvas->width() - esp::p::MARGIN - 1;
 
     // Отсечение по правому полю: при широком знакоместе длинная строка
     // иначе залезла бы на рамку по краю изображения.
-    _canvas.set_clipping_rect(esp::gfx::rect(esp::p::MARGIN, y, right, y + line - 1));
-    _canvas.set_pen_color(esp::gfx::color::bright_white);
-    _canvas.set_brush_color(esp::gfx::color::black);
-    const int cells = _font.draw_text(_canvas, esp::p::MARGIN, y, text);
+    _canvas->set_clipping_rect(esp::gfx::rect(esp::p::MARGIN, y, right, y + line - 1));
+    _canvas->set_pen_color(esp::gfx::color::bright_white);
+    _canvas->set_brush_color(esp::gfx::color::black);
+    const int cells = _font.draw_text(*_canvas, esp::p::MARGIN, y, text);
 
     // Число знаков в UTF-8 не равно числу байтов, поэтому хвост строки
     // стирается прямоугольником, а не дополнением пробелами.
     const int x = esp::p::MARGIN + cells * _font.width();
     if (x <= right)
-        _canvas.fill_rectangle(x, y, right, y + line - 1);
-    _canvas.set_clipping_rect(esp::gfx::rect(0, 0, _canvas.width() - 1, _canvas.height() - 1));
+        _canvas->fill_rectangle(x, y, right, y + line - 1);
+    _canvas->set_clipping_rect(esp::gfx::rect(0, 0, _canvas->width() - 1, _canvas->height() - 1));
 }
 
 /**
@@ -499,10 +711,16 @@ void esp::board_test::show_memory()
  * @brief Показывает строку подсказки и образец цвета рисования в её конце.
  *
  * Пока показана проверка отсечения, подсказка напоминает, что фигуры не
- * должны выходить за внутреннюю рамку.
+ * должны выходить за внутреннюю рамку. Если поля для рисования нет,
+ * подсказка говорит об этом, а образца цвета нет.
  */
 void esp::board_test::show_help()
 {
+    if (!has_paint_area())
+    {
+        draw_line(esp::p::row_help, "No room to draw in this video mode; F12 changes it.");
+        return;
+    }
     draw_line(esp::p::row_help,
               _clipping_test_shown ? "Test: shapes must stay inside the inner frame. F10: back"
                                    : "Mouse: left draws, right clears, wheel: colour. F10: test");
@@ -511,30 +729,39 @@ void esp::board_test::show_help()
 
 /**
  * @brief Показывает образец цвета рисования в конце строки подсказки.
+ *
+ * Без поля для рисования или строки подсказки на экране образца нет.
  */
 void esp::board_test::show_paint_color()
 {
-    const int right = _canvas.width() - esp::p::MARGIN - 1;
+    if (!has_paint_area() || !row_visible(esp::p::row_help))
+        return;
+
+    const int right = _canvas->width() - esp::p::MARGIN - 1;
     const int top = status_top() + esp::p::row_help * _font.height() + 1;
     const int bottom = top + _font.height() - 3;
 
-    _canvas.set_pen_color(esp::gfx::color::white);
-    _canvas.set_brush_color(esp::p::color(_paint_color));
-    _canvas.fill_rectangle(right - 31, top, right, bottom);
-    _canvas.draw_rectangle(right - 31, top, right, bottom);
+    _canvas->set_pen_color(esp::gfx::color::white);
+    _canvas->set_brush_color(esp::p::color(_paint_color));
+    _canvas->fill_rectangle(right - 31, top, right, bottom);
+    _canvas->draw_rectangle(right - 31, top, right, bottom);
 }
 
 /**
  * @brief Очищает поле для рисования, не трогая его рамку.
  *
  * Если на поле была проверка отсечения, возвращает обычную подсказку.
+ * Без поля для рисования ничего не делает.
  */
 void esp::board_test::clear_paint_area()
 {
-    _canvas.set_brush_color(esp::gfx::color::black);
-    _canvas.fill_rectangle(esp::p::MARGIN + 1, paint_top() + 1,
-                           _canvas.width() - esp::p::MARGIN - 2,
-                           _canvas.height() - esp::p::MARGIN - 2);
+    if (!has_paint_area())
+        return;
+
+    _canvas->set_brush_color(esp::gfx::color::black);
+    _canvas->fill_rectangle(esp::p::MARGIN + 1, paint_top() + 1,
+                            _canvas->width() - esp::p::MARGIN - 2,
+                            _canvas->height() - esp::p::MARGIN - 2);
     if (_clipping_test_shown)
     {
         _clipping_test_shown = false;
@@ -554,20 +781,20 @@ void esp::board_test::clear_paint_area()
  */
 void esp::board_test::paint(int x1, int y1, int x2, int y2)
 {
-    const int width = _canvas.width();
-    const int height = _canvas.height();
+    const int width = _canvas->width();
+    const int height = _canvas->height();
 
     // Отсечение по внутренней части поля: рамка и строки над полем
     // остаются нетронутыми. Затем отсечение и толщина линии
     // возвращаются к обычным.
-    _canvas.set_clipping_rect(esp::gfx::rect(esp::p::MARGIN + 1, paint_top() + 1,
-                                             width - esp::p::MARGIN - 2,
-                                             height - esp::p::MARGIN - 2));
-    _canvas.set_pen_color(esp::p::color(_paint_color));
-    _canvas.set_pen_width(esp::p::PAINT_PEN_WIDTH);
-    _canvas.draw_line(x1, y1, x2, y2);
-    _canvas.set_pen_width(1);
-    _canvas.set_clipping_rect(esp::gfx::rect(0, 0, width - 1, height - 1));
+    _canvas->set_clipping_rect(esp::gfx::rect(esp::p::MARGIN + 1, paint_top() + 1,
+                                              width - esp::p::MARGIN - 2,
+                                              height - esp::p::MARGIN - 2));
+    _canvas->set_pen_color(esp::p::color(_paint_color));
+    _canvas->set_pen_width(esp::p::PAINT_PEN_WIDTH);
+    _canvas->draw_line(x1, y1, x2, y2);
+    _canvas->set_pen_width(1);
+    _canvas->set_clipping_rect(esp::gfx::rect(0, 0, width - 1, height - 1));
 }
 
 /**
@@ -598,8 +825,8 @@ void esp::board_test::draw_clipping_test()
     // Поле для рисования без его рамки.
     const int left = esp::p::MARGIN + 1;
     const int top = paint_top() + 1;
-    const int right = _canvas.width() - esp::p::MARGIN - 2;
-    const int bottom = _canvas.height() - esp::p::MARGIN - 2;
+    const int right = _canvas->width() - esp::p::MARGIN - 2;
+    const int bottom = _canvas->height() - esp::p::MARGIN - 2;
 
     // Окно, по которому идёт отсечение; его рамка — на точку снаружи.
     const int x1 = left + esp::p::TEST_GAP_X + 1;
@@ -610,18 +837,18 @@ void esp::board_test::draw_clipping_test()
     const int center_y = (y1 + y2) / 2;
 
     clear_paint_area();
-    _canvas.set_pen_color(esp::gfx::color::bright_white);
-    _canvas.draw_rectangle(x1 - 1, y1 - 1, x2 + 1, y2 + 1);
+    _canvas->set_pen_color(esp::gfx::color::bright_white);
+    _canvas->draw_rectangle(x1 - 1, y1 - 1, x2 + 1, y2 + 1);
 
-    _canvas.set_clipping_rect(esp::gfx::rect(x1, y1, x2, y2));
-    _canvas.set_brush_color(esp::gfx::color::blue);
-    _canvas.fill_rectangle(x1, y1, x2, y2);
+    _canvas->set_clipping_rect(esp::gfx::rect(x1, y1, x2, y2));
+    _canvas->set_brush_color(esp::gfx::color::blue);
+    _canvas->fill_rectangle(x1, y1, x2, y2);
 
     // Прямоугольники 48 × 24 с центрами в углах окна: видна четверть каждого.
     const auto corner = [this](int x, int y, esp::gfx::color color)
     {
-        _canvas.set_brush_color(color);
-        _canvas.fill_rectangle(x - 24, y - 12, x + 23, y + 11);
+        _canvas->set_brush_color(color);
+        _canvas->fill_rectangle(x - 24, y - 12, x + 23, y + 11);
     };
     corner(x1, y1, esp::gfx::color::bright_red);
     corner(x2, y1, esp::gfx::color::bright_green);
@@ -629,42 +856,42 @@ void esp::board_test::draw_clipping_test()
     corner(x2, y2, esp::gfx::color::white);
 
     // Эллипсы с центрами на левом и правом краях: видна половина каждого.
-    _canvas.set_brush_color(esp::gfx::color::bright_green);
-    _canvas.fill_ellipse(x1, center_y, 72, 56);
-    _canvas.set_pen_color(esp::gfx::color::bright_white);
-    _canvas.draw_ellipse(x2, center_y, 72, 56);
+    _canvas->set_brush_color(esp::gfx::color::bright_green);
+    _canvas->fill_ellipse(x1, center_y, 72, 56);
+    _canvas->set_pen_color(esp::gfx::color::bright_white);
+    _canvas->draw_ellipse(x2, center_y, 72, 56);
 
     // Эллипсы высотой в одну строку; последний — в одну точку.
-    _canvas.set_brush_color(esp::gfx::color::bright_yellow);
+    _canvas->set_brush_color(esp::gfx::color::bright_yellow);
     const int widths[] = {41, 21, 9, 3, 1};
     for (int i = 0; i < static_cast<int>(std::size(widths)); ++i)
-        _canvas.fill_ellipse(x1 + 90, center_y - 12 + 6 * i, widths[i], 1);
+        _canvas->fill_ellipse(x1 + 90, center_y - 12 + 6 * i, widths[i], 1);
 
     // Линии через всё поле: видны только их части внутри окна.
-    _canvas.set_pen_color(esp::gfx::color::bright_cyan);
-    _canvas.draw_line(left, y2 - 20, right, y2 - 20);
-    _canvas.draw_line(x1 + 120, top, x1 + 120, bottom);
-    _canvas.draw_line(x1 + 430, top, x1 + 510, bottom);
+    _canvas->set_pen_color(esp::gfx::color::bright_cyan);
+    _canvas->draw_line(left, y2 - 20, right, y2 - 20);
+    _canvas->draw_line(x1 + 120, top, x1 + 120, bottom);
+    _canvas->draw_line(x1 + 430, top, x1 + 510, bottom);
 
     // Инверсия прямоугольника, который выходит за нижний край окна.
-    _canvas.invert_rectangle(x1 + 150, y2 - 24, x1 + 230, bottom - 2);
+    _canvas->invert_rectangle(x1 + 150, y2 - 24, x1 + 230, bottom - 2);
 
     // Красные полосы, затем обмен цветов пера и кисти в прямоугольнике,
     // который выходит за верхний край окна.
-    _canvas.set_brush_color(esp::gfx::color::bright_red);
+    _canvas->set_brush_color(esp::gfx::color::bright_red);
     for (int x = x1 + 280; x < x1 + 360; x += 8)
-        _canvas.fill_rectangle(x, y1, x + 3, y1 + 30);
-    _canvas.set_pen_color(esp::gfx::color::bright_red);
-    _canvas.set_brush_color(esp::gfx::color::blue);
-    _canvas.swap_rectangle(x1 + 270, top + 2, x1 + 370, y1 + 15);
+        _canvas->fill_rectangle(x, y1, x + 3, y1 + 30);
+    _canvas->set_pen_color(esp::gfx::color::bright_red);
+    _canvas->set_brush_color(esp::gfx::color::blue);
+    _canvas->swap_rectangle(x1 + 270, top + 2, x1 + 370, y1 + 15);
 
     // Фигуры целиком вне окна: инверсия слева, обмен цветов снизу,
     // эллипсы высотой в строку справа. Следов остаться не должно.
-    _canvas.invert_rectangle(left + 4, y1 + 14, x1 - 6, y1 + 25);
-    _canvas.swap_rectangle(x1 + 270, y2 + 3, x1 + 370, bottom - 2);
-    _canvas.set_brush_color(esp::gfx::color::bright_yellow);
+    _canvas->invert_rectangle(left + 4, y1 + 14, x1 - 6, y1 + 25);
+    _canvas->swap_rectangle(x1 + 270, y2 + 3, x1 + 370, bottom - 2);
+    _canvas->set_brush_color(esp::gfx::color::bright_yellow);
     for (int y = y1 + 14; y <= y1 + 25; ++y)
-        _canvas.fill_ellipse(x2 + 1 + esp::p::TEST_GAP_X / 2, y, 15, 1);
+        _canvas->fill_ellipse(x2 + 1 + esp::p::TEST_GAP_X / 2, y, 15, 1);
 
     // Пустые области отсечения (ширина или высота −1 точка): через них не
     // рисуется ничего, иначе посередине окна появилась бы белая линия.
@@ -672,22 +899,22 @@ void esp::board_test::draw_clipping_test()
                                           esp::gfx::rect(x1, center_y, x2, center_y - 1)};
     for (const esp::gfx::rect &clip : empty_clips)
     {
-        _canvas.set_clipping_rect(clip);
-        _canvas.set_brush_color(esp::gfx::color::bright_white);
-        _canvas.fill_rectangle(x1, y1, x2, y2);
-        _canvas.fill_ellipse(center_x, center_y, 200, 60);
-        _canvas.fill_ellipse(center_x, center_y, 200, 1);
-        _canvas.set_pen_color(esp::gfx::color::bright_white);
-        _canvas.draw_line(x1, center_y, x2, center_y);
-        _canvas.draw_line(center_x, y1, center_x, y2);
-        _canvas.draw_line(x1, y1, x2, y2);
-        _canvas.invert_rectangle(x1, y1, x2, y2);
-        _canvas.set_pen_color(esp::gfx::color::bright_red);
-        _canvas.set_brush_color(esp::gfx::color::blue);
-        _canvas.swap_rectangle(x1, y1, x2, y2);
+        _canvas->set_clipping_rect(clip);
+        _canvas->set_brush_color(esp::gfx::color::bright_white);
+        _canvas->fill_rectangle(x1, y1, x2, y2);
+        _canvas->fill_ellipse(center_x, center_y, 200, 60);
+        _canvas->fill_ellipse(center_x, center_y, 200, 1);
+        _canvas->set_pen_color(esp::gfx::color::bright_white);
+        _canvas->draw_line(x1, center_y, x2, center_y);
+        _canvas->draw_line(center_x, y1, center_x, y2);
+        _canvas->draw_line(x1, y1, x2, y2);
+        _canvas->invert_rectangle(x1, y1, x2, y2);
+        _canvas->set_pen_color(esp::gfx::color::bright_red);
+        _canvas->set_brush_color(esp::gfx::color::blue);
+        _canvas->swap_rectangle(x1, y1, x2, y2);
     }
 
-    _canvas.set_clipping_rect(esp::gfx::rect(0, 0, _canvas.width() - 1, _canvas.height() - 1));
+    _canvas->set_clipping_rect(esp::gfx::rect(0, 0, _canvas->width() - 1, _canvas->height() - 1));
 
     _clipping_test_shown = true;
     show_help();
@@ -734,8 +961,13 @@ void esp::board_test::on_key(const esp::ps2::virtual_key_item &item)
         case esp::ps2::virtual_key::vk_f10:
             if (_clipping_test_shown)
                 clear_paint_area();
-            else
+            else if (clipping_test_fits())
                 draw_clipping_test();
+            return;
+
+        case esp::ps2::virtual_key::vk_f12:
+            set_video_mode((_video_mode + 1) % static_cast<int>(std::size(esp::p::DISPLAY_MODES)));
+            draw_screen();
             return;
 
         case esp::ps2::virtual_key::vk_escape:
@@ -774,7 +1006,8 @@ void esp::board_test::on_key(const esp::ps2::virtual_key_item &item)
  *
  * Пока нажата левая кнопка, рисует линию от прежнего положения к новому;
  * правая кнопка очищает поле, средняя подаёт звук, колесо меняет цвет
- * рисования. Нажатия и отпускания кнопок выводятся в консоль.
+ * рисования. Без поля для рисования левая и правая кнопки ничего не
+ * делают. Нажатия и отпускания кнопок выводятся в консоль.
  *
  * @param status Новое состояние мыши.
  */
@@ -785,7 +1018,7 @@ void esp::board_test::on_mouse(const esp::ps2::mouse_status &status)
 
     // Линия от прежнего положения делает след сплошным и при быстром
     // движении; в момент нажатия рисуется точка.
-    if (status.buttons.left)
+    if (status.buttons.left && has_paint_area())
     {
         if (previous.buttons.left)
             paint(previous.x, previous.y, status.x, status.y);
@@ -843,7 +1076,7 @@ void esp::board_test::check_devices()
         draw_line(esp::p::row_mouse, "Mouse:    searching...");
         _mouse_found = esp::ps2::ps2_controller::mouse()->reset();
         if (_mouse_found)
-            _display.set_mouse_cursor(esp::p::CURSOR);
+            _display->set_mouse_cursor(esp::p::CURSOR);
         ESP_LOGI(esp::p::TAG, "Mouse %s.", _mouse_found ? "found" : "not found");
         show_mouse();
     }

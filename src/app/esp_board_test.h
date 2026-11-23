@@ -6,8 +6,14 @@
 #include "esp_ps2_virtual_key_item.h"
 #include "esp_sound_sound_generator.h"
 #include "esp_vga_vga16_controller.h"
+#include "esp_vga_vga2_controller.h"
+#include "esp_vga_vga4_controller.h"
+#include "esp_vga_vga8_controller.h"
+#include "esp_vga_vga_controller.h"
 
+#include <optional>
 #include <string>
+#include <variant>
 
 
 namespace esp
@@ -27,6 +33,12 @@ private:
 
     int status_top() const;
     int paint_top() const;
+    bool has_paint_area() const;
+    bool row_visible(int row) const;
+    bool clipping_test_fits() const;
+    void set_video_mode(int index);
+    void attach_mouse();
+    void detach_mouse();
     void draw_screen();
     void draw_line(int row, const char *text);
     void show_keyboard();
@@ -46,11 +58,23 @@ private:
     void check_devices();
     void play(int frequency, int duration_ms);
 
-    /** @brief Видеоконтроллер VGA на 16 цветов. */
-    esp::vga::vga16_controller _display;
+    /**
+     * @brief Видеоконтроллер текущего видеорежима.
+     *
+     * Существует только контроллер текущего режима: set_video_mode()
+     * останавливает его и создаёт на его месте контроллер нового режима,
+     * так что память кадра, очередь примитивов и прерывание прежнего
+     * освобождаются.
+     */
+    std::variant<esp::vga::vga16_controller, esp::vga::vga8_controller, esp::vga::vga4_controller,
+                 esp::vga::vga2_controller, esp::vga::vga_controller>
+        _display_storage;
 
-    /** @brief Холст для рисования на экране видеоконтроллера _display. */
-    esp::gfx::canvas _canvas;
+    /** @brief Видеоконтроллер в _display_storage; @c nullptr, пока видеорежим не задан. */
+    esp::vga::vga_base_controller *_display;
+
+    /** @brief Холст для рисования на экране _display; создаётся заново при смене видеорежима. */
+    std::optional<esp::gfx::canvas> _canvas;
 
     /** @brief Шрифт всего текста на экране: Terminus 10 × 18 (таблицы ter_10x18). */
     esp::gfx::font _font;
@@ -67,7 +91,7 @@ private:
     /** @brief Форма звуковой волны: номер в таблице WAVEFORMS. */
     int _waveform;
 
-    /** @brief Цвет рисования мышью: номер цвета палитры, от 0 до 15. */
+    /** @brief Цвет рисования мышью: номер именованного цвета esp::gfx::color, от 0 до 15. */
     int _paint_color;
 
     /** @brief Сколько раз нажата кнопка K1. */
@@ -87,6 +111,9 @@ private:
      * текст строки подсказки (show_help()).
      */
     bool _clipping_test_shown;
+
+    /** @brief Номер текущего видеорежима в таблице видеорежимов (esp::p::DISPLAY_MODES). */
+    int _video_mode;
 };
 
 }
