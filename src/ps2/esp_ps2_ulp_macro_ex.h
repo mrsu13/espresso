@@ -26,8 +26,6 @@
 
 /** @brief Операция АЛУ над STAGE: увеличить. */
 #define ALU_SEL_STAGE_INC 0
-/** @brief Операция АЛУ над STAGE: уменьшить. */
-#define ALU_SEL_STAGE_DEC 1
 /** @brief Операция АЛУ над STAGE: обнулить. */
 #define ALU_SEL_STAGE_RST 2
 
@@ -63,17 +61,6 @@
     { \
         .b = {.imm = imm_value, \
               .cmp = 0, \
-              .offset = abs(pc_offset), \
-              .sign = (pc_offset >= 0) ? 0 : 1, \
-              .sub_opcode = SUB_OPCODE_STAGEB, \
-              .opcode = OPCODE_BRANCH} \
-    }
-
-/** @brief Относительный переход на pc_offset команд, если STAGE <= imm_value (8 разрядов). */
-#define I_STAGEBLE(pc_offset, imm_value) \
-    { \
-        .b = {.imm = imm_value, \
-              .cmp = 1, \
               .offset = abs(pc_offset), \
               .sign = (pc_offset >= 0) ? 0 : 1, \
               .sub_opcode = SUB_OPCODE_STAGEB, \
