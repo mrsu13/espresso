@@ -42,3 +42,12 @@
 build/
 sdkconfig
 sdkconfig.old
+
+# Документация, которую собирает doc/Makefile, и журнал предупреждений Doxygen
+doc/html/
+doc/latex/
+doc/doxy.log
+doc/*.pdf
+doc/*.docx
+doc/last-modified.tex
+doc/md/01-changelog.md

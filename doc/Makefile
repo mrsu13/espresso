@@ -1,12 +1,13 @@
-.PHONY: all doxygen pdf docx clean changelog dots puml copy-img \
+.PHONY: all doxygen pdf pdf-pandoc docx clean changelog dots puml copy-img \
         install-deps install-deps-html install-deps-pdf last-modified
 
-# Имя пользователя для дат: PST оставлено как было в исходном Makefile,
-# чтобы метки совпадали с уже сгенерированными артефактами.
+# Часовой пояс для дат: PST оставлен как в исходном Makefile, чтобы метки
+# совпадали с уже сгенерированными артефактами.
 timestamp := $(shell TZ=PST git log -1 --remove-empty --no-merges --format='%cd' --date="format-local:%Y%m%d" .)
 
-# Версия Espresso подставляется в Doxyfile как $(ESP_VERSION).
-export ESP_VERSION := $(shell tr -d '" \n' < ../../VERSION)
+# Версия Espresso из файла VERSION в корне проекта подставляется в Doxyfile
+# как $(ESP_VERSION).
+export ESP_VERSION := $(shell tr -d '" \n' < ../VERSION)
 
 # PlantUML: команда из пакета (apt install plantuml). Можно переопределить
 # через `make puml PLANTUML='java -jar /path/to/plantuml.jar'`.
@@ -35,18 +36,24 @@ install-deps-pdf:
 	                    fonts-dejavu fonts-cmu
 
 
-doxygen: dots puml copy-img
+# Старый вывод удаляется до того, как картинки из dot, puml и md/images
+# кладутся в html/images: иначе rm -rf html удалил бы их до запуска Doxygen.
+doxygen:
 	@rm -rf html
+	$(MAKE) dots puml copy-img
 	doxygen
 
 pdf-pandoc:	changelog dots puml
 	pandoc -F pandoc-plantuml --resource-path=md -f markdown+smart md/*.md -o espresso-$(timestamp).pdf
 
-pdf: changelog puml dots copy-img last-modified
+# Doxygen готовит latex/ (графы — в PDF, USE_PDFLATEX = YES), затем XeLaTeX
+# собирает refman.pdf.
+pdf: changelog last-modified
 	@rm -rf html latex
+	$(MAKE) dots puml copy-img
 	doxygen
 	cp tex/espresso.sty latex/
-	cd latex; $(MAKE) LATEX_CMD=xelatex; mv refman.pdf ../espresso-$(timestamp).pdf
+	cd latex && $(MAKE) LATEX_CMD=xelatex && mv refman.pdf ../espresso-$(timestamp).pdf
 
 docx:	changelog dots puml
 	pandoc -F pandoc-plantuml --resource-path=md -f markdown+smart md/*.md -o espresso-$(timestamp).docx
@@ -80,15 +87,20 @@ copy-img:
 		cp "$$i" html/images/; \
 	done
 
+# Страница с историей изменений каталога doc по журналу git. Её читают и
+# Doxygen, и pandoc, поэтому в ней только общая для них разметка. Знаки,
+# особые для одного из них (\ @ & $ # < > % |), экранируются обратной
+# косой чертой: иначе, например, «@brief» в описании коммита Doxygen
+# принял бы за команду.
 changelog:
-	echo '\\newpage' > md/01-changelog.md
+	echo '# История изменений документации {#changelog}' > md/01-changelog.md
 	echo >> md/01-changelog.md
-	echo "# Document Revisions" >> md/01-changelog.md
-	echo "table: Document Revisions" >> md/01-changelog.md
-	echo >> md/01-changelog.md
-	echo "| **Date**               | **Author** | **Comments** |" >> md/01-changelog.md
-	echo "| ----------------------------- | -------------------- | ----------------------------------------------- |" >> md/01-changelog.md
-	git log --no-merges --date-order --format="| %cd | %cN | %s |" --date="format-local:%d/%m/%y %I:%M %p %Z" . >> md/01-changelog.md
+	echo '| Дата | Автор | Изменение |' >> md/01-changelog.md
+	echo '|---|---|---|' >> md/01-changelog.md
+	git log --no-merges --date-order --format='%cd%x09%cN%x09%s' \
+	        --date='format-local:%Y-%m-%d %H:%M' . \
+	    | sed -e 's/[\\@&$$#<>%|]/\\&/g' -e 's/\t/ | /g' -e 's/^/| /' -e 's/$$/ |/' \
+	    >> md/01-changelog.md
 
 clean:
 	rm -rf html latex plantuml-images *.pdf *.epub *.docx md/01-changelog.md *.log tex/*.aux tex/*.fdb_latexmk tex/*.fls tex/*.log symbols.sql last-modified.tex doxy.log Doxyfile.bak *.aux

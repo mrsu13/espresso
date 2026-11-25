@@ -1,5 +1,6 @@
 % Титульная страница.
-% Дата сборки берётся из tex/last-modified.tex (генерируется Makefile-ом).
+% Дата сборки берётся из doc/last-modified.tex (его пишет цель last-modified
+% в doc/Makefile; путь ../last-modified.tex — от каталога latex).
 % Файл может отсутствовать при сборке вне `make pdf` — подстраховываемся
 % \IfFileExists.
 \IfFileExists{../last-modified.tex}{%

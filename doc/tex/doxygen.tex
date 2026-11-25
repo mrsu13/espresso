@@ -1,5 +1,50 @@
 \usepackage{espresso}
 
+% Значения перечислений (DoxyEnumFields) набираются таблицей longtable, а
+% не longtblr из tabularray, как в espresso.sty (копии doxygen.sty из
+% Doxygen). Doxygen набирает такую таблицу дважды, чтобы узнать её ширину,
+% и на длинном перечислении (у esp::ps2::virtual_key около двухсот
+% значений) tabularray 2023A из TeX Live 2023 исчерпывает память и
+% регистры XeTeX. longtable набирает строки по мере чтения, без таких
+% пределов, и переносит длинную таблицу на следующие страницы.
+%
+% Ширина колонок постоянная: имена — 35 % строки, описания — остальное.
+% Первая строка — заголовок без вертикальных линий, как у Doxygen; на
+% следующих страницах таблица начинается с линии. Строки тела Doxygen сам
+% завершает \\ и \hline.
+\newlength{\DoxyEnumNameWidth}
+\newlength{\DoxyEnumTextWidth}
+% #1 — колонки таблицы, #2 — их число, #3 — заголовок, #4 — тело.
+\NewDocumentCommand{\DoxyEnumTable}{m m m +m}{%
+  \par
+  \begingroup
+  \setlength{\LTleft}{0pt}%
+  \setlength{\LTright}{\fill}%
+  \begin{longtable}{#1}
+  \multicolumn{#2}{l}{\tf{#3}} \\[1ex]
+  \hline
+  \endfirsthead
+  \hline
+  \endhead
+  #4
+  \end{longtable}%
+  \endgroup
+  \par\addvspace{6pt}%
+}
+\RenewDocumentEnvironment{DoxyEnumFields}{O{2} m +b}{%
+  \setlength{\DoxyEnumNameWidth}{\dimexpr 0.35\linewidth - 2\tabcolsep\relax}%
+  \ifnum#1>2
+    % Имя, значение и описание; значение — по ширине содержимого.
+    \setlength{\DoxyEnumTextWidth}{\dimexpr 0.45\linewidth - 2\tabcolsep\relax}%
+    \DoxyEnumTable{|>{\raggedright\arraybackslash}p{\DoxyEnumNameWidth}|r|p{\DoxyEnumTextWidth}|}%
+                  {3}{#2}{#3}%
+  \else
+    \setlength{\DoxyEnumTextWidth}{\dimexpr 0.65\linewidth - 2\tabcolsep - 3\arrayrulewidth\relax}%
+    \DoxyEnumTable{|>{\raggedright\arraybackslash}p{\DoxyEnumNameWidth}|p{\DoxyEnumTextWidth}|}%
+                  {2}{#2}{#3}%
+  \fi
+}{}
+
 \PassOptionsToPackage{warn}{textcomp}
 \usepackage{textcomp}
 \usepackage[nointegrals]{wasysym}

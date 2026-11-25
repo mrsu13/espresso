@@ -54,7 +54,7 @@ PROJECT_NUMBER         = $(ESP_VERSION)
 # for a project that appears at the top of each page and should give viewers a
 # quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = "Terminal Instant Messenger"
+PROJECT_BRIEF          = "Терминал с языком Форт для LilyGO TTGO VGA32 v1.4"
 
 # With the PROJECT_LOGO tag one can specify a logo or an icon that is included
 # in the documentation. The maximum height of the logo should not exceed 55
@@ -1103,7 +1103,7 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which Doxygen is
 # run.
 
-EXCLUDE                =
+EXCLUDE                = ../src/3rdparty
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
@@ -1122,7 +1122,7 @@ EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = */.git/* \
                          */.svn/* \
                          */build/* \
-                         */src/3rdparty
+                         */INFO.md
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
 # (namespaces, classes, functions, etc.) that should be excluded from the
@@ -2194,7 +2194,7 @@ PDF_HYPERLINKS         = YES
 # The default value is: YES.
 # This tag requires that the tag GENERATE_LATEX is set to YES.
 
-USE_PDFLATEX           = NO
+USE_PDFLATEX           = YES
 
 # The LATEX_BATCHMODE tag signals the behavior of LaTeX in case of an error.
 # Possible values are: NO same as ERROR_STOP, YES same as BATCH, BATCH In batch
@@ -2528,10 +2528,7 @@ INCLUDE_FILE_PATTERNS  =
 # recursively expanded use the := operator instead of the = operator.
 # This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
-PREDEFINED             = ESP_OS_LINUX \
-                         ESP_DEBUG \
-                         ESP_TRACE_MIN_LEVEL=5 \
-                         IRAM_ATTR= \
+PREDEFINED             = IRAM_ATTR= \
                          PACKED_ATTR= \
                          FORCE_INLINE_ATTR= \
                          ESP_ALWAYS_INLINE_ATTR=
