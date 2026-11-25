@@ -1,4 +1,4 @@
-# espresso
+# Espresso
 
 ESP32 firmware for the LilyGO TTGO VGA32 v1.4 board. For now it tests the VGA output, the PS/2
 keyboard and mouse, and the sound, and prints the board info and a debug log to the serial
