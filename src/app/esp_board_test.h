@@ -2,6 +2,7 @@
 
 #include "esp_gfx_canvas.h"
 #include "esp_gfx_font.h"
+#include "esp_non_copyable.h"
 #include "esp_ps2_mouse_status.h"
 #include "esp_ps2_virtual_key_item.h"
 #include "esp_sound_sound_generator.h"
@@ -19,15 +20,17 @@
 namespace esp
 {
 
-class board_test
+class board_test : esp::non_copyable
 {
 
 public:
 
-    board_test();
+    explicit board_test(esp::sound::sound_generator &sound);
+    ~board_test();
 
     void poll();
     void button_pressed();
+    inline bool is_done() const;
 
 private:
 
@@ -79,8 +82,14 @@ private:
     /** @brief Шрифт всего текста на экране: Terminus 10 × 18 (таблицы ter_10x18). */
     esp::gfx::font _font;
 
-    /** @brief Генератор звука: ЦАП на выводе GPIO25. */
-    esp::sound::sound_generator _sound;
+    /**
+     * @brief Генератор звука, которым проверка пользуется, пока жива.
+     *
+     * Он чужой — например, терминала, который на это время приостановлен:
+     * два генератора не могут работать сразу, потому что оба выводят звук
+     * через модуль I2S0 и ЦАП.
+     */
+    esp::sound::sound_generator &_sound;
 
     /** @brief Строка, набранная на клавиатуре. */
     std::string _input;
@@ -112,8 +121,25 @@ private:
      */
     bool _clipping_test_shown;
 
+    /** @brief Нажата ли Esc: проверка закончена, и её можно уничтожить. */
+    bool _is_done;
+
     /** @brief Номер текущего видеорежима в таблице видеорежимов (esp::p::DISPLAY_MODES). */
     int _video_mode;
 };
 
+}
+
+
+// Реализация
+
+// Открытые
+
+/**
+ * @brief Сообщает, закончена ли проверка.
+ * @return @c true, если нажата Esc.
+ */
+bool esp::board_test::is_done() const
+{
+    return _is_done;
 }

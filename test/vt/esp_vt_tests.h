@@ -17,6 +17,7 @@
 namespace esp::vt::test
 {
 
+void keys_tests(esp::test::context &context);
 void parser_tests(esp::test::context &context);
 void scrollback_tests(esp::test::context &context);
 void screen_tests(esp::test::context &context);
@@ -56,6 +57,12 @@ std::string esp::vt::test::caret(std::string_view text)
     }
     return bytes;
 }
+
+/**
+ * @fn void esp::vt::test::keys_tests(esp::test::context &context)
+ * @brief Проверяет перевод клавиш PS/2 в байты VT220: знаки, Alt, Ctrl, особые клавиши с признаками.
+ * @param context Счёт проверок.
+ */
 
 /**
  * @fn void esp::vt::test::parser_tests(esp::test::context &context)

@@ -42,9 +42,13 @@
  * @class esp::board_test
  * @brief Проверка платы TTGO VGA32 v1.4.
  *
- * Конструктор включает вывод на VGA (640 × 480, 16 цветов), порты PS/2
- * (клавиатура на порту 0, мышь на порту 1) и звук (ЦАП, GPIO25), рисует
- * проверочный экран и подаёт два звука.
+ * Конструктор включает вывод на VGA (640 × 480, 16 цветов) и, если их ещё
+ * никто не включил, порты PS/2 (клавиатура на порту 0, мышь на порту 1),
+ * рисует проверочный экран и подаёт два звука. Генератор звука проверка
+ * получает чужой. Её запускает команда @c board-test тестовой оболочки
+ * (esp::shell::test_shell): монитор, клавиатуру и генератор звука ей на
+ * это время отдаёт приостановленный терминал (esp::vt::terminal::suspend()).
+ * Деструктор останавливает вывод на VGA и отпускает мышь.
  *
  * На экране — рамка по краю изображения, заголовок, полосы всех 16 цветов
  * палитры, строки состояния, образцы русского текста и псевдографики и
@@ -53,21 +57,24 @@
  * экрана рассчитывается по размеру знакоместа шрифта.
  *
  * Клавиатура: набранные символы появляются в строке ввода; Backspace
- * стирает последний, Enter выводит строку в консоль и очищает её, Esc
- * просто очищает. F1–F8 играют гамму до мажор (523–1047 Гц), F9 меняет
- * форму звуковой волны, F10 показывает на поле для рисования проверку
- * фигур и отсечения (draw_clipping_test()) и убирает её. F12 по кругу
- * переключает видеорежимы (esp::p::DISPLAY_MODES): 640 × 480 с 16, 8, 4 и
- * 2 цветами, 800 × 600 с 4 и 2 цветами, 1024 × 768 с 2 цветами в двух
- * развёртках, 400 × 300 и 320 × 240 с 64 цветами; на маленьком экране
- * видны не все строки, а поля для рисования нет.
+ * стирает последний, Enter выводит строку в журнал и очищает её. Esc
+ * завершает проверку (is_done()). F1–F8 играют гамму до мажор
+ * (523–1047 Гц), F9 меняет форму звуковой волны, F10 показывает на поле
+ * для рисования проверку фигур и отсечения (draw_clipping_test()) и
+ * убирает её. F12 по кругу переключает видеорежимы
+ * (esp::p::DISPLAY_MODES): 640 × 480 с 16, 8, 4 и 2 цветами, 800 × 600
+ * с 4 и 2 цветами, 1024 × 768 с 2 цветами в двух развёртках, 400 × 300
+ * и 320 × 240 с 64 цветами; на маленьком экране видны не все строки, а
+ * поля для рисования нет.
  *
  * Мышь: левая кнопка рисует, правая очищает поле, средняя подаёт звук,
  * колесо меняет цвет рисования.
  *
  * Кнопка K1 (button_pressed()) подаёт звук и заново ищет клавиатуру и
  * мышь, если их не было. События клавиатуры и мыши обрабатывает poll(),
- * которую приложение вызывает каждые несколько миллисекунд.
+ * которую вызывающий вызывает каждые несколько миллисекунд. poll() и
+ * button_pressed() рисуют на одном холсте, поэтому вызываются из одной
+ * задачи.
  */
 
 
@@ -267,40 +274,48 @@ esp::gfx::color color(int index)
 // Открытые
 
 /**
- * @brief Включает VGA, PS/2 и звук и рисует проверочный экран.
+ * @brief Включает VGA и, если нужно, PS/2, рисует проверочный экран и подаёт два звука.
  *
- * Выводы — по умолчанию модулей esp::vga, esp::ps2 и esp::sound; они
- * совпадают с разводкой платы TTGO VGA32:
- * красный 21 и 22, зелёный 18 и 19, синий 4 и 5, HSync 23, VSync 15;
- * клавиатура CLK 33, DATA 32; мышь CLK 26, DATA 27; звук — ЦАП на GPIO25.
+ * Выводы — по умолчанию модулей esp::vga и esp::ps2; они совпадают с
+ * разводкой платы TTGO VGA32: красный 21 и 22, зелёный 18 и 19, синий 4
+ * и 5, HSync 23, VSync 15; клавиатура CLK 33, DATA 32; мышь CLK 26,
+ * DATA 27.
+ *
+ * @param sound Генератор звука; должен жить дольше проверки, и, пока она
+ *        жива, им не должен пользоваться никто другой.
  */
-esp::board_test::board_test()
+esp::board_test::board_test(esp::sound::sound_generator &sound)
     : _display{nullptr}
     , _font{ter_10x18::WIDTH,  ter_10x18::HEIGHT, ter_10x18::CODEPOINTS,
             ter_10x18::GLYPHS, ter_10x18::COUNT,  ter_10x18::FALLBACK}
+    , _sound{sound}
     , _waveform{0}
     , _paint_color{static_cast<int>(esp::gfx::color::bright_yellow)}
     , _presses{0}
     , _keyboard_found{false}
     , _mouse_found{false}
     , _clipping_test_shown{false}
+    , _is_done{false}
     , _video_mode{0}
 {
-    set_video_mode(0);
-
-    // Контроллер PS/2 ищет устройства только здесь и при их сбросе
-    // (check_devices()):
-    // клавиатуру и мышь лучше подключить до включения платы.
-    esp::ps2::ps2_controller::begin(esp::ps2::ps2_preset::keyboard_port_0_mouse_port_1);
-    esp::ps2::ps2_controller::keyboard()->set_layout(&esp::ps2::US_LAYOUT);
+    // Контроллер PS/2 ищет устройства только при запуске и при их сбросе
+    // (check_devices()): клавиатуру и мышь лучше подключить до включения
+    // платы. Запущенный контроллер — его запускает терминал — заново не
+    // запускается: begin() создаёт клавиатуру и мышь заново, и у задачи
+    // клавиатуры терминала осталась бы уничтоженная клавиатура.
+    if (!esp::ps2::ps2_controller::initialized())
+    {
+        esp::ps2::ps2_controller::begin(esp::ps2::ps2_preset::keyboard_port_0_mouse_port_1);
+        esp::ps2::ps2_controller::keyboard()->set_layout(&esp::ps2::US_LAYOUT);
+    }
     _keyboard_found = esp::ps2::ps2_controller::keyboard()->is_keyboard_available();
-
     _mouse_found = esp::ps2::ps2_controller::mouse()->is_mouse_available();
-    attach_mouse();
-
     ESP_LOGI(esp::p::TAG, "Keyboard %s, mouse %s.", _keyboard_found ? "found" : "not found",
              _mouse_found ? "found" : "not found");
 
+    // Видеорежим — после PS/2: set_video_mode() отдаёт мышь новому
+    // видеоконтроллеру.
+    set_video_mode(0);
     draw_screen();
 
     // Два звука при запуске проверяют звук и без клавиатуры.
@@ -314,17 +329,37 @@ esp::board_test::board_test()
 }
 
 /**
+ * @brief Останавливает вывод на VGA и отпускает мышь.
+ *
+ * Мышь перестаёт двигать указатель, а видеоконтроллер останавливается и
+ * освобождает буфер кадра, очередь примитивов и прерывание. Контроллер
+ * PS/2 остаётся включённым: им пользуется и терминал. Звуки, которые ещё
+ * не отзвучали, доигрывает генератор звука.
+ */
+esp::board_test::~board_test()
+{
+    detach_mouse();
+    // Деструктор видеоконтроллера вывод не останавливает.
+    _display->end();
+    _canvas.reset();
+}
+
+/**
  * @brief Обрабатывает накопившиеся события клавиатуры и мыши.
  *
- * Событий не ждёт; приложение вызывает метод каждые несколько миллисекунд.
+ * Событий не ждёт; вызывающий вызывает метод каждые несколько
+ * миллисекунд. После Esc клавиши больше не берутся: следующие нажаты уже
+ * не для проверки.
  */
 void esp::board_test::poll()
 {
     // Нулевой тайм-аут: забрать то, что уже есть в очереди, и не ждать.
     esp::ps2::keyboard *const keyboard = esp::ps2::ps2_controller::keyboard();
     esp::ps2::virtual_key_item item;
-    while (keyboard->get_next_virtual_key(&item, 0))
+    while (!_is_done && keyboard->get_next_virtual_key(&item, 0))
         on_key(item);
+    if (_is_done)
+        return;
 
     // При быстром движении состояний мыши приходит много: рисуются все,
     // а строка состояния обновляется один раз.
@@ -478,9 +513,7 @@ void esp::board_test::set_video_mode(int index)
     // текст закрывает прежний.
     _canvas->set_glyph_options(esp::gfx::glyph_options().set_fill_background(true));
 
-    // При запуске контроллер PS/2 ещё не включён: мышь подключает конструктор.
-    if (esp::ps2::ps2_controller::initialized())
-        attach_mouse();
+    attach_mouse();
 
     ESP_LOGI(esp::p::TAG, "VGA %s: %dx%d, %d colours.", _display->resolution_timings()->label,
              _canvas->width(), _canvas->height(), _display->colors_count());
@@ -490,13 +523,17 @@ void esp::board_test::set_video_mode(int index)
  * @brief Отдаёт мышь текущему видеоконтроллеру.
  *
  * Указатель двигает сам видеоконтроллер, а новые состояния мыши её
- * драйвер кладёт в очередь, которую читает poll(). Указатель начинает с
- * центра экрана.
+ * драйвер кладёт в очередь, которую читает poll(). Состояния, которые уже
+ * лежат в очереди, отбрасываются: в них координаты прежнего видеорежима
+ * или прошлого запуска проверки и давно отпущенные кнопки. Если размер
+ * экрана другой, указатель начинает с его центра.
  */
 void esp::board_test::attach_mouse()
 {
     esp::ps2::mouse *const mouse = esp::ps2::ps2_controller::mouse();
     mouse->setup_absolute_positioner(_canvas->width(), _canvas->height(), true, _display);
+    while (mouse->available_status())
+        mouse->get_next_status(0);
     _mouse = mouse->status();
     if (_mouse_found)
         _display->set_mouse_cursor(esp::p::CURSOR);
@@ -507,7 +544,8 @@ void esp::board_test::attach_mouse()
  *
  * Задача мыши перестаёт двигать указатель контроллера; перемещение,
  * которое она уже начала ему передавать, успевает закончиться за паузу.
- * Очередь состояний мыши остаётся.
+ * Очередь состояний мыши остаётся; что накопится в ней до следующего
+ * attach_mouse(), тот отбросит.
  */
 void esp::board_test::detach_mouse()
 {
@@ -533,10 +571,11 @@ void esp::board_test::draw_screen()
     _canvas->set_pen_color(esp::gfx::color::bright_white);
     _canvas->draw_rectangle(0, 0, width - 1, height - 1);
 
-    // Заголовок: белый текст на синем; справа — имя развёртки из модлайна,
-    // число цветов и клавиша, которая меняет видеорежим (в строках только
-    // знаки ASCII, поэтому число знаков равно длине строки). На узком
-    // экране название короче или его нет вовсе.
+    // Заголовок: белый текст на синем; слева — название и клавиша выхода,
+    // справа — имя развёртки из модлайна, число цветов и клавиша, которая
+    // меняет видеорежим (в строках только знаки ASCII, поэтому число знаков
+    // равно длине строки). На узком экране название короче или его нет
+    // вовсе.
     _canvas->set_brush_color(esp::gfx::color::blue);
     _canvas->fill_rectangle(1, 1, width - 2, esp::p::TITLE_TOP + line);
     char mode[48];
@@ -544,7 +583,8 @@ void esp::board_test::draw_screen()
                   _display->colors_count());
     const int mode_length = static_cast<int>(std::strlen(mode));
     const int cells = (width - 2 * esp::p::MARGIN) / _font.width();
-    for (const char *title : {"Espresso: board test", "Espresso"})
+    for (const char *title :
+         {"Espresso: board test, Esc quits", "Espresso: board test", "Espresso"})
     {
         if (static_cast<int>(std::strlen(title)) + 1 + mode_length <= cells)
         {
@@ -930,7 +970,7 @@ void esp::board_test::draw_clipping_test()
 /**
  * @brief Обрабатывает событие клавиатуры.
  *
- * Нажатия выводятся в консоль, отпускания — только в отладочный журнал.
+ * Нажатия записываются в журнал, отпускания — только в отладочный журнал.
  *
  * @param item Событие клавиатуры.
  */
@@ -978,8 +1018,7 @@ void esp::board_test::on_key(const esp::ps2::virtual_key_item &item)
             return;
 
         case esp::ps2::virtual_key::vk_escape:
-            _input.clear();
-            show_input();
+            _is_done = true;
             return;
 
         case esp::ps2::virtual_key::vk_backspace:

@@ -71,6 +71,59 @@ constexpr int SCROLLBACK_CELLS = 4096;
 /** @brief Сколько строк помнит история экрана; список их начал и длин занимает 2 КБ. */
 constexpr int SCROLLBACK_ROWS = 512;
 
+/**
+ * @brief Видеорежим терминала при запуске — номер в таблице esp::vt::display: 640 × 480, 4 цвета.
+ *
+ * Буфер кадра занимает 75 КБ, экран — 64 × 26 знакомест.
+ */
+constexpr int DEFAULT_MODE = 2;
+
+/** @brief Сколько байтов ввода может ждать, пока программа их прочтёт; лишние отбрасываются. */
+constexpr int INPUT_QUEUE_LENGTH = 64;
+
+/** @brief Полупериод мигания курсора, мс: столько он виден и столько скрыт. */
+constexpr int BLINK_PERIOD_MS = 500;
+
+/** @brief Размер приёмного буфера драйвера UART0, байты. */
+constexpr int UART_RX_BUFFER = 512;
+
+/**
+ * @brief Размер передающего буфера драйвера UART, байты.
+ *
+ * Вывод копируется в буфер, и терминал не ждёт, пока байты уйдут: на
+ * 115200 бод 2 КБ уходят за 0,18 с.
+ */
+constexpr int UART_TX_BUFFER = 2048;
+
+/** @brief Наибольшая длина одной строки журнала ESP-IDF, байты; длиннее — обрезается. */
+constexpr int LOG_LINE_MAX = 256;
+
+/** @brief Размер стека задачи, которая переводит нажатия клавиш PS/2 в байты ввода. */
+constexpr int KEYBOARD_TASK_STACK = 4096;
+
+/**
+ * @brief Сколько задача клавиатуры ждёт клавишу за один раз, мс.
+ *
+ * Затем она проверяет, не приостановлен ли терминал, поэтому
+ * esp::vt::terminal::suspend() ждёт её не дольше этого.
+ */
+constexpr int KEYBOARD_WAIT_MS = 100;
+
+/** @brief Размер стека задачи, которая принимает байты ввода с UART0. */
+constexpr int UART_TASK_STACK = 3072;
+
+/** @brief Приоритет задач ввода — ниже, чем у задачи рисования драйверов VGA (5). */
+constexpr int INPUT_TASK_PRIORITY = 4;
+
+/** @brief Частота звонка BEL, Гц. */
+constexpr int BELL_FREQUENCY = 880;
+
+/** @brief Длительность звонка BEL, мс. */
+constexpr int BELL_DURATION_MS = 80;
+
+/** @brief Громкость звонка BEL, 0–127. */
+constexpr int BELL_VOLUME = 64;
+
 /** @brief Номер цвета ANSI для текста по умолчанию — светло-серый (@c SGR 39). */
 constexpr std::uint8_t DEFAULT_FOREGROUND = 7;
 

@@ -18,6 +18,7 @@ idf_component_register(INCLUDE_DIRS ${esp_inc_dir_list}
                                      esp_driver_sdm
                                      esp_driver_sdspi
                                      esp_driver_spi
+                                     esp_driver_uart
                                      esp_timer
                                      fatfs
                                      sdmmc
