@@ -1,9 +1,12 @@
 #pragma once
 
 #include "esp_non_copyable.h"
+#include "esp_sdcard.h"
+#include "esp_shell_history_file.h"
+#include "esp_vt_line_edit.h"
+#include "esp_vt_line_history.h"
 #include "esp_vt_terminal.h"
 
-#include <array>
 #include <atomic>
 #include <string_view>
 
@@ -19,27 +22,23 @@ class test_shell : esp::non_copyable
 
 public:
 
-    explicit test_shell(esp::vt::terminal &terminal);
+    test_shell(esp::vt::terminal &terminal, const esp::sd_card &sd_card);
 
     void start();
     bool button_pressed();
 
 private:
 
-    /** @brief Наибольшая длина строки ввода, байты. */
-    static constexpr int LINE_CAPACITY = 120;
-
     static void task(void *arg);
 
     void run();
-    void read_line();
-    void skip_sequence();
     void execute(std::string_view line);
     void help();
     void colors();
     void demo();
     void mode(std::string_view argument);
     void lines(std::string_view argument);
+    void history();
     void board_test();
 
     /** @brief Терминал, с которым работает оболочка. */
@@ -48,14 +47,14 @@ private:
     /** @brief Задача оболочки; @c nullptr, пока start() её не создал. */
     TaskHandle_t _task;
 
-    /** @brief Набираемая строка. */
-    std::array<char, LINE_CAPACITY> _line;
+    /** @brief История строк: 8 КБ последних выполненных строк. */
+    esp::vt::line_history _history;
 
-    /** @brief Длина набираемой строки. */
-    int _length;
+    /** @brief Файл истории на SD-карте; без карты история живёт только в памяти. */
+    esp::shell::history_file _history_file;
 
-    /** @brief Предыдущий байт ввода: LF сразу после CR второй строкой не считается. */
-    int _last_input;
+    /** @brief Редактор строки: через него набирается каждая команда. */
+    esp::vt::line_edit _editor;
 
     /** @brief Идёт ли проверка платы; его читает и главная задача — в button_pressed(). */
     std::atomic<bool> _is_board_test_running;

@@ -21,6 +21,10 @@ void keys_tests(esp::test::context &context);
 void parser_tests(esp::test::context &context);
 void scrollback_tests(esp::test::context &context);
 void screen_tests(esp::test::context &context);
+void input_parser_tests(esp::test::context &context);
+void utf8_tests(esp::test::context &context);
+void line_history_tests(esp::test::context &context);
+void line_edit_tests(esp::test::context &context);
 
 inline std::string caret(std::string_view text);
 
@@ -79,5 +83,29 @@ std::string esp::vt::test::caret(std::string_view text)
 /**
  * @fn void esp::vt::test::screen_tests(esp::test::context &context)
  * @brief Проверяет экран esp::vt::screen: вывод, курсор, стирание, прокрутку, вид текста и альтернативный экран.
+ * @param context Счёт проверок.
+ */
+
+/**
+ * @fn void esp::vt::test::input_parser_tests(esp::test::context &context)
+ * @brief Проверяет разборщик ввода esp::vt::input_parser: знаки, Esc и Alt, особые клавиши, варианты терминалов, клавиши PS/2 туда и обратно.
+ * @param context Счёт проверок.
+ */
+
+/**
+ * @fn void esp::vt::test::utf8_tests(esp::test::context &context)
+ * @brief Проверяет действия над UTF-8 esp::vt::utf8: запись знака, шаг по знакам, проверку строки.
+ * @param context Счёт проверок.
+ */
+
+/**
+ * @fn void esp::vt::test::line_history_tests(esp::test::context &context)
+ * @brief Проверяет историю строк esp::vt::line_history: порядок, отказ в строке, вытеснение старых строк, переход через конец буфера, поиск.
+ * @param context Счёт проверок.
+ */
+
+/**
+ * @fn void esp::vt::test::line_edit_tests(esp::test::context &context)
+ * @brief Проверяет редактор строки esp::vt::line_edit по тому, что он вывел на экран.
  * @param context Счёт проверок.
  */

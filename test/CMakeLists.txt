@@ -13,15 +13,22 @@ set(esp_src_dir "${CMAKE_CURRENT_LIST_DIR}/../src")
 # Из программы берутся только файлы, не зависящие от ESP-IDF.
 add_executable(espresso_tests
                main.cpp
+               vt/esp_vt_input_parser_test.cpp
                vt/esp_vt_keys_test.cpp
+               vt/esp_vt_line_edit_test.cpp
+               vt/esp_vt_line_history_test.cpp
                vt/esp_vt_parser_test.cpp
                vt/esp_vt_scrollback_test.cpp
                vt/esp_vt_screen_test.cpp
                "${esp_src_dir}/vt/esp_vt_command.cpp"
+               "${esp_src_dir}/vt/esp_vt_input_parser.cpp"
                "${esp_src_dir}/vt/esp_vt_keys.cpp"
+               "${esp_src_dir}/vt/esp_vt_line_edit.cpp"
+               "${esp_src_dir}/vt/esp_vt_line_history.cpp"
                "${esp_src_dir}/vt/esp_vt_parser.cpp"
                "${esp_src_dir}/vt/esp_vt_screen.cpp"
-               "${esp_src_dir}/vt/esp_vt_scrollback.cpp")
+               "${esp_src_dir}/vt/esp_vt_scrollback.cpp"
+               "${esp_src_dir}/vt/esp_vt_utf8.cpp")
 
 target_include_directories(espresso_tests PRIVATE
                            "${CMAKE_CURRENT_LIST_DIR}"

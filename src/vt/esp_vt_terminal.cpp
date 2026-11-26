@@ -41,7 +41,8 @@
  * Ввод — один поток байтов, как от терминала VT220: нажатия клавиш PS/2
  * задача ввода переводит в те же байты, что шлёт терминал ПК
  * (esp::vt::key_sequence()), а байты с UART0 принимает другая задача; обе
- * кладут их в одну очередь, которую читает read(). Shift+PgUp и Shift+PgDn
+ * кладут их в одну очередь, которую читает read(), а read_key() собирает из
+ * этих байтов события клавиатуры esp::vt::key_event. Shift+PgUp и Shift+PgDn
  * на основном экране листают историю экрана и в ввод не попадают; любая
  * другая клавиша возвращает показ к текущим строкам.
  *
@@ -101,6 +102,7 @@ esp::vt::terminal::terminal()
     , _screen{}
     , _parser{}
     , _renderer{}
+    , _input_parser{}
     , _sound{}
     , _lock{nullptr}
     , _input{nullptr}
@@ -213,6 +215,40 @@ int esp::vt::terminal::read(int time_out_ms)
     std::uint8_t byte = 0;
     const TickType_t ticks = time_out_ms < 0 ? portMAX_DELAY : pdMS_TO_TICKS(time_out_ms);
     return xQueueReceive(_input, &byte, ticks) == pdTRUE ? byte : -1;
+}
+
+/**
+ * @brief Читает событие клавиатуры: знак или особую клавишу.
+ *
+ * Байты ввода собирает разборщик esp::vt::input_parser, так что знак UTF-8
+ * или последовательность особой клавиши — одно событие (раздел 6.3
+ * документа об устройстве). Продолжения начатой последовательности метод
+ * ждёт не дольше @c esp::vt::ESCAPE_TIME_OUT_MS: ESC без продолжения —
+ * клавиша Esc. Поэтому ждать он может и дольше @p time_out_ms. События
+ * читает одна задача; байты read() между вызовами read_key() читать можно.
+ *
+ * @param time_out_ms Сколько ждать первого байта, мс; меньше 0 — сколько потребуется.
+ * @return Событие или ничего, если время вышло.
+ */
+std::optional<esp::vt::key_event> esp::vt::terminal::read_key(int time_out_ms)
+{
+    while (true)
+    {
+        const bool is_pending = _input_parser.is_pending();
+        const int byte = read(is_pending ? esp::vt::ESCAPE_TIME_OUT_MS : time_out_ms);
+        if (byte < 0)
+        {
+            if (!is_pending)
+                return std::nullopt;
+            // Продолжения нет; если и события нет, ждать дальше.
+            if (const std::optional<esp::vt::key_event> key = _input_parser.time_out())
+                return key;
+            continue;
+        }
+        if (const std::optional<esp::vt::key_event> key =
+                _input_parser.feed(static_cast<std::uint8_t>(byte)))
+            return key;
+    }
 }
 
 /**
@@ -370,7 +406,10 @@ void esp::vt::terminal::keyboard_task(void *arg)
  * @brief Задача UART0: кладёт принятые байты в ввод.
  *
  * Байты принимаются по одному: ввод с клавиатуры ПК редкий, а пачка байтов
- * вставленного текста проходит тем же путём без задержек.
+ * вставленного текста проходит тем же путём без задержек. Если очередь
+ * ввода полна, задача ждёт места: байты тем временем копятся в буфере
+ * драйвера (@c esp::vt::UART_RX_BUFFER), так что вставленный текст не
+ * теряется, пока помещается в нём.
  *
  * @param arg Терминал.
  */
@@ -383,7 +422,7 @@ void esp::vt::terminal::uart_task(void *arg)
         if (uart_read_bytes(esp::vt::p::UART_PORT, &byte, 1, portMAX_DELAY) != 1)
             continue;
         terminal.show_current_lines();
-        terminal.push_input(std::string_view{&byte, 1});
+        xQueueSend(terminal._input, &byte, portMAX_DELAY);
     }
 }
 
@@ -565,10 +604,11 @@ void esp::vt::terminal::on_key(const esp::ps2::virtual_key_item &item)
 }
 
 /**
- * @brief Кладёт байты в ввод.
+ * @brief Кладёт байты нажатой клавиши PS/2 в ввод.
  *
  * Если программа не читает ввод и очередь полна, лишние байты отбрасываются:
- * задачи ввода не ждут.
+ * задача клавиатуры не ждёт, а нажатие, которое некому прочесть, не
+ * нужно.
  *
  * @param bytes Байты ввода.
  */

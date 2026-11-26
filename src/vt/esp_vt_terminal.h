@@ -5,9 +5,12 @@
 #include "esp_sound_sound_generator.h"
 #include "esp_vt_config.h"
 #include "esp_vt_display.h"
+#include "esp_vt_input_parser.h"
+#include "esp_vt_key_event.h"
 #include "esp_vt_parser.h"
 #include "esp_vt_renderer.h"
 #include "esp_vt_screen.h"
+#include "esp_vt_writer.h"
 
 #include <array>
 #include <atomic>
@@ -26,17 +29,18 @@
 namespace esp::vt
 {
 
-class terminal : esp::non_copyable
+class terminal : esp::non_copyable, public esp::vt::writer
 {
 
 public:
 
     terminal();
-    ~terminal();
+    ~terminal() override;
 
     void begin();
-    void write(std::string_view text);
+    void write(std::string_view text) override;
     int read(int time_out_ms);
+    std::optional<esp::vt::key_event> read_key(int time_out_ms);
 
     void set_mode(int mode);
     inline int mode() const;
@@ -82,6 +86,9 @@ private:
 
     /** @brief Рисование @c _screen на холсте @c _display. */
     std::optional<esp::vt::renderer> _renderer;
+
+    /** @brief Разборщик ввода для read_key(); им пользуется одна задача — та, что читает события. */
+    esp::vt::input_parser _input_parser;
 
     /** @brief Генератор звука для звонка BEL; пока терминал приостановлен, им пользуется другая программа. */
     esp::sound::sound_generator _sound;

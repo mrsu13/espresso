@@ -12,14 +12,17 @@
 
 #include "esp_board_test.h"
 #include "esp_core_usage.h"
+#include "esp_vt_config.h"
 #include "esp_vt_controls.h"
 #include "esp_vt_display.h"
+#include "esp_vt_key_event.h"
 
 #include <cassert>
 #include <charconv>
 #include <cstddef>
 #include <cstdio>
 #include <memory>
+#include <optional>
 
 #include <esp_log.h>
 
@@ -28,15 +31,17 @@
  * @class esp::shell::test_shell
  * @brief Временная тестовая оболочка терминала, пока нет Форта.
  *
- * Работает в своей задаче: выводит приглашение, читает строку и
- * выполняет команду, а незнакомую строку выводит обратно. Строка
- * набирается просто — знаки, Backspace, Enter, Ctrl+C; последовательности
- * особых клавиш пропускаются. Команды проверяют терминал: цвета и признаки
- * (@c colors), альтернативный экран и область прокрутки (@c vt),
- * видеорежимы (@c mode), прокрутку и историю экрана (@c lines), журнал
- * ESP-IDF (@c log) и звонок (@c bell); @c board-test запускает проверку
- * платы esp::board_test. Потом команды заменит Форт (раздел 13 документа
- * об устройстве).
+ * Работает в своей задаче: выводит приглашение, читает строку редактором
+ * строки esp::vt::line_edit и выполняет команду, а незнакомую строку
+ * выводит обратно. Выполненные строки попадают в историю строк, а с
+ * SD-картой — ещё и в файл истории (esp::shell::history_file), из которого
+ * история читается при запуске. Tab дополняет имена команд. Команды
+ * проверяют терминал: цвета и признаки (@c colors), альтернативный экран
+ * и область прокрутки (@c vt), видеорежимы (@c mode), прокрутку и историю
+ * экрана (@c lines), историю строк (@c history), журнал ESP-IDF (@c log) и
+ * звонок (@c bell); @c board-test запускает проверку платы
+ * esp::board_test. Потом команды заменит Форт (раздел 13 документа об
+ * устройстве).
  */
 
 
@@ -46,17 +51,24 @@ namespace esp::shell::p
 /** @brief Приглашение: ярко-жёлтый треугольник. */
 constexpr std::string_view PROMPT = "\x1b[93m▶\x1b[0m ";
 
-/** @brief Размер стека задачи оболочки. */
-constexpr int TASK_STACK = 6144;
+/**
+ * @brief Размер стека задачи оболочки.
+ *
+ * В задаче работают и проверка платы, и файл истории на SD-карте; запас —
+ * до замера (раздел 14 документа об устройстве).
+ */
+constexpr int TASK_STACK = 8192;
 
 /** @brief Приоритет задачи оболочки — ниже, чем у задач ввода. */
 constexpr int TASK_PRIORITY = 3;
 
-/** @brief Сколько ждать продолжения последовательности клавиши, мс. */
-constexpr int SEQUENCE_TIME_OUT_MS = 50;
-
 /** @brief Период опроса проверки платы, мс. */
 constexpr int POLL_PERIOD_MS = 10;
+
+/** @brief Команды оболочки: по ним дополняет Tab. */
+constexpr std::string_view COMMANDS[] = {
+    "help", "clear", "colors", "vt", "mode", "lines", "history", "log", "bell", "board-test",
+};
 
 /** @brief Тег журнала модуля. */
 const char *const TAG = "shell";
@@ -101,16 +113,18 @@ int number(std::string_view text, int fallback)
 /**
  * @brief Создаёт оболочку; задачу запускает start().
  * @param terminal Терминал; должен быть запущен и жить дольше оболочки.
+ * @param sd_card Карта памяти для файла истории; должна жить дольше оболочки.
  */
-esp::shell::test_shell::test_shell(esp::vt::terminal &terminal)
+esp::shell::test_shell::test_shell(esp::vt::terminal &terminal, const esp::sd_card &sd_card)
     : _terminal{terminal}
     , _task{nullptr}
-    , _line{}
-    , _length{0}
-    , _last_input{-1}
+    , _history{esp::vt::HISTORY_BYTES, esp::vt::HISTORY_LINES}
+    , _history_file{sd_card}
+    , _editor{terminal, _history}
     , _is_board_test_running{false}
     , _is_button_pressed{false}
 {
+    _editor.set_words(esp::shell::p::COMMANDS);
 }
 
 /**
@@ -155,84 +169,29 @@ void esp::shell::test_shell::task(void *arg)
 
 /**
  * @brief Цикл оболочки: приглашение, строка, команда. Не возвращает управление.
+ *
+ * Сначала история строк читается из файла на SD-карте. Каждую строку
+ * набирает редактор строки; выполненная строка попадает в историю и в
+ * файл, отменённая (Ctrl+C) — никуда.
  */
 void esp::shell::test_shell::run()
 {
+    _history_file.load(_history);
     _terminal.write("Test shell. Type \x1b[1mhelp\x1b[0m for the commands.\n");
     while (true)
     {
-        _terminal.write(esp::shell::p::PROMPT);
-        read_line();
-        execute(
-            esp::shell::p::trim(std::string_view{_line.data(), static_cast<std::size_t>(_length)}));
-    }
-}
-
-/**
- * @brief Читает строку в @c _line.
- *
- * Знаки ASCII выводятся обратно, Backspace стирает последний, Enter
- * завершает строку, Ctrl+C её отменяет. Последовательности особых клавиш
- * пропускаются.
- */
-void esp::shell::test_shell::read_line()
-{
-    _length = 0;
-    while (true)
-    {
-        const int byte = _terminal.read(-1);
-        const int last_input = _last_input;
-        _last_input = byte;
-
-        if (byte == esp::vt::CR || byte == esp::vt::LF)
+        _editor.start(esp::shell::p::PROMPT, _terminal.columns());
+        esp::vt::line_edit::result result = esp::vt::line_edit::result::editing;
+        while (result == esp::vt::line_edit::result::editing)
         {
-            if (byte == esp::vt::LF && last_input == esp::vt::CR)
-                continue;
-            _terminal.write("\n");
-            return;
+            if (const std::optional<esp::vt::key_event> key = _terminal.read_key(-1))
+                result = _editor.feed(*key);
         }
-        if (byte == esp::vt::DEL || byte == esp::vt::BS)
-        {
-            if (_length > 0)
-            {
-                --_length;
-                _terminal.write("\b \b");
-            }
-        }
-        else if (byte == 0x03)
-        {
-            _terminal.write("^C\n");
-            _length = 0;
-            return;
-        }
-        else if (byte == esp::vt::ESC)
-            skip_sequence();
-        else if (byte >= 0x20 && byte < 0x7F && _length < LINE_CAPACITY)
-        {
-            const char text = static_cast<char>(byte);
-            _line[static_cast<std::size_t>(_length++)] = text;
-            _terminal.write(std::string_view{&text, 1});
-        }
-    }
-}
-
-/**
- * @brief Пропускает остаток последовательности особой клавиши после ESC.
- *
- * После @c [ или @c O байты пропускаются до последнего байта 0x40–0x7E;
- * если продолжения нет дольше @c esp::shell::p::SEQUENCE_TIME_OUT_MS, это
- * была клавиша Esc.
- */
-void esp::shell::test_shell::skip_sequence()
-{
-    const int introducer = _terminal.read(esp::shell::p::SEQUENCE_TIME_OUT_MS);
-    if (introducer != '[' && introducer != 'O')
-        return;
-    for (int i = 0; i < 16; ++i)
-    {
-        const int byte = _terminal.read(esp::shell::p::SEQUENCE_TIME_OUT_MS);
-        if (byte < 0 || (byte >= 0x40 && byte <= 0x7E))
-            return;
+        if (result != esp::vt::line_edit::result::accepted)
+            continue;
+        if (_history.add(_editor.line()))
+            _history_file.append(_editor.line());
+        execute(esp::shell::p::trim(_editor.line()));
     }
 }
 
@@ -262,6 +221,8 @@ void esp::shell::test_shell::execute(std::string_view line)
         mode(argument);
     else if (command == "lines")
         lines(argument);
+    else if (command == "history")
+        history();
     else if (command == "bell")
         _terminal.write("\a");
     else if (command == "log")
@@ -287,10 +248,13 @@ void esp::shell::test_shell::help()
                     "  vt          alternate screen and scrolling region demo\n"
                     "  mode [n]    list the video modes or switch to mode n\n"
                     "  lines [n]   print n numbered lines (50 by default)\n"
+                    "  history     list the line history\n"
                     "  log         print a test warning through the ESP-IDF log\n"
                     "  bell        ring the bell\n"
                     "  board-test  check VGA, keyboard, mouse, sound (Esc quits)\n"
-                    "Anything else is echoed. Shift+PgUp and Shift+PgDn scroll back.\n");
+                    "Anything else is echoed. Shift+PgUp and Shift+PgDn scroll back.\n"
+                    "Lines are edited with Emacs keys; Tab completes a command,\n"
+                    "Up and Down walk the history, Ctrl+R searches it.\n");
 }
 
 /**
@@ -344,17 +308,19 @@ void esp::shell::test_shell::demo()
     int count = 0;
     while (true)
     {
-        const int key = _terminal.read(-1);
-        if (key == 'q')
+        const std::optional<esp::vt::key_event> key = _terminal.read_key(-1);
+        if (!key)
+            continue;
+        if (*key == esp::vt::key_event{'q'})
             break;
-        if (key == esp::vt::CR)
+        if (*key == esp::vt::key_event{esp::vt::CR} || *key == esp::vt::key_event{esp::vt::LF})
         {
             std::snprintf(text, sizeof(text), "\x1b[%d;1H\nLine %d", rows - 1, ++count);
             _terminal.write(text);
         }
-        else if (key == 'i')
+        else if (*key == esp::vt::key_event{'i'})
             _terminal.write("\x1b[2;1H\x1b[L\x1b[1mInserted line\x1b[0m");
-        else if (key == 'd')
+        else if (*key == esp::vt::key_event{'d'})
             _terminal.write("\x1b[2;1H\x1b[M");
     }
     _terminal.write("\x1b[r\x1b[?1049l");
@@ -411,6 +377,21 @@ void esp::shell::test_shell::lines(std::string_view argument)
 }
 
 /**
+ * @brief Выводит историю строк с номерами, от самой старой строки к самой новой.
+ */
+void esp::shell::test_shell::history()
+{
+    char number[16];
+    for (int age = _history.size() - 1; age >= 0; --age)
+    {
+        std::snprintf(number, sizeof(number), "%4d  ", _history.size() - age);
+        _terminal.write(number);
+        _terminal.write(_history.line(age));
+        _terminal.write("\n");
+    }
+}
+
+/**
  * @brief Запускает проверку платы и ждёт, пока она закончится.
  *
  * Терминал на это время приостанавливается (esp::vt::terminal::suspend())
@@ -419,9 +400,9 @@ void esp::shell::test_shell::lines(std::string_view argument)
  * оболочки опрашивает проверку каждые @c esp::shell::p::POLL_PERIOD_MS и
  * передаёт ей нажатия K1 (button_pressed()). Проверка заканчивается по Esc
  * на клавиатуре PS/2 или по одиночному ESC с терминала ПК, за которым
- * @c esp::shell::p::SEQUENCE_TIME_OUT_MS ничего не пришло; прочий ввод с
- * UART0 на это время пропускается. Затем терминал включает свой
- * видеорежим и рисует экран заново.
+ * @c esp::vt::ESCAPE_TIME_OUT_MS ничего не пришло; прочий ввод с UART0 на
+ * это время пропускается. Затем терминал включает свой видеорежим и
+ * рисует экран заново.
  */
 void esp::shell::test_shell::board_test()
 {
@@ -437,8 +418,9 @@ void esp::shell::test_shell::board_test()
         while (!test->is_done())
         {
             // Ожидание ввода с UART0 — заодно и пауза между опросами.
-            const int byte = _terminal.read(esp::shell::p::POLL_PERIOD_MS);
-            if (byte == esp::vt::ESC && _terminal.read(esp::shell::p::SEQUENCE_TIME_OUT_MS) < 0)
+            const std::optional<esp::vt::key_event> key =
+                _terminal.read_key(esp::shell::p::POLL_PERIOD_MS);
+            if (key && *key == esp::vt::key_event{esp::vt::ESC})
                 break;
             if (_is_button_pressed.exchange(false))
                 test->button_pressed();
