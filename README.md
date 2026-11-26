@@ -1,12 +1,17 @@
 # Espresso
 
-ESP32 firmware for the LilyGO TTGO VGA32 v1.4 board. For now it tests the VGA output, the PS/2
-keyboard and mouse, and the sound, and prints the board info and a debug log to the serial
-console.
+ESP32 firmware for the LilyGO TTGO VGA32 v1.4 board: a standalone Forth computer with a VGA
+monitor and a PS/2 keyboard (design: `doc/md/40-design.md`). For now it runs the terminal — a
+VT220 subset on the monitor, mirrored to the serial port — with a temporary test shell and its
+line editor; the `board-test` command checks the VGA output, keyboard, mouse and sound.
+
+The Forth engine [ff](https://github.com/stoneagesoft/ff) is a git submodule, so clone with
+submodules (or run `git submodule update --init` in an existing clone).
 
 Requires ESP-IDF 6.1; load its environment first, then use the scripts:
 
 ```sh
+git clone --recurse-submodules <this repository>
 . ~/esp/esp-idf/export.sh   # path to your ESP-IDF 6.1
 ./build.sh                  # build/espresso.bin
 ./install.sh                # flash through /dev/ttyUSB0
@@ -23,8 +28,13 @@ The whole program is one ESP-IDF component, `src` (see `src/CMakeLists.txt`):
     modules below.
   * `src/gfx`, `src/vga`, `src/ps2`, `src/sound`: graphics, VGA output, PS/2 keyboard and mouse,
     and sound (namespaces `esp::gfx`, `esp::vga`, `esp::ps2` and `esp::sound`).
+  * `src/vt`: the terminal — a VT220 subset on the VGA screen, PS/2 and UART0 input, the line
+    editor (`esp::vt`); the parts that don't depend on ESP-IDF have host tests in `test`
+    (`test/run.sh`).
+  * `src/shell`: the shell (`esp::shell`).
   * `src/fonts`: the Unicode Terminus 10×18 font tables and the script that generates them.
-  * `src/3rdparty`: the yyjson and utf8.h libraries.
+  * `src/3rdparty`: the yyjson and utf8.h libraries, and the ff submodule, which is built by its
+    own `CMakeLists.txt` as a subproject.
 
 ## FabGL
 
@@ -37,5 +47,5 @@ its ESP-IDF 6 port (https://github.com/shaeberling/FabGL, branch idf6-port, comm
 
 ## License
 
-GPL-3.0, see `LICENSE`. The third-party parts keep their own licences: yyjson is MIT, utf8.h is
-public domain, and the Terminus font is SIL OFL 1.1 (`src/fonts/LICENSE.terminus`).
+GPL-3.0, see `LICENSE`. The third-party parts keep their own licences: yyjson and ff are MIT,
+utf8.h is public domain, and the Terminus font is SIL OFL 1.1 (`src/fonts/LICENSE.terminus`).

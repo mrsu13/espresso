@@ -2,11 +2,14 @@
 # подкаталогами, в том числе сторонние библиотеки (3rdparty) и таблицы
 # шрифта (fonts). Каталоги заголовков и исходников собираются по дереву
 # файлов макросами из cmake/tools.cmake, когда CMake настраивает проект;
-# новые файлы подхватываются после idf.py reconfigure.
+# новые файлы подхватываются после idf.py reconfigure. Движок ff
+# (3rdparty/ff) в списки не входит: в его дереве есть тесты, примеры и
+# свои сторонние библиотеки, а собирается он своим CMakeLists.txt (ниже).
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/tools.cmake")
 
-esp_inc_dirs("${CMAKE_CURRENT_LIST_DIR}" esp_inc_dir_list)
-esp_src_dirs("${CMAKE_CURRENT_LIST_DIR}" esp_src_dir_list)
+set(esp_ff_dir "${CMAKE_CURRENT_LIST_DIR}/3rdparty/ff")
+esp_inc_dirs("${CMAKE_CURRENT_LIST_DIR}" esp_inc_dir_list "${esp_ff_dir}")
+esp_src_dirs("${CMAKE_CURRENT_LIST_DIR}" esp_src_dir_list "${esp_ff_dir}")
 
 # Компоненты ESP-IDF, которыми пользуется программа. Каталога main в
 # проекте нет, поэтому ESP-IDF не подключает их сам.
@@ -29,6 +32,21 @@ idf_component_register(INCLUDE_DIRS ${esp_inc_dir_list}
 # CONFIG_LOG_MAXIMUM_LEVEL, а включает их во время работы app/esp_app.cpp —
 # в сборках с проверками (без NDEBUG).
 target_compile_definitions(${COMPONENT_LIB} PRIVATE LOG_LOCAL_LEVEL=ESP_LOG_DEBUG)
+
+# Движок ff — подмодуль git; собирается своим CMakeLists.txt как
+# подпроект, статической библиотекой ff::ff (раздел 7.1 документа об
+# устройстве). Параметры ff задаются через кэш до add_subdirectory(): ff
+# объявляет их через option(), а значение из кэша сильнее значения по
+# умолчанию.
+set(FF_32BIT ON CACHE BOOL "ff: 32-разрядные ячейки и вещественные числа одинарной точности." FORCE)
+set(FF_SAFE_MEM OFF CACHE BOOL "ff: без проверки адресов — как в настоящем ретрокомпьютере." FORCE)
+set(FF_R_TRUSTED ON CACHE BOOL "ff: без лишних проверок стека возвратов в циклах — на 5 % быстрее." FORCE)
+set(FF_WITH_SYSTEM OFF CACHE BOOL "ff: без слова system — на плате ему нечего запускать." FORCE)
+set(FF_WITH_FILES ON CACHE BOOL "ff: файловые слова и load — для файлов на SD-карте." FORCE)
+set(FF_WITH_TR ON CACHE BOOL "ff: тексты ff на русском и английском." FORCE)
+set(FF_BUILD_SHARED OFF CACHE BOOL "ff: только статическая библиотека." FORCE)
+add_subdirectory("${esp_ff_dir}" ff)
+target_link_libraries(${COMPONENT_LIB} PRIVATE ff::ff)
 
 # Код, полученный из FabGL (gfx, vga, ps2, sound и в tools — esp_tools,
 # esp_core_usage, esp_current_video_mode), отлажен с оптимизацией по
