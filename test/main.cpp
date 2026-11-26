@@ -17,6 +17,7 @@ int main()
 {
     esp::test::context context;
     esp::vt::test::parser_tests(context);
+    esp::vt::test::scrollback_tests(context);
     esp::vt::test::screen_tests(context);
     std::printf("%d checks, %d failed.\n", context.checks(), context.failures());
     return context.failures() == 0 ? 0 : 1;

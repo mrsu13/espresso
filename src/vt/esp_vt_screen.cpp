@@ -15,6 +15,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
+#include <span>
 
 
 /**
@@ -34,8 +36,14 @@
  * (pending_scroll()); нарисовав, оно вызывает clear_changes(). Звонок BEL
  * экран только запоминает: о нём узнают take_bell().
  *
- * Обе сетки выделяются в конструкторе, поэтому переход на альтернативный
- * экран не требует памяти и не может сорваться из-за её нехватки.
+ * Строку, которую перевод строки уводит за верхний край основного экрана,
+ * когда прокручивается весь экран, экран сохраняет в истории
+ * esp::vt::scrollback. scroll_view() показывает строки истории над текущими,
+ * view_cell() возвращает знакоместо с учётом этого сдвига, а любой вывод
+ * возвращает показ к текущим строкам.
+ *
+ * Обе сетки и история выделяются в конструкторе, поэтому ни переход на
+ * альтернативный экран, ни новая строка истории памяти не требуют.
  */
 
 
@@ -103,10 +111,11 @@ int nearest_color(std::uint32_t rgb)
 // Открытые
 
 /**
- * @brief Создаёт экран и выделяет обе его сетки.
+ * @brief Создаёт экран и выделяет обе его сетки и историю.
  *
  * Экран сначала чистый, показана основная сетка, курсор в левом верхнем
- * углу.
+ * углу. История вмещает @c esp::vt::SCROLLBACK_CELLS знакомест и
+ * @c esp::vt::SCROLLBACK_ROWS строк.
  *
  * @param columns Число столбцов, больше 0.
  * @param rows Число строк, от 1 до @c esp::vt::MAX_ROWS.
@@ -115,6 +124,8 @@ esp::vt::screen::screen(int columns, int rows)
     : _columns{columns}
     , _rows{rows}
     , _buffers{}
+    , _scrollback{esp::vt::SCROLLBACK_CELLS, esp::vt::SCROLLBACK_ROWS}
+    , _view_offset{0}
     , _is_alternate{false}
     , _is_cursor_visible{true}
     , _is_autowrap_on{true}
@@ -132,13 +143,15 @@ esp::vt::screen::screen(int columns, int rows)
  * @brief Сбрасывает экран, как @c ESC @c c (RIS).
  *
  * Обе сетки очищаются, показана основная, курсор виден и стоит в левом
- * верхнем углу, вид текста и режимы — по умолчанию. Весь экран отмечается
- * изменённым.
+ * верхнем углу, вид текста и режимы — по умолчанию, показаны текущие
+ * строки. История экрана сохраняется, как в xterm: её стирает @c CSI 3J.
+ * Весь экран отмечается изменённым.
  */
 void esp::vt::screen::reset()
 {
     for (esp::vt::screen::buffer &buffer : _buffers)
         reset_buffer(buffer);
+    _view_offset = 0;
     _is_alternate = false;
     _is_cursor_visible = true;
     _is_autowrap_on = true;
@@ -167,18 +180,75 @@ bool esp::vt::screen::take_bell()
 }
 
 /**
+ * @brief Сдвигает показ в историю экрана или обратно.
+ *
+ * Сдвиг не выходит за пределы: не меньше 0 (текущие строки) и не больше
+ * числа строк истории. На альтернативном экране истории нет, и сдвиг ничего
+ * не делает. Если показ сдвинулся, весь экран отмечается изменённым.
+ *
+ * @param count На сколько строк: больше 0 — вверх, к старым строкам,
+ *              меньше 0 — вниз, к текущим.
+ */
+void esp::vt::screen::scroll_view(int count)
+{
+    if (_is_alternate)
+        return;
+    const int offset = std::clamp(_view_offset + count, 0, _scrollback.rows());
+    if (offset == _view_offset)
+        return;
+    _view_offset = offset;
+    _pending_scroll = 0;
+    mark_all();
+}
+
+/**
+ * @brief Возвращает показ к текущим строкам.
+ *
+ * Если показ был сдвинут в историю, весь экран отмечается изменённым.
+ */
+void esp::vt::screen::reset_view()
+{
+    if (_view_offset == 0)
+        return;
+    _view_offset = 0;
+    _pending_scroll = 0;
+    mark_all();
+}
+
+/**
+ * @brief Возвращает знакоместо, показанное на экране, с учётом сдвига в историю.
+ *
+ * При сдвиге на @c k строк верхние @c k строк экрана показывают строки
+ * истории, а ниже идут строки сетки, начиная с первой. Без сдвига это то
+ * же, что cell().
+ *
+ * @param row Строка экрана, с 0, меньше rows().
+ * @param column Столбец, с 0, меньше columns().
+ * @return Знакоместо; у строки истории за концом хранимой части — пустое.
+ */
+esp::vt::cell esp::vt::screen::view_cell(int row, int column) const
+{
+    const int grid_row = row - _view_offset;
+    if (grid_row >= 0)
+        return cell(grid_row, column);
+    return _scrollback.cell(-grid_row - 1, column);
+}
+
+/**
  * @brief Выводит знак в позицию курсора текущим видом текста.
  *
  * Если курсор ждал переноса, он сначала переходит в начало следующей
  * строки, у нижнего края области прокрутки — с прокруткой. Знак в
  * последнем столбце оставляет курсор на месте и, если перенос включён,
  * откладывает перенос до следующего знака. Знак за пределами основной
- * плоскости Unicode заменяется знаком замены.
+ * плоскости Unicode заменяется знаком замены. Как и всякий вывод, знак
+ * возвращает показ к текущим строкам.
  *
  * @param code_point Код знака Unicode.
  */
 void esp::vt::screen::print(std::uint32_t code_point)
 {
+    reset_view();
     esp::vt::screen::buffer &buffer = active();
     if (buffer.is_wrap_pending && _is_autowrap_on)
     {
@@ -204,12 +274,14 @@ void esp::vt::screen::print(std::uint32_t code_point)
  * BEL запоминается для take_bell(), BS сдвигает курсор влево, HT — к
  * следующему столбцу, кратному @c esp::vt::TAB_WIDTH, LF, VT и FF переводят
  * строку (без возврата в начало), CR возвращает курсор в начало строки.
- * Остальные байты пропускаются.
+ * Остальные байты пропускаются. Как и всякий вывод, байт возвращает показ к
+ * текущим строкам.
  *
  * @param control Управляющий байт 0x00–0x1F.
  */
 void esp::vt::screen::execute(std::uint8_t control)
 {
+    reset_view();
     esp::vt::screen::buffer &buffer = active();
     switch (control)
     {
@@ -251,12 +323,14 @@ void esp::vt::screen::execute(std::uint8_t control)
  * Последовательность с промежуточными байтами пропускается, частная — тоже,
  * кроме @c CSI ?…h и @c CSI ?…l (режимы DEC). Все последовательности, кроме
  * @c SGR и @c CSI s, отменяют ожидание переноса: SGR между знаком в последнем
- * столбце и следующим знаком перенос не отменяет.
+ * столбце и следующим знаком перенос не отменяет. Как и всякий вывод,
+ * последовательность возвращает показ к текущим строкам.
  *
  * @param command Разобранная последовательность.
  */
 void esp::vt::screen::csi(const esp::vt::command &command)
 {
+    reset_view();
     if (command.intermediate_count > 0)
         return;
 
@@ -378,12 +452,14 @@ void esp::vt::screen::csi(const esp::vt::command &command)
  * Понимаются @c ESC @c 7 и @c ESC @c 8 (DECSC и DECRC), @c ESC @c D (IND),
  * @c ESC @c E (NEL), @c ESC @c M (RI) и @c ESC @c c (RIS). Последовательности
  * с промежуточными байтами — например, выбор набора знаков @c ESC @c ( @c B —
- * пропускаются.
+ * пропускаются. Как и всякий вывод, последовательность возвращает показ к
+ * текущим строкам.
  *
  * @param command Разобранная последовательность.
  */
 void esp::vt::screen::esc(const esp::vt::command &command)
 {
+    reset_view();
     if (command.intermediate_count > 0)
         return;
 
@@ -470,15 +546,21 @@ void esp::vt::screen::move_cursor(int row, int column)
 /**
  * @brief Переводит курсор на строку вниз.
  *
- * На нижней строке области прокрутки область прокручивается вверх. Ниже
- * области на последней строке экрана курсор остаётся на месте.
+ * На нижней строке области прокрутки область прокручивается вверх; если
+ * это весь основной экран, ушедшая верхняя строка сохраняется в истории.
+ * Ниже области на последней строке экрана курсор остаётся на месте.
  */
 void esp::vt::screen::line_feed()
 {
     esp::vt::screen::buffer &buffer = active();
     buffer.is_wrap_pending = false;
     if (buffer.cursor_row == buffer.scroll_bottom)
+    {
+        if (!_is_alternate && buffer.scroll_top == 0 && buffer.scroll_bottom == _rows - 1)
+            _scrollback.push(
+                std::span<const esp::vt::cell>{cell_at(0, 0), static_cast<std::size_t>(_columns)});
         scroll_up(buffer.scroll_top, buffer.scroll_bottom, 1);
+    }
     else if (buffer.cursor_row < _rows - 1)
         ++buffer.cursor_row;
 }
@@ -570,7 +652,8 @@ void esp::vt::screen::erase(int row, int first, int last)
 /**
  * @brief Стирает часть экрана, как @c CSI J (ED).
  * @param mode 0 — от курсора до конца экрана, 1 — от начала экрана до курсора,
- *             2 — весь экран; 3 (история экрана) и другие значения ничего не делают.
+ *             2 — весь экран, 3 — историю экрана, а сам экран не трогает;
+ *             другие значения ничего не делают.
  */
 void esp::vt::screen::erase_display(int mode)
 {
@@ -594,6 +677,10 @@ void esp::vt::screen::erase_display(int mode)
         case 2:
             for (int r = 0; r < _rows; ++r)
                 erase(r, 0, _columns - 1);
+            break;
+
+        case 3:
+            _scrollback.clear();
             break;
 
         default:

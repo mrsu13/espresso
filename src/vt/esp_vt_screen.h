@@ -4,6 +4,7 @@
 #include "esp_vt_cell.h"
 #include "esp_vt_command.h"
 #include "esp_vt_interpreter.h"
+#include "esp_vt_scrollback.h"
 #include "esp_vt_style.h"
 
 #include <array>
@@ -31,6 +32,12 @@ public:
     inline int cursor_column() const;
     inline bool is_cursor_visible() const;
     inline bool is_alternate() const;
+
+    inline const esp::vt::scrollback &scrollback() const;
+    inline int view_offset() const;
+    void scroll_view(int count);
+    void reset_view();
+    esp::vt::cell view_cell(int row, int column) const;
 
     inline std::uint64_t changed_rows() const;
     inline int pending_scroll() const;
@@ -143,6 +150,22 @@ private:
     /** @brief Сетки: [0] — основная, [1] — альтернативная; обе выделяются в конструкторе. */
     std::array<esp::vt::screen::buffer, 2> _buffers;
 
+    /**
+     * @brief История экрана: строки, ушедшие за верхний край основного экрана.
+     *
+     * Строка попадает сюда, когда перевод строки прокручивает основной экран
+     * целиком; память выделяется в конструкторе.
+     */
+    esp::vt::scrollback _scrollback;
+
+    /**
+     * @brief На сколько строк показ сдвинут вверх, в историю; 0 — показаны текущие строки.
+     *
+     * Сдвигает scroll_view(), а любой вывод возвращает в 0. На
+     * альтернативном экране всегда 0.
+     */
+    int _view_offset;
+
     /** @brief Показан ли альтернативный экран (@c CSI ?1049h). */
     bool _is_alternate;
 
@@ -247,6 +270,24 @@ bool esp::vt::screen::is_cursor_visible() const
 bool esp::vt::screen::is_alternate() const
 {
     return _is_alternate;
+}
+
+/**
+ * @brief Возвращает историю экрана.
+ * @return История: строки, ушедшие за верхний край основного экрана.
+ */
+const esp::vt::scrollback &esp::vt::screen::scrollback() const
+{
+    return _scrollback;
+}
+
+/**
+ * @brief Возвращает, на сколько строк показ сдвинут в историю.
+ * @return 0 — показаны текущие строки; больше — столько строк истории над ними.
+ */
+int esp::vt::screen::view_offset() const
+{
+    return _view_offset;
 }
 
 /**

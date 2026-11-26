@@ -18,6 +18,7 @@ namespace esp::vt::test
 {
 
 void parser_tests(esp::test::context &context);
+void scrollback_tests(esp::test::context &context);
 void screen_tests(esp::test::context &context);
 
 inline std::string caret(std::string_view text);
@@ -59,6 +60,12 @@ std::string esp::vt::test::caret(std::string_view text)
 /**
  * @fn void esp::vt::test::parser_tests(esp::test::context &context)
  * @brief Проверяет разборщик esp::vt::parser: UTF-8, управляющие байты, CSI, ESC и строки.
+ * @param context Счёт проверок.
+ */
+
+/**
+ * @fn void esp::vt::test::scrollback_tests(esp::test::context &context)
+ * @brief Проверяет историю экрана esp::vt::scrollback: порядок строк, обрезку пустых знакомест, вытеснение старых строк, переход через конец буфера.
  * @param context Счёт проверок.
  */
 

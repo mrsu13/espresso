@@ -29,6 +29,7 @@ public:
 
     void write(std::string_view text);
     std::string row(int row) const;
+    std::string view_row(int row) const;
 
     /** @brief Проверяемый экран. */
     esp::vt::screen screen;
@@ -92,6 +93,20 @@ std::string esp::vt::test::p::terminal::row(int row) const
     std::string text;
     for (int column = 0; column < screen.columns(); ++column)
         esp::vt::test::p::append_utf8(text, screen.cell(row, column).code_point);
+    text.erase(text.find_last_not_of(' ') + 1);
+    return text;
+}
+
+/**
+ * @brief Возвращает текст строки, показанной на экране с учётом сдвига в историю.
+ * @param row Строка экрана, с 0.
+ * @return Текст в UTF-8 без пробелов в конце.
+ */
+std::string esp::vt::test::p::terminal::view_row(int row) const
+{
+    std::string text;
+    for (int column = 0; column < screen.columns(); ++column)
+        esp::vt::test::p::append_utf8(text, screen.view_cell(row, column).code_point);
     text.erase(text.find_last_not_of(' ') + 1);
     return text;
 }
@@ -314,5 +329,45 @@ void esp::vt::test::screen_tests(esp::test::context &context)
         ESP_CHECK_EQUAL(context, t.row(0), "");
         t.write("y");
         ESP_CHECK(context, t.screen.cell(0, 0).style == esp::vt::style{});
+    }
+
+    context.set_case("screen: history");
+    {
+        esp::vt::test::p::terminal t{10, 4};
+        t.write("1\r\n2\r\n3\r\n4\r\n5\r\n6");
+        ESP_CHECK_EQUAL(context, t.screen.scrollback().rows(), 2);
+        ESP_CHECK_EQUAL(context, t.view_row(0), "3");
+        t.screen.clear_changes();
+        t.screen.scroll_view(1);
+        ESP_CHECK_EQUAL(context, t.screen.view_offset(), 1);
+        ESP_CHECK_EQUAL(context, t.view_row(0), "2");
+        ESP_CHECK_EQUAL(context, t.view_row(1), "3");
+        ESP_CHECK_EQUAL(context, t.view_row(3), "5");
+        ESP_CHECK_EQUAL(context, static_cast<long long>(t.screen.changed_rows()), 0b1111);
+        t.screen.scroll_view(10);
+        ESP_CHECK_EQUAL(context, t.screen.view_offset(), 2);
+        ESP_CHECK_EQUAL(context, t.view_row(0), "1");
+        ESP_CHECK_EQUAL(context, t.view_row(1), "2");
+        t.screen.scroll_view(-1);
+        ESP_CHECK_EQUAL(context, t.screen.view_offset(), 1);
+        t.write("x");
+        ESP_CHECK_EQUAL(context, t.screen.view_offset(), 0);
+        ESP_CHECK_EQUAL(context, t.view_row(3), "6x");
+    }
+
+    context.set_case("screen: what stays out of the history");
+    {
+        esp::vt::test::p::terminal t{10, 4};
+        t.write("1\r\n2\r\n3\r\n4^[[1;1H^[[M^[[2;4r^[[4;1H\n\n");
+        ESP_CHECK_EQUAL(context, t.screen.scrollback().rows(), 0);
+        t.write("^[[r^[[?1049h^[[4;1H\n\n\n");
+        ESP_CHECK_EQUAL(context, t.screen.scrollback().rows(), 0);
+        t.screen.scroll_view(1);
+        ESP_CHECK_EQUAL(context, t.screen.view_offset(), 0);
+        t.write("^[[?1049l^[[4;1H\nz");
+        ESP_CHECK_EQUAL(context, t.screen.scrollback().rows(), 1);
+        t.write("^[[3J");
+        ESP_CHECK_EQUAL(context, t.screen.scrollback().rows(), 0);
+        ESP_CHECK_EQUAL(context, t.row(3), "z");
     }
 }

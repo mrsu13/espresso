@@ -14,10 +14,12 @@ set(esp_src_dir "${CMAKE_CURRENT_LIST_DIR}/../src")
 add_executable(espresso_tests
                main.cpp
                vt/esp_vt_parser_test.cpp
+               vt/esp_vt_scrollback_test.cpp
                vt/esp_vt_screen_test.cpp
                "${esp_src_dir}/vt/esp_vt_command.cpp"
                "${esp_src_dir}/vt/esp_vt_parser.cpp"
-               "${esp_src_dir}/vt/esp_vt_screen.cpp")
+               "${esp_src_dir}/vt/esp_vt_screen.cpp"
+               "${esp_src_dir}/vt/esp_vt_scrollback.cpp")
 
 target_include_directories(espresso_tests PRIVATE
                            "${CMAKE_CURRENT_LIST_DIR}"
