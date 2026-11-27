@@ -15,6 +15,7 @@ public:
 
     bool pressed();
 
+    inline bool is_down() const;
     inline gpio_num_t gpio() const;
     inline const char *name() const;
 
@@ -40,6 +41,19 @@ private:
 
 
 // Реализация
+
+/**
+ * @brief Сообщает, нажата ли кнопка.
+ *
+ * Состояние — принятое после подавления дребезга, его обновляет pressed():
+ * по нему видно, сколько кнопку держат.
+ *
+ * @return @c true, пока кнопка нажата.
+ */
+bool esp::button::is_down() const
+{
+    return _down;
+}
 
 /**
  * @brief Возвращает вывод кнопки.

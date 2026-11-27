@@ -22,9 +22,6 @@
 #include <optional>
 #include <string_view>
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-
 
 /**
  * @class esp::shell::terminal_words
@@ -47,7 +44,12 @@
  * Слова работают через оболочку esp::shell::forth_shell — контекст движка
  * (ff_context()): она даёт терминал, вывод, чтение строки, смену
  * видеорежима и проверку платы. Неверный аргумент — ошибка −24 (неверный
- * числовой аргумент), как в стандарте.
+ * числовой аргумент), как в стандарте. Слова, которые ждут, — @c key,
+ * @c ekey, @c accept, @c ms, @c tone, @c board-test — замечают
+ * прерывание (Ctrl+C, K1) и бросают исключение −28, прерывание
+ * пользователем (esp::shell::forth_shell::throw_interrupt()): так
+ * прерывание действует, даже если слово — последнее в строке и ff больше
+ * нигде не проверил бы просьбу остановиться.
  */
 
 
@@ -121,11 +123,11 @@ const ff_native_word_t esp::shell::terminal_words::WORDS[] = {
               FF_TR_EN("( -- s )  Read a line\n"
                        "Reads a line with the line editor, from where the cursor is, and leaves "
                        "it. The lines have their own history: ↑ and ↓ show earlier answers. "
-                       "Ctrl+C gives an empty line."),
+                       "Ctrl+C, like the K1 button, interrupts the program."),
               FF_TR_RU("( -- s )  Прочитать строку\n"
                        "Читает строку редактором строки с того места, где стоит курсор, и "
                        "кладёт её. У строк своя история: ↑ и ↓ показывают прежние ответы. "
-                       "Ctrl+C даёт пустую строку.")),
+                       "Ctrl+C, как и кнопка K1, прерывает программу.")),
 
     // Номера особых клавиш и признаки — для ekey>fkey.
     FF_NATIVE(
@@ -328,7 +330,13 @@ void esp::shell::terminal_words::constant(ff_t *ff)
  */
 void esp::shell::terminal_words::key(ff_t *ff)
 {
-    ff_push_int(ff, shell(ff).terminal().read(-1));
+    const int byte = shell(ff).wait_byte();
+    if (byte < 0)
+    {
+        shell(ff).throw_interrupt();
+        return;
+    }
+    ff_push_int(ff, byte);
 }
 
 /**
@@ -346,9 +354,12 @@ void esp::shell::terminal_words::key_question(ff_t *ff)
  */
 void esp::shell::terminal_words::ekey(ff_t *ff)
 {
-    std::optional<esp::vt::key_event> event;
-    while (!event)
-        event = shell(ff).terminal().read_key(-1);
+    const std::optional<esp::vt::key_event> event = shell(ff).wait_key();
+    if (!event)
+    {
+        shell(ff).throw_interrupt();
+        return;
+    }
     ff_push_int(ff, event->value());
 }
 
@@ -400,13 +411,18 @@ void esp::shell::terminal_words::ekey_to_fkey(ff_t *ff)
  * @brief Слово @c accept ( -- s ): читает строку редактором строки.
  *
  * Строка попадает во временную область строк ff (ff_push_str()).
- * Отменённая строка (Ctrl+C) — пустая.
+ * Прерывание (Ctrl+C, K1) отменяет строку и кончает слово исключением −28.
  *
  * @param ff Движок.
  */
 void esp::shell::terminal_words::accept(ff_t *ff)
 {
     const std::optional<std::string_view> line = shell(ff).read_line();
+    if (!line && shell(ff).is_interrupted())
+    {
+        shell(ff).throw_interrupt();
+        return;
+    }
     const std::string_view text = line ? *line : std::string_view{""};
     ff_push_str(ff, text.data(), text.size());
 }
@@ -462,7 +478,8 @@ void esp::shell::terminal_words::background(ff_t *ff)
 /**
  * @brief Слово @c ms ( n -- ): пауза.
  *
- * Пауза отдаёт процессор другим задачам.
+ * Пауза отдаёт процессор другим задачам; прерывание (Ctrl+C, K1) кончает
+ * её сразу — исключение −28.
  *
  * @param ff Движок.
  */
@@ -479,8 +496,9 @@ void esp::shell::terminal_words::ms(ff_t *ff)
                   duration);
         return;
     }
-    vTaskDelay(
-        pdMS_TO_TICKS(static_cast<std::uint32_t>(std::min<std::int64_t>(duration, INT32_MAX))));
+    shell(ff).wait(static_cast<int>(std::min<std::int64_t>(duration, INT32_MAX)));
+    if (shell(ff).is_interrupted())
+        shell(ff).throw_interrupt();
 }
 
 /**
@@ -496,6 +514,7 @@ void esp::shell::terminal_words::beep(ff_t *ff)
  * @brief Слово @c tone ( частота мс -- ): звук заданной частоты.
  *
  * Слово ждёт, пока звук отзвучит: так ноты мелодии идут одна за другой.
+ * Прерывание (Ctrl+C, K1) обрывает звук и кончает слово исключением −28.
  *
  * @param ff Движок.
  */
@@ -519,7 +538,13 @@ void esp::shell::terminal_words::tone(ff_t *ff)
     }
     const int length = static_cast<int>(std::min<std::int64_t>(duration, INT32_MAX));
     shell(ff).terminal().tone(static_cast<int>(frequency), length);
-    vTaskDelay(pdMS_TO_TICKS(static_cast<std::uint32_t>(length)));
+    shell(ff).wait(length);
+    if (shell(ff).is_interrupted())
+    {
+        // Прерванный звук не доигрывает.
+        shell(ff).terminal().stop_sound();
+        shell(ff).throw_interrupt();
+    }
 }
 
 /**
@@ -546,6 +571,8 @@ void esp::shell::terminal_words::video_mode(ff_t *ff)
 void esp::shell::terminal_words::board_test(ff_t *ff)
 {
     shell(ff).board_test();
+    if (shell(ff).is_interrupted())
+        shell(ff).throw_interrupt();
 }
 
 /**

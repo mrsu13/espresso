@@ -49,6 +49,14 @@
  * ff оболочка освобождает после каждой строки, набранной вне определения,
  * если стек пуст (раздел 7.3).
  *
+ * Ctrl+C и короткое нажатие K1 прерывают выполняющийся код Форта
+ * (interrupt(), раздел 7.6): ff останавливается на ближайшем переходе или
+ * вызове слова, а слова терминала, которые ждут, замечают прерывание не
+ * позже чем через @c esp::shell::p::WAIT_STEP_MS. Клавиши, нажатые, пока
+ * код выполнялся, терминал при этом сбрасывает, как терминал Unix. О
+ * прерывании оболочка сообщает ярко-жёлтым. Пока код не выполняется,
+ * Ctrl+C — обычная клавиша: редактор строки по ней отменяет строку.
+ *
  * Долгий код Форта раз в @c esp::shell::p::YIELD_PERIOD_US отдаёт
  * процессор, чтобы не сработал сторожевой таймер задач (раздел 5.3).
  * Относительные пути файлов Форта отсчитываются от корня SD-карты. Память
@@ -92,6 +100,17 @@ constexpr std::int64_t YIELD_PERIOD_US = 100000;
 /** @brief Период опроса проверки платы, мс. */
 constexpr int POLL_PERIOD_MS = 10;
 
+/**
+ * @brief Шаг ожидания слов, которые ждут ввода или времени, мс.
+ *
+ * Между шагами слово проверяет, не прервано ли выполнение: прерывание
+ * доходит до него не позже чем через шаг.
+ */
+constexpr int WAIT_STEP_MS = 50;
+
+/** @brief Код исключения «прерывание пользователем» по стандарту Forth: Ctrl+C или K1. */
+constexpr std::int64_t USER_INTERRUPT = -28;
+
 /** @brief Сколько байтов строк помнит история слова @c accept. */
 constexpr int INPUT_HISTORY_BYTES = 1024;
 
@@ -112,6 +131,16 @@ constexpr std::string_view NORMAL_COLOUR = "\x1b[0m";
 
 /** @brief Тег журнала модуля. */
 const char *const TAG = "shell";
+
+/**
+ * @brief Возвращает сообщение о прерывании.
+ * @param ff Движок: по нему выбирается язык сообщения.
+ * @return Сообщение.
+ */
+const char *interrupt_message(ff_t *ff)
+{
+    return FF_TR(ff, FF_TR_EN("Interrupted."), FF_TR_RU("Прервано."));
+}
 
 /**
  * @brief Находит, с какого байта начинается знак текста.
@@ -153,6 +182,8 @@ esp::shell::forth_shell::forth_shell(esp::vt::terminal &terminal, const esp::sd_
     , _source{}
     , _has_output{false}
     , _last_yield_us{0}
+    , _is_running{false}
+    , _is_interrupted{false}
     , _is_board_test_running{false}
     , _is_button_pressed{false}
 {
@@ -186,6 +217,43 @@ bool esp::shell::forth_shell::button_pressed()
     return true;
 }
 
+/**
+ * @brief Прерывает выполняющийся код Форта: Ctrl+C или короткое нажатие K1.
+ *
+ * Вызывается терминалом (esp::vt::terminal::interrupt()) — из задач ввода
+ * по Ctrl+C и из главной задачи по K1; принятое прерывание терминал
+ * дополняет сбросом непрочитанного ввода. Метод просит ff остановиться
+ * (ff_request_abort()) и отмечает прерывание: ждущие слова (@c key,
+ * @c ekey, @c accept, @c ms, @c tone, @c board-test) замечают его не
+ * позже чем через @c esp::shell::p::WAIT_STEP_MS и сразу возвращаются.
+ * Пока код не выполняется, прерывать нечего, и Ctrl+C остаётся обычной
+ * клавишей — в редакторе строки она отменяет строку.
+ *
+ * @return @c true, если выполнялся код Форта и прерывание принято.
+ */
+bool esp::shell::forth_shell::interrupt()
+{
+    if (!_is_running)
+        return false;
+    _is_interrupted = true;
+    ff_request_abort(_ff.get());
+    return true;
+}
+
+/**
+ * @brief Прерывает код Форта из ждущего слова, которое заметило прерывание.
+ *
+ * Бросает исключение −28, прерывание пользователем по стандарту Forth.
+ * Его, как и прерывание по ff_request_abort(), ff не даёт перехватить
+ * никакому @c catch, и ff_eval() возвращает @c FF_ERR_ABORTED. Так
+ * прерывание действует, даже если слово — последнее в строке и ff больше
+ * нигде не проверил бы просьбу остановиться.
+ */
+void esp::shell::forth_shell::throw_interrupt()
+{
+    ff_throwf(_ff.get(), esp::shell::p::USER_INTERRUPT, "%s",
+              esp::shell::p::interrupt_message(_ff.get()));
+}
 
 /**
  * @brief Выводит текст на терминал и отмечает, что после строки был вывод.
@@ -202,6 +270,70 @@ void esp::shell::forth_shell::write(std::string_view text)
 }
 
 /**
+ * @brief Ждёт байт ввода — для слова @c key.
+ *
+ * Ждёт шагами по @c esp::shell::p::WAIT_STEP_MS, чтобы заметить прерывание.
+ * Байт, прочитанный уже после прерывания, — из сброшенного ввода, и слову
+ * его не отдают.
+ *
+ * @return Байт 0–255 или @c -1, если выполнение прервали.
+ */
+int esp::shell::forth_shell::wait_byte()
+{
+    while (!_is_interrupted)
+    {
+        const int byte = _terminal.read(esp::shell::p::WAIT_STEP_MS);
+        if (byte >= 0 && !_is_interrupted)
+            return byte;
+    }
+    return -1;
+}
+
+/**
+ * @brief Ждёт событие клавиатуры — для слов @c ekey и @c accept.
+ *
+ * Ждёт шагами по @c esp::shell::p::WAIT_STEP_MS, чтобы заметить прерывание.
+ * Событие, прочитанное уже после прерывания, — из сброшенного ввода, и
+ * слову его не отдают.
+ *
+ * @return Событие или ничего, если выполнение прервали.
+ */
+std::optional<esp::vt::key_event> esp::shell::forth_shell::wait_key()
+{
+    while (!_is_interrupted)
+    {
+        const std::optional<esp::vt::key_event> key =
+            _terminal.read_key(esp::shell::p::WAIT_STEP_MS);
+        if (key && !_is_interrupted)
+            return key;
+    }
+    return std::nullopt;
+}
+
+/**
+ * @brief Ждёт заданное время — для слов @c ms и @c tone.
+ *
+ * Ждёт шагами не длиннее @c esp::shell::p::WAIT_STEP_MS и возвращается
+ * раньше, если выполнение прервали (is_interrupted()). Пока ждёт, процессор
+ * достаётся другим задачам.
+ *
+ * @param duration_ms Сколько ждать, мс.
+ */
+void esp::shell::forth_shell::wait(int duration_ms)
+{
+    const std::int64_t end_us = esp_timer_get_time() + std::int64_t{duration_ms} * 1000;
+    while (!_is_interrupted)
+    {
+        const std::int64_t left_us = end_us - esp_timer_get_time();
+        if (left_us <= 0)
+            return;
+        const std::int64_t step_ms =
+            std::min<std::int64_t>(left_us / 1000 + 1, esp::shell::p::WAIT_STEP_MS);
+        vTaskDelay(pdMS_TO_TICKS(static_cast<std::uint32_t>(step_ms)));
+    }
+}
+
+/**
  * @brief Читает строку для слова @c accept.
  *
  * Строка набирается своим редактором строки со своей историей, с того
@@ -209,8 +341,12 @@ void esp::shell::forth_shell::write(std::string_view text)
  * курсор ждёт переноса после последнего столбца, строка начинается со
  * следующей строки экрана.
  *
- * @return Набранная строка или ничего, если её отменили (Ctrl+C);
- *         строка действительна до следующего вызова.
+ * Если выполнение прервали (Ctrl+C, K1), строка отменяется, как
+ * отменяет её Ctrl+C: набранное остаётся на экране с @c ^C, курсор
+ * уходит на новую строку.
+ *
+ * @return Набранная строка или ничего, если выполнение прервали; строка
+ *         действительна до следующего вызова.
  */
 std::optional<std::string_view> esp::shell::forth_shell::read_line()
 {
@@ -221,8 +357,13 @@ std::optional<std::string_view> esp::shell::forth_shell::read_line()
     esp::vt::line_edit::result result = esp::vt::line_edit::result::editing;
     while (result == esp::vt::line_edit::result::editing)
     {
-        if (const std::optional<esp::vt::key_event> key = _terminal.read_key(-1))
-            result = _input_editor.feed(*key);
+        const std::optional<esp::vt::key_event> key = wait_key();
+        if (!key)
+        {
+            _input_editor.feed(esp::vt::key_event{esp::vt::ETX});
+            return std::nullopt;
+        }
+        result = _input_editor.feed(*key);
     }
     if (result != esp::vt::line_edit::result::accepted)
         return std::nullopt;
@@ -246,7 +387,6 @@ bool esp::shell::forth_shell::set_video_mode(int mode)
     _has_output = true;
     return true;
 }
-
 
 /**
  * @brief Проводит проверку платы и ждёт, пока она закончится.
@@ -273,7 +413,7 @@ void esp::shell::forth_shell::board_test()
         // занимает около килобайта.
         const std::unique_ptr<esp::board_test> test =
             std::make_unique<esp::board_test>(_terminal.sound());
-        while (!test->is_done())
+        while (!test->is_done() && !_is_interrupted)
         {
             // Ожидание ввода с UART0 — заодно и пауза между опросами.
             const std::optional<esp::vt::key_event> key =
@@ -370,7 +510,9 @@ ff_watchdog_action_t esp::shell::forth_shell::watchdog_callback(void *context,
         vTaskDelay(1);
         shell._last_yield_us = esp_timer_get_time();
     }
-    return FF_WD_CONTINUE;
+    // Просьба ff_request_abort() могла прийти между вызовами и пропасть:
+    // отметка прерывания её повторяет.
+    return shell._is_interrupted ? FF_WD_ABORT : FF_WD_CONTINUE;
 }
 
 /**
@@ -406,9 +548,10 @@ std::FILE *esp::shell::forth_shell::open_file_callback(void *context, const char
  * @brief Цикл оболочки: приглашение, строка, выполнение. Не возвращает управление.
  *
  * Сначала читается история строк из файла на SD-карте и создаётся
- * движок. Выполненная строка попадает в историю и в файл, отменённая
- * (Ctrl+C) — никуда. Если на движок не хватило памяти, оболочка сообщает
- * об этом, и её задача кончается.
+ * движок; затем оболочка становится получателем прерывания терминала
+ * (interrupt()). Выполненная строка попадает в историю и в файл,
+ * отменённая (Ctrl+C) — никуда. Если на движок не хватило памяти,
+ * оболочка сообщает об этом, и её задача кончается.
  */
 void esp::shell::forth_shell::run()
 {
@@ -423,6 +566,7 @@ void esp::shell::forth_shell::run()
         vTaskDelete(nullptr);
         return;
     }
+    _terminal.set_interrupt_handler(this);
 
     write(ff_banner(_ff.get()));
     write("\n");
@@ -497,8 +641,12 @@ void esp::shell::forth_shell::evaluate(std::string_view line)
     const std::string_view source{_source.data(), line.size()};
     _has_output = false;
     _last_yield_us = esp_timer_get_time();
-    if (ff_eval(_ff.get(), _source.data()) != FF_OK)
-        report_error(source);
+    _is_interrupted = false;
+    _is_running = true;
+    const ff_error_t error = ff_eval(_ff.get(), _source.data());
+    _is_running = false;
+    if (error != FF_OK)
+        report_error(source, error);
     if (is_top_level() && ff_depth(_ff.get()) == 0)
         ff_release_strings(_ff.get());
 }
@@ -507,20 +655,33 @@ void esp::shell::forth_shell::evaluate(std::string_view line)
  * @brief Сообщает об ошибке: знак @c ^ под её местом и сообщение ff красным.
  *
  * Место отмечается, только если ошибка случилась в самой строке; ошибку в
- * загружаемом файле описывает сообщение.
+ * загружаемом файле описывает сообщение. Прерывание (Ctrl+C, K1) — не
+ * ошибка: о нём одно и то же ярко-жёлтое сообщение, чем бы ни был занят
+ * код, — ждал ли он в слове терминала или считал.
  *
  * @param line Строка, на которой случилась ошибка.
+ * @param error Код ошибки из ff_eval().
  */
-void esp::shell::forth_shell::report_error(std::string_view line)
+void esp::shell::forth_shell::report_error(std::string_view line, ff_error_t error)
 {
     const int position = ff_err_pos(_ff.get());
     if (ff_err_line(_ff.get()) == 1 && position >= 0
         && static_cast<std::size_t>(position) <= line.size())
         mark_error(line, static_cast<std::size_t>(position));
     start_line();
-    write(esp::shell::p::ERROR_COLOUR);
-    write(FF_TR(_ff.get(), FF_TR_EN("Error: "), FF_TR_RU("Ошибка: ")));
-    write(ff_strerror(_ff.get()));
+    // После ff_request_abort() у ff своё сообщение, с числом выполненных
+    // операций, а у ждущих слов — своё; для пользователя это одно прерывание.
+    if (_is_interrupted && error == FF_ERR_ABORTED)
+    {
+        write(esp::shell::p::WARNING_COLOUR);
+        write(esp::shell::p::interrupt_message(_ff.get()));
+    }
+    else
+    {
+        write(esp::shell::p::ERROR_COLOUR);
+        write(FF_TR(_ff.get(), FF_TR_EN("Error: "), FF_TR_RU("Ошибка: ")));
+        write(ff_strerror(_ff.get()));
+    }
     write(esp::shell::p::NORMAL_COLOUR);
     write("\n");
 }

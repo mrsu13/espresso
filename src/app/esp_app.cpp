@@ -24,6 +24,7 @@
 #include <esp_idf_version.h>
 #include <esp_log.h>
 #include <esp_mac.h>
+#include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <sdkconfig.h>
@@ -38,7 +39,8 @@
  * клавиатура PS/2, UART0), выводит на него сведения о плате и запускает
  * оболочку Форта esp::shell::forth_shell. Затем
  * exec() в бесконечном цикле вызывает dispatch(), которая опрашивает
- * кнопку.
+ * кнопку: короткое нажатие K1 прерывает код Форта, долгое заново ищет
+ * клавиатуру и мышь (раздел 12 документа об устройстве).
  */
 
 
@@ -70,6 +72,14 @@ constexpr gpio_num_t BUTTON_GPIO = GPIO_NUM_36;
  */
 constexpr int POLL_PERIOD_MS = 10;
 
+/**
+ * @brief Сколько держат K1 для долгого нажатия, мкс.
+ *
+ * Нажатие короче — короткое; предварительно, уточнит опыт (раздел 14
+ * документа об устройстве).
+ */
+constexpr std::int64_t LONG_PRESS_US = 1000000;
+
 }
 
 
@@ -88,6 +98,8 @@ esp::app::app()
     : _button{esp::p::BUTTON_GPIO, "K1"}
     , _terminal{}
     , _shell{_terminal, _sd_card}
+    , _press_start_us{0}
+    , _is_press_pending{false}
 {
     // Карта памяти (CS 13, MOSI 12, MISO 2, CLK 14) монтируется до
     // терминала: без карты ESP-IDF сообщает в журнал об ошибках, а до
@@ -128,10 +140,15 @@ esp::app::~app()
  * @brief Выполняет один шаг основного цикла.
  *
  * Ждёт период esp::p::POLL_PERIOD_MS и опрашивает кнопку K1. Во время
- * проверки платы нажатие K1 достаётся ей
- * (esp::shell::forth_shell::button_pressed()); в остальное время оно
- * подтверждается звонком, а клавиатуру, подключённую после запуска,
- * терминал ищет заново.
+ * проверки платы нажатие K1 сразу достаётся ей
+ * (esp::shell::forth_shell::button_pressed()). В остальное время
+ * нажатие, которое отпустили раньше esp::p::LONG_PRESS_US, — короткое:
+ * оно прерывает выполняющийся код Форта и сбрасывает непрочитанный ввод,
+ * как Ctrl+C (esp::vt::terminal::interrupt()), а если прерывать нечего,
+ * отвечает звонком. Долгое нажатие, как только кнопку продержали
+ * esp::p::LONG_PRESS_US, отвечает звонком, и терминал заново ищет
+ * клавиатуру и мышь, подключённые после запуска
+ * (esp::vt::terminal::check_devices()).
  */
 void esp::app::dispatch()
 {
@@ -139,11 +156,30 @@ void esp::app::dispatch()
     // в том числе задаче простоя, за которой следит сторожевой таймер.
     vTaskDelay(pdMS_TO_TICKS(esp::p::POLL_PERIOD_MS));
 
-    if (_button.pressed() && !_shell.button_pressed())
+    if (_button.pressed())
     {
-        _terminal.write("\a");
-        _terminal.check_keyboard();
+        _press_start_us = esp_timer_get_time();
+        _is_press_pending = !_shell.button_pressed();
+        return;
     }
+    if (!_is_press_pending)
+        return;
+
+    if (_button.is_down())
+    {
+        // Кнопку ещё держат: нажатие станет долгим, когда пройдёт порог.
+        if (esp_timer_get_time() - _press_start_us < esp::p::LONG_PRESS_US)
+            return;
+        _is_press_pending = false;
+        _terminal.write("\a");
+        _terminal.check_devices();
+        return;
+    }
+
+    // Кнопку отпустили до порога: нажатие короткое.
+    _is_press_pending = false;
+    if (!_terminal.interrupt())
+        _terminal.write("\a");
 }
 
 /**

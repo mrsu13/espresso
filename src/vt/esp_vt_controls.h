@@ -16,6 +16,14 @@ namespace esp::vt
 /** @brief NUL — пустой байт; экран его пропускает. */
 constexpr std::uint8_t NUL = 0x00;
 
+/**
+ * @brief ETX — байт, которым в ввод приходит Ctrl+C.
+ *
+ * Задачи ввода терминала сначала передают его получателю прерывания
+ * (esp::vt::interrupt_handler); редактор строки по нему отменяет строку.
+ */
+constexpr std::uint8_t ETX = 0x03;
+
 /** @brief BEL — звонок; в строке OSC — ещё и её конец. */
 constexpr std::uint8_t BEL = 0x07;
 

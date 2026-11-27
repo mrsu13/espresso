@@ -4,6 +4,8 @@
 #include "esp_sdcard.h"
 #include "esp_shell_history_file.h"
 #include "esp_vt_config.h"
+#include "esp_vt_interrupt_handler.h"
+#include "esp_vt_key_event.h"
 #include "esp_vt_line_edit.h"
 #include "esp_vt_line_history.h"
 #include "esp_vt_terminal.h"
@@ -29,7 +31,7 @@
 namespace esp::shell
 {
 
-class forth_shell : esp::non_copyable
+class forth_shell : esp::non_copyable, public esp::vt::interrupt_handler
 {
 
 public:
@@ -38,9 +40,15 @@ public:
 
     void start();
     bool button_pressed();
+    bool interrupt() override;
 
     inline esp::vt::terminal &terminal();
+    inline bool is_interrupted() const;
+    void throw_interrupt();
     void write(std::string_view text);
+    int wait_byte();
+    std::optional<esp::vt::key_event> wait_key();
+    void wait(int duration_ms);
     std::optional<std::string_view> read_line();
     bool set_video_mode(int mode);
     void board_test();
@@ -59,7 +67,7 @@ private:
     void run();
     bool create_engine();
     void evaluate(std::string_view line);
-    void report_error(std::string_view line);
+    void report_error(std::string_view line, ff_error_t error);
     void mark_error(std::string_view line, std::size_t position);
     bool is_top_level() const;
     void update_prompt();
@@ -111,6 +119,16 @@ private:
     /** @brief Когда задача оболочки последний раз отдавала процессор, мкс от запуска. */
     std::int64_t _last_yield_us;
 
+    /**
+     * @brief Выполняется ли код Форта: тогда Ctrl+C и K1 прерывают его (раздел 7.6).
+     *
+     * Его читают задачи ввода и главная задача — в interrupt().
+     */
+    std::atomic<bool> _is_running;
+
+    /** @brief Прерван ли выполняющийся код: ждущие слова, получив это, сразу возвращаются. */
+    std::atomic<bool> _is_interrupted;
+
     /** @brief Идёт ли проверка платы; его читает и главная задача — в button_pressed(). */
     std::atomic<bool> _is_board_test_running;
 
@@ -132,4 +150,13 @@ private:
 esp::vt::terminal &esp::shell::forth_shell::terminal()
 {
     return _terminal;
+}
+
+/**
+ * @brief Сообщает, прерван ли выполняющийся код Форта — для ждущих слов.
+ * @return @c true, если с начала строки пришли Ctrl+C или нажатие K1.
+ */
+bool esp::shell::forth_shell::is_interrupted() const
+{
+    return _is_interrupted;
 }

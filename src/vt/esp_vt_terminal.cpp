@@ -13,9 +13,11 @@
 #include "esp_core_usage.h"
 #include "esp_ps2_keyboard.h"
 #include "esp_ps2_keyboard_layouts.h"
+#include "esp_ps2_mouse.h"
 #include "esp_ps2_ps2_controller.h"
 #include "esp_ps2_virtual_key.h"
 #include "esp_sound_square_waveform_generator.h"
+#include "esp_vt_controls.h"
 #include "esp_vt_keys.h"
 
 #include <algorithm>
@@ -42,7 +44,12 @@
  * задача ввода переводит в те же байты, что шлёт терминал ПК
  * (esp::vt::key_sequence()), а байты с UART0 принимает другая задача; обе
  * кладут их в одну очередь, которую читает read(), а read_key() собирает из
- * этих байтов события клавиатуры esp::vt::key_event. Shift+PgUp и Shift+PgDn
+ * этих байтов события клавиатуры esp::vt::key_event. Ctrl+C обе задачи
+ * сначала передают получателю прерывания (set_interrupt_handler()): если
+ * тот его принял, Ctrl+C в ввод не попадает, а непрочитанный ввод
+ * сбрасывается, как в терминале Unix (interrupt()). Места в очереди
+ * задачи ввода не ждут: лишние байты отбрасываются, поэтому Ctrl+C
+ * доходит, даже когда программа не читает ввод. Shift+PgUp и Shift+PgDn
  * на основном экране листают историю экрана и в ввод не попадают; любая
  * другая клавиша возвращает показ к текущим строкам.
  *
@@ -103,12 +110,14 @@ esp::vt::terminal::terminal()
     , _parser{}
     , _renderer{}
     , _input_parser{}
+    , _is_input_flushed{false}
     , _sound{}
     , _lock{nullptr}
     , _input{nullptr}
     , _blink_timer{nullptr}
     , _keyboard_task{nullptr}
     , _keyboard_released{nullptr}
+    , _interrupt_handler{nullptr}
     , _uart_task{nullptr}
     , _previous_log{nullptr}
     , _log_line{}
@@ -224,8 +233,9 @@ int esp::vt::terminal::read(int time_out_ms)
  * или последовательность особой клавиши — одно событие (раздел 6.3
  * документа об устройстве). Продолжения начатой последовательности метод
  * ждёт не дольше @c esp::vt::ESCAPE_TIME_OUT_MS: ESC без продолжения —
- * клавиша Esc. Поэтому ждать он может и дольше @p time_out_ms. События
- * читает одна задача; байты read() между вызовами read_key() читать можно.
+ * клавиша Esc. Поэтому ждать он может и дольше @p time_out_ms. Событие,
+ * начатое до сброса ввода (interrupt()), отбрасывается. События читает
+ * одна задача; байты read() между вызовами read_key() читать можно.
  *
  * @param time_out_ms Сколько ждать первого байта, мс; меньше 0 — сколько потребуется.
  * @return Событие или ничего, если время вышло.
@@ -236,6 +246,10 @@ std::optional<esp::vt::key_event> esp::vt::terminal::read_key(int time_out_ms)
     {
         const bool is_pending = _input_parser.is_pending();
         const int byte = read(is_pending ? esp::vt::ESCAPE_TIME_OUT_MS : time_out_ms);
+        // Ввод сбросили (interrupt()): начатое событие собрать уже не из
+        // чего, и разбор начинается заново.
+        if (_is_input_flushed.exchange(false))
+            _input_parser.reset();
         if (byte < 0)
         {
             if (!is_pending)
@@ -357,22 +371,77 @@ void esp::vt::terminal::tone(int frequency, int duration_ms)
 }
 
 /**
- * @brief Заново ищет клавиатуру PS/2, если её не было.
+ * @brief Обрывает звук: звуки tone() и звонок BEL, не дожидаясь их конца.
  *
- * Сброс клавиатуры занимает до двух секунд.
- *
- * @return @c true, если клавиатура есть.
+ * Пока терминал приостановлен, генератор звука у другой программы, и
+ * метод его не трогает.
  */
-bool esp::vt::terminal::check_keyboard()
+void esp::vt::terminal::stop_sound()
+{
+    const esp::vt::p::guard guard{_lock};
+    if (_is_suspended)
+        return;
+    _sound.clear();
+}
+
+/**
+ * @brief Заново ищет клавиатуру и мышь PS/2, которых не было.
+ *
+ * Найденное устройство не трогается. Сброс устройства занимает до двух
+ * секунд. Сам терминал мышью не пользуется: она нужна проверке платы, а
+ * позже — полноэкранному редактору.
+ */
+void esp::vt::terminal::check_devices()
 {
     esp::ps2::keyboard *const keyboard = esp::ps2::ps2_controller::keyboard();
-    if (keyboard->is_keyboard_available())
-        return true;
-    const bool is_found = keyboard->reset();
-    // Сброс ставит раскладку US; здесь она та же, но задаётся явно.
-    keyboard->set_layout(&esp::ps2::US_LAYOUT);
-    ESP_LOGI(esp::vt::p::TAG, "Keyboard %s.", is_found ? "found" : "not found");
-    return is_found;
+    if (!keyboard->is_keyboard_available())
+    {
+        const bool is_found = keyboard->reset();
+        // Сброс ставит раскладку US; здесь она та же, но задаётся явно.
+        keyboard->set_layout(&esp::ps2::US_LAYOUT);
+        ESP_LOGI(esp::vt::p::TAG, "Keyboard %s.", is_found ? "found" : "not found");
+    }
+
+    esp::ps2::mouse *const mouse = esp::ps2::ps2_controller::mouse();
+    if (mouse && !mouse->is_mouse_available())
+    {
+        const bool is_found = mouse->reset();
+        ESP_LOGI(esp::vt::p::TAG, "Mouse %s.", is_found ? "found" : "not found");
+    }
+}
+
+/**
+ * @brief Задаёт получателя прерывания: ему задачи ввода передают Ctrl+C.
+ *
+ * Ctrl+C, который получатель принял, в ввод не попадает, а непрочитанный
+ * ввод сбрасывается (interrupt(), раздел 7.6 документа об устройстве).
+ *
+ * @param handler Получатель; @c nullptr — Ctrl+C всегда обычный байт ввода.
+ */
+void esp::vt::terminal::set_interrupt_handler(esp::vt::interrupt_handler *handler)
+{
+    _interrupt_handler = handler;
+}
+
+/**
+ * @brief Подаёт прерывание, как Ctrl+C: передаёт его получателю.
+ *
+ * Если получатель (set_interrupt_handler()) прерывание принял,
+ * непрочитанный ввод сбрасывается, как в терминале Unix по Ctrl+C:
+ * клавиши, нажатые, пока выполнялся прерванный код, ему уже ни к чему
+ * (flush_input()). Прерывание подают задачи ввода по Ctrl+C и приложение
+ * по кнопке K1.
+ *
+ * @return @c true, если получатель есть и принял прерывание; тогда Ctrl+C в
+ *         ввод не идёт.
+ */
+bool esp::vt::terminal::interrupt()
+{
+    esp::vt::interrupt_handler *const handler = _interrupt_handler;
+    if (!handler || !handler->interrupt())
+        return false;
+    flush_input();
+    return true;
 }
 
 /**
@@ -469,10 +538,12 @@ void esp::vt::terminal::keyboard_task(void *arg)
  * @brief Задача UART0: кладёт принятые байты в ввод.
  *
  * Байты принимаются по одному: ввод с клавиатуры ПК редкий, а пачка байтов
- * вставленного текста проходит тем же путём без задержек. Если очередь
- * ввода полна, задача ждёт места: байты тем временем копятся в буфере
- * драйвера (@c esp::vt::UART_RX_BUFFER), так что вставленный текст не
- * теряется, пока помещается в нём.
+ * вставленного текста проходит тем же путём без задержек. Места в очереди
+ * ввода задача не ждёт: если очередь полна, байт отбрасывается, как и
+ * лишнее нажатие клавиши PS/2. Так Ctrl+C доходит до получателя
+ * прерывания, даже когда программа не читает ввод, — как в терминале
+ * Unix. Вставленный текст не теряется, пока помещается в очереди
+ * (@c esp::vt::INPUT_QUEUE_LENGTH).
  *
  * @param arg Терминал.
  */
@@ -485,7 +556,9 @@ void esp::vt::terminal::uart_task(void *arg)
         if (uart_read_bytes(esp::vt::p::UART_PORT, &byte, 1, portMAX_DELAY) != 1)
             continue;
         terminal.show_current_lines();
-        xQueueSend(terminal._input, &byte, portMAX_DELAY);
+        if (byte == esp::vt::ETX && terminal.interrupt())
+            continue;
+        xQueueSend(terminal._input, &byte, 0);
     }
 }
 
@@ -663,6 +736,8 @@ void esp::vt::terminal::on_key(const esp::ps2::virtual_key_item &item)
     show_current_lines();
     std::array<char, esp::vt::MAX_KEY_SEQUENCE> bytes{};
     const int length = esp::vt::key_sequence(item, bytes);
+    if (length == 1 && bytes[0] == esp::vt::ETX && interrupt())
+        return;
     push_input(std::string_view{bytes.data(), static_cast<std::size_t>(length)});
 }
 
@@ -679,6 +754,20 @@ void esp::vt::terminal::push_input(std::string_view bytes)
 {
     for (const char byte : bytes)
         xQueueSend(_input, &byte, 0);
+}
+
+/**
+ * @brief Сбрасывает непрочитанный ввод.
+ *
+ * Очередь ввода опустошается. Задачи ввода места в ней не ждут, так что
+ * байтов, набранных до сброса, у них не копится. Разборщик ввода сбросить
+ * отсюда нельзя — им пользуется задача, которая читает, — поэтому разбор
+ * заново начнёт read_key().
+ */
+void esp::vt::terminal::flush_input()
+{
+    xQueueReset(_input);
+    _is_input_flushed = true;
 }
 
 

@@ -6,6 +6,7 @@
 #include "esp_vt_config.h"
 #include "esp_vt_display.h"
 #include "esp_vt_input_parser.h"
+#include "esp_vt_interrupt_handler.h"
 #include "esp_vt_key_event.h"
 #include "esp_vt_parser.h"
 #include "esp_vt_renderer.h"
@@ -50,7 +51,10 @@ public:
     int cursor_column();
     bool is_wrap_pending();
     void tone(int frequency, int duration_ms);
-    bool check_keyboard();
+    void stop_sound();
+    void check_devices();
+    void set_interrupt_handler(esp::vt::interrupt_handler *handler);
+    bool interrupt();
 
     void suspend();
     void resume();
@@ -70,6 +74,7 @@ private:
     void show_current_lines();
     void on_key(const esp::ps2::virtual_key_item &item);
     void push_input(std::string_view bytes);
+    void flush_input();
 
     /** @brief Вывод на VGA: видеоконтроллер, холст и шрифт. */
     esp::vt::display _display;
@@ -94,6 +99,15 @@ private:
     /** @brief Разборщик ввода для read_key(); им пользуется одна задача — та, что читает события. */
     esp::vt::input_parser _input_parser;
 
+    /**
+     * @brief Сбрасывали ли ввод с последнего чтения read_key() (flush_input()).
+     *
+     * Тогда read_key() начинает разбор заново: начатое событие собрать уже
+     * не из чего. Ввод сбрасывает одна задача, а разбирает другая, поэтому
+     * признак атомарный.
+     */
+    std::atomic<bool> _is_input_flushed;
+
     /** @brief Генератор звука для звонка BEL; пока терминал приостановлен, им пользуется другая программа. */
     esp::sound::sound_generator _sound;
 
@@ -116,6 +130,13 @@ private:
 
     /** @brief Двоичный семафор: его отдаёт задача клавиатуры, когда после suspend() отпустила клавиатуру. */
     SemaphoreHandle_t _keyboard_released;
+
+    /**
+     * @brief Получатель прерывания: ему задачи ввода передают Ctrl+C; @c nullptr — некому.
+     *
+     * Его задаёт и читают разные задачи, поэтому указатель атомарный.
+     */
+    std::atomic<esp::vt::interrupt_handler *> _interrupt_handler;
 
     /** @brief Задача, которая принимает байты ввода с UART0. */
     TaskHandle_t _uart_task;
