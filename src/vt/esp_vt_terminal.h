@@ -41,12 +41,15 @@ public:
     void write(std::string_view text) override;
     int read(int time_out_ms);
     std::optional<esp::vt::key_event> read_key(int time_out_ms);
+    bool is_input_ready();
 
     void set_mode(int mode);
     inline int mode() const;
     int columns();
     int rows();
     int cursor_column();
+    bool is_wrap_pending();
+    void tone(int frequency, int duration_ms);
     bool check_keyboard();
 
     void suspend();

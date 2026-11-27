@@ -497,6 +497,38 @@ void esp::vt::test::line_edit_tests(esp::test::context &context)
         ESP_CHECK(context, edit.line().back() == 'y');
     }
 
+    context.set_case("start after the caller's text");
+    {
+        esp::vt::test::p::edit_screen out{10, 6};
+        esp::vt::line_history history{1024, 32};
+        esp::vt::line_edit edit{out, history};
+        out.write("Name? ");
+        edit.start("", 10, out.screen.cursor_column());
+        esp::vt::test::p::type_keys(edit, "Bob");
+        ESP_CHECK_EQUAL(context, out.row(0), std::string{"Name? Bob"});
+        ESP_CHECK_EQUAL(context, out.screen.cursor_column(), 9);
+        esp::vt::test::p::type_keys(edit, "\x01");
+        ESP_CHECK_EQUAL(context, out.screen.cursor_column(), 6);
+        esp::vt::test::p::type_keys(edit,
+                                    "\x05"
+                                    "ert");
+        ESP_CHECK_EQUAL(context, out.row(0), std::string{"Name? Bobe"});
+        ESP_CHECK_EQUAL(context, out.row(1), std::string{"rt"});
+        ESP_CHECK_EQUAL(context, out.screen.cursor_row(), 1);
+        ESP_CHECK_EQUAL(context, out.screen.cursor_column(), 2);
+        esp::vt::test::p::type_keys(edit, "\x01\x0b");
+        ESP_CHECK_EQUAL(context, out.row(0), std::string{"Name?"});
+        ESP_CHECK_EQUAL(context, out.row(1), std::string{});
+        ESP_CHECK_EQUAL(context, out.screen.cursor_column(), 6);
+        ESP_CHECK(context,
+                  esp::vt::test::p::type_keys(edit, "Al\r")
+                      == esp::vt::line_edit::result::accepted);
+        ESP_CHECK_EQUAL(context, std::string{edit.line()}, std::string{"Al"});
+        ESP_CHECK_EQUAL(context, out.row(0), std::string{"Name? Al"});
+        ESP_CHECK_EQUAL(context, out.screen.cursor_row(), 1);
+        ESP_CHECK_EQUAL(context, out.screen.cursor_column(), 0);
+    }
+
     context.set_case("prompt with colour");
     {
         esp::vt::test::p::edit_screen out{20, 6};

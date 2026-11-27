@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <memory>
+#include <optional>
 #include <string_view>
 
 #include <freertos/FreeRTOS.h>
@@ -38,20 +39,22 @@ public:
     void start();
     bool button_pressed();
 
+    inline esp::vt::terminal &terminal();
+    void write(std::string_view text);
+    std::optional<std::string_view> read_line();
+    bool set_video_mode(int mode);
+    void board_test();
+
 private:
 
     /** @brief Размер приглашения: цвет, приглашение ff, пробел и конец цвета, байты. */
     static constexpr std::size_t PROMPT_CAPACITY = 32;
-
-    /** @brief Слова Форта, которые добавляет оболочка. */
-    static const ff_native_word_t WORDS[];
 
     static void task(void *arg);
     static int print_callback(void *context, const char *format, va_list args);
     static int trace_callback(void *context, ff_error_t error, const char *format, va_list args);
     static ff_watchdog_action_t watchdog_callback(void *context, std::uint64_t opcodes);
     static std::FILE *open_file_callback(void *context, const char *path, const char *mode);
-    static void board_test_word(ff_t *ff);
 
     void run();
     bool create_engine();
@@ -61,9 +64,7 @@ private:
     bool is_top_level() const;
     void update_prompt();
     int print(const char *format, va_list args);
-    void write(std::string_view text);
     void start_line();
-    void board_test();
 
     /** @brief Терминал, с которым работает оболочка. */
     esp::vt::terminal &_terminal;
@@ -85,6 +86,12 @@ private:
 
     /** @brief Редактор строки: через него набирается каждая строка. */
     esp::vt::line_edit _editor;
+
+    /** @brief История строк, которые набирали для слова @c accept, — своя, не история оболочки. */
+    esp::vt::line_history _input_history;
+
+    /** @brief Редактор строки для слова @c accept. */
+    esp::vt::line_edit _input_editor;
 
     /** @brief Приглашение для редактора строки: приглашение ff в цвете и пробел. */
     std::array<char, PROMPT_CAPACITY> _prompt;
@@ -111,4 +118,18 @@ private:
     std::atomic<bool> _is_button_pressed;
 };
 
+}
+
+
+// Реализация
+
+// Открытые
+
+/**
+ * @brief Возвращает терминал оболочки — для слов Форта.
+ * @return Терминал.
+ */
+esp::vt::terminal &esp::shell::forth_shell::terminal()
+{
+    return _terminal;
 }

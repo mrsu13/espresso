@@ -38,8 +38,9 @@
  * строка переносится на следующие строки экрана. Переносит её сам
  * редактор — CR LF после последнего столбца, а не перенос терминала, —
  * поэтому и в окне терминала ПК шире экрана строка выглядит так же.
- * Приглашение должно начинаться с начала строки экрана: вывод перед ним
- * кончается переводом строки.
+ * Приглашение начинается там, где стоит курсор: обычно в начале строки
+ * экрана, а вызывающий может начать его и дальше в строке — после своего
+ * текста (start()).
  *
  * Строки в историю добавляет вызывающий: так он может и записать их в файл.
  * Вывод копится в буфере и уходит к получателю в конце обработки клавиши.
@@ -158,7 +159,8 @@ esp::vt::line_edit::line_edit(esp::vt::writer &output, const esp::vt::line_histo
     , _words{}
     , _prompt{}
     , _columns{1}
-    , _prompt_width{0}
+    , _origin{0}
+    , _text_start{0}
     , _line{}
     , _length{0}
     , _cursor{0}
@@ -193,23 +195,27 @@ void esp::vt::line_edit::set_words(std::span<const std::string_view> words)
 /**
  * @brief Начинает новую строку: выводит приглашение.
  *
- * Курсор должен стоять в начале строки экрана.
+ * Курсор должен стоять в столбце @p column и не ждать переноса: в начале
+ * строки экрана или после текста, который вывел вызывающий, — например,
+ * вопроса перед ответом.
  *
  * @param prompt Приглашение; может содержать последовательности CSI —
  *        например, цвет — и должно жить, пока набирается строка.
  * @param columns Ширина экрана в знакоместах (esp::vt::terminal::columns()).
+ * @param column Столбец курсора, с которого начинается приглашение.
  */
-void esp::vt::line_edit::start(std::string_view prompt, int columns)
+void esp::vt::line_edit::start(std::string_view prompt, int columns, int column)
 {
     assert(columns > 0);
     _prompt = prompt;
     _columns = columns;
+    _origin = std::clamp(column, 0, columns - 1);
     _length = 0;
     _cursor = 0;
     _history_age = -1;
     _is_searching = false;
     _was_tab = false;
-    _drawn_cursor = 0;
+    _drawn_cursor = _origin;
     redraw();
     flush();
 }
@@ -337,6 +343,8 @@ esp::vt::line_edit::result esp::vt::line_edit::edit(esp::vt::key_event key, bool
 
         case esp::vt::p::ctrl_key('L'):
             write("\x1b[H\x1b[2J");
+            // Текста перед приглашением на чистом экране больше нет.
+            _origin = 0;
             _drawn_cursor = 0;
             redraw();
             break;
@@ -679,6 +687,7 @@ void esp::vt::line_edit::list(std::span<std::string_view> matches)
                 write(" ");
         }
     }
+    _origin = 0;
     _drawn_cursor = 0;
     redraw();
 }
@@ -799,15 +808,15 @@ std::size_t esp::vt::line_edit::shown_cursor() const
 }
 
 /**
- * @brief Выводит заново приглашение и текст, начиная с первой строки экрана.
+ * @brief Выводит заново приглашение и текст, начиная с места приглашения.
  *
  * Остаток прежнего вывода стирается до конца экрана.
  */
 void esp::vt::line_edit::redraw()
 {
-    move_cursor(0);
+    move_cursor(_origin);
     put(shown_prompt());
-    _prompt_width = _drawn_cursor;
+    _text_start = _drawn_cursor;
     const std::string_view text = shown_text();
     put(text);
     write("\x1b[J");
@@ -832,19 +841,19 @@ void esp::vt::line_edit::redraw_from(std::size_t index)
 }
 
 /**
- * @brief Возвращает знакоместо места в тексте, считая от начала приглашения.
+ * @brief Возвращает знакоместо места в тексте, считая от начала первой строки экрана.
  * @param text Показанный текст.
  * @param index Место в тексте, байты.
  * @return Номер знакоместа.
  */
 int esp::vt::line_edit::position(std::string_view text, std::size_t index) const
 {
-    return _prompt_width + esp::vt::utf8::length(text.substr(0, index));
+    return _text_start + esp::vt::utf8::length(text.substr(0, index));
 }
 
 /**
  * @brief Передвигает курсор экрана последовательностями CUU, CUD, CUF, CUB.
- * @param target Знакоместо, считая от начала приглашения; его строка уже выведена.
+ * @param target Знакоместо, считая от начала первой строки экрана; его строка уже выведена.
  */
 void esp::vt::line_edit::move_cursor(int target)
 {

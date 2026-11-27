@@ -12,7 +12,9 @@
 
 #include "esp_board_test.h"
 #include "esp_core_usage.h"
+#include "esp_shell_terminal_words.h"
 #include "esp_vt_controls.h"
+#include "esp_vt_display.h"
 #include "esp_vt_key_event.h"
 #include "esp_vt_utf8.h"
 
@@ -52,8 +54,11 @@
  * Относительные пути файлов Форта отсчитываются от корня SD-карты. Память
  * слов и строк Форта ограничена @c esp::shell::p::MEMORY_LIMIT.
  *
- * Свои слова оболочка добавляет в словарь ff (@c WORDS): пока это
- * @c board-test — проверка платы esp::board_test.
+ * Слова терминала (раздел 7.5) добавляет в словарь ff
+ * esp::shell::terminal_words; им оболочка даёт терминал, вывод, чтение
+ * строки (@c accept), смену видеорежима и проверку платы. Слово @c accept
+ * набирает строку своим редактором строки со своей историей, начиная с
+ * места курсора — после вопроса, который вывела программа.
  */
 
 
@@ -87,6 +92,12 @@ constexpr std::int64_t YIELD_PERIOD_US = 100000;
 /** @brief Период опроса проверки платы, мс. */
 constexpr int POLL_PERIOD_MS = 10;
 
+/** @brief Сколько байтов строк помнит история слова @c accept. */
+constexpr int INPUT_HISTORY_BYTES = 1024;
+
+/** @brief Сколько строк помнит история слова @c accept. */
+constexpr int INPUT_HISTORY_LINES = 32;
+
 /** @brief Цвет приглашения — ярко-жёлтый. */
 constexpr std::string_view PROMPT_COLOUR = "\x1b[93m";
 
@@ -119,20 +130,6 @@ std::size_t char_offset(std::string_view text, int chars)
 }
 
 
-// Справка слов — для man, на английском и русском: в первой строке
-// стековая нотация и название, дальше описание в Markdown.
-const ff_native_word_t esp::shell::forth_shell::WORDS[] = {
-    FF_NATIVE("board-test", &esp::shell::forth_shell::board_test_word,
-              FF_TR_EN("( -- )  Board test\n"
-                       "Checks the VGA output, the PS/2 keyboard and mouse and the sound. "
-                       "*Esc* returns to the shell."),
-              FF_TR_RU("( -- )  Проверка платы\n"
-                       "Проверяет вывод на VGA, клавиатуру и мышь PS/2 и звук. "
-                       "*Esc* возвращает в оболочку.")),
-    FF_NATIVE_END,
-};
-
-
 // Открытые
 
 /**
@@ -148,6 +145,8 @@ esp::shell::forth_shell::forth_shell(esp::vt::terminal &terminal, const esp::sd_
     , _history{esp::vt::HISTORY_BYTES, esp::vt::HISTORY_LINES}
     , _history_file{sd_card}
     , _editor{terminal, _history}
+    , _input_history{esp::shell::p::INPUT_HISTORY_BYTES, esp::shell::p::INPUT_HISTORY_LINES}
+    , _input_editor{terminal, _input_history}
     , _prompt{}
     , _prompt_length{0}
     , _prompt_width{0}
@@ -187,6 +186,108 @@ bool esp::shell::forth_shell::button_pressed()
     return true;
 }
 
+
+/**
+ * @brief Выводит текст на терминал и отмечает, что после строки был вывод.
+ *
+ * Через него выводят и слова Форта: от отметки зависит, где встанет знак
+ * @c ^ под ошибкой (mark_error()).
+ *
+ * @param text Байты потока вывода.
+ */
+void esp::shell::forth_shell::write(std::string_view text)
+{
+    _terminal.write(text);
+    _has_output = true;
+}
+
+/**
+ * @brief Читает строку для слова @c accept.
+ *
+ * Строка набирается своим редактором строки со своей историей, с того
+ * места, где стоит курсор: после вопроса, который вывела программа. Если
+ * курсор ждёт переноса после последнего столбца, строка начинается со
+ * следующей строки экрана.
+ *
+ * @return Набранная строка или ничего, если её отменили (Ctrl+C);
+ *         строка действительна до следующего вызова.
+ */
+std::optional<std::string_view> esp::shell::forth_shell::read_line()
+{
+    if (_terminal.is_wrap_pending())
+        write("\n");
+    _has_output = true;
+    _input_editor.start(std::string_view{}, _terminal.columns(), _terminal.cursor_column());
+    esp::vt::line_edit::result result = esp::vt::line_edit::result::editing;
+    while (result == esp::vt::line_edit::result::editing)
+    {
+        if (const std::optional<esp::vt::key_event> key = _terminal.read_key(-1))
+            result = _input_editor.feed(*key);
+    }
+    if (result != esp::vt::line_edit::result::accepted)
+        return std::nullopt;
+    _input_history.add(_input_editor.line());
+    return _input_editor.line();
+}
+
+/**
+ * @brief Включает видеорежим терминала — для слова @c video-mode.
+ *
+ * Экран создаётся заново, его текст пропадает (esp::vt::terminal::set_mode()).
+ *
+ * @param mode Номер видеорежима в таблице esp::vt::display.
+ * @return @c false, если такого видеорежима нет.
+ */
+bool esp::shell::forth_shell::set_video_mode(int mode)
+{
+    if (mode < 0 || mode >= esp::vt::display::mode_count())
+        return false;
+    _terminal.set_mode(mode);
+    _has_output = true;
+    return true;
+}
+
+
+/**
+ * @brief Проводит проверку платы и ждёт, пока она закончится.
+ *
+ * Терминал на это время приостанавливается (esp::vt::terminal::suspend())
+ * и отдаёт проверке монитор, клавиатуру PS/2 и генератор звука; вывод, в
+ * том числе журнал проверки, идёт в модель экрана и в UART0. Задача
+ * оболочки опрашивает проверку каждые @c esp::shell::p::POLL_PERIOD_MS и
+ * передаёт ей нажатия K1 (button_pressed()). Проверка заканчивается по Esc
+ * на клавиатуре PS/2 или по одиночному ESC с терминала ПК, за которым
+ * @c esp::vt::ESCAPE_TIME_OUT_MS ничего не пришло; прочий ввод с UART0 на
+ * это время пропускается. Затем терминал включает свой видеорежим и
+ * рисует экран заново.
+ */
+void esp::shell::forth_shell::board_test()
+{
+    write(FF_TR(_ff.get(), FF_TR_EN("Board test. Press Esc to return to the shell.\n"),
+                FF_TR_RU("Проверка платы. Esc — возврат в оболочку.\n")));
+    _is_button_pressed = false;
+    _is_board_test_running = true;
+    _terminal.suspend();
+    {
+        // Проверка — в куче, а не на стеке оболочки: один видеоконтроллер
+        // занимает около килобайта.
+        const std::unique_ptr<esp::board_test> test =
+            std::make_unique<esp::board_test>(_terminal.sound());
+        while (!test->is_done())
+        {
+            // Ожидание ввода с UART0 — заодно и пауза между опросами.
+            const std::optional<esp::vt::key_event> key =
+                _terminal.read_key(esp::shell::p::POLL_PERIOD_MS);
+            if (key && *key == esp::vt::key_event{esp::vt::ESC})
+                break;
+            if (_is_button_pressed.exchange(false))
+                test->button_pressed();
+            test->poll();
+        }
+    }
+    _terminal.resume();
+    _is_board_test_running = false;
+}
 
 // Закрытые
 
@@ -302,15 +403,6 @@ std::FILE *esp::shell::forth_shell::open_file_callback(void *context, const char
 }
 
 /**
- * @brief Слово @c board-test.
- * @param ff Движок; его контекст — оболочка.
- */
-void esp::shell::forth_shell::board_test_word(ff_t *ff)
-{
-    static_cast<esp::shell::forth_shell *>(ff_context(ff))->board_test();
-}
-
-/**
  * @brief Цикл оболочки: приглашение, строка, выполнение. Не возвращает управление.
  *
  * Сначала читается история строк из файла на SD-карте и создаётся
@@ -380,7 +472,7 @@ bool esp::shell::forth_shell::create_engine()
     _ff.reset(ff_new(&platform));
     if (!_ff)
         return false;
-    if (ff_register(_ff.get(), WORDS) != FF_OK)
+    if (esp::shell::terminal_words::register_words(_ff.get()) != FF_OK)
         ESP_LOGW(esp::shell::p::TAG, "Shell words not registered: %s.", ff_strerror(_ff.get()));
     ESP_LOGD(esp::shell::p::TAG, "Forth engine created; free memory %zu kB.",
              heap_caps_get_free_size(MALLOC_CAP_8BIT) / 1024);
@@ -539,61 +631,10 @@ int esp::shell::forth_shell::print(const char *format, va_list args)
 }
 
 /**
- * @brief Выводит текст на терминал и отмечает, что после строки был вывод.
- * @param text Байты потока вывода.
- */
-void esp::shell::forth_shell::write(std::string_view text)
-{
-    _terminal.write(text);
-    _has_output = true;
-}
-
-/**
  * @brief Переводит строку, если курсор не в начале строки экрана.
  */
 void esp::shell::forth_shell::start_line()
 {
     if (_terminal.cursor_column() != 0)
         write("\n");
-}
-
-/**
- * @brief Проводит проверку платы и ждёт, пока она закончится.
- *
- * Терминал на это время приостанавливается (esp::vt::terminal::suspend())
- * и отдаёт проверке монитор, клавиатуру PS/2 и генератор звука; вывод, в
- * том числе журнал проверки, идёт в модель экрана и в UART0. Задача
- * оболочки опрашивает проверку каждые @c esp::shell::p::POLL_PERIOD_MS и
- * передаёт ей нажатия K1 (button_pressed()). Проверка заканчивается по Esc
- * на клавиатуре PS/2 или по одиночному ESC с терминала ПК, за которым
- * @c esp::vt::ESCAPE_TIME_OUT_MS ничего не пришло; прочий ввод с UART0 на
- * это время пропускается. Затем терминал включает свой видеорежим и
- * рисует экран заново.
- */
-void esp::shell::forth_shell::board_test()
-{
-    write(FF_TR(_ff.get(), FF_TR_EN("Board test. Press Esc to return to the shell.\n"),
-                FF_TR_RU("Проверка платы. Esc — возврат в оболочку.\n")));
-    _is_button_pressed = false;
-    _is_board_test_running = true;
-    _terminal.suspend();
-    {
-        // Проверка — в куче, а не на стеке оболочки: один видеоконтроллер
-        // занимает около килобайта.
-        const std::unique_ptr<esp::board_test> test =
-            std::make_unique<esp::board_test>(_terminal.sound());
-        while (!test->is_done())
-        {
-            // Ожидание ввода с UART0 — заодно и пауза между опросами.
-            const std::optional<esp::vt::key_event> key =
-                _terminal.read_key(esp::shell::p::POLL_PERIOD_MS);
-            if (key && *key == esp::vt::key_event{esp::vt::ESC})
-                break;
-            if (_is_button_pressed.exchange(false))
-                test->button_pressed();
-            test->poll();
-        }
-    }
-    _terminal.resume();
-    _is_board_test_running = false;
 }

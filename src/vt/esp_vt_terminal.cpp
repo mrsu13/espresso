@@ -252,6 +252,19 @@ std::optional<esp::vt::key_event> esp::vt::terminal::read_key(int time_out_ms)
 }
 
 /**
+ * @brief Сообщает, есть ли ввод, который ещё не прочитан.
+ *
+ * Сколько в очереди байтов, столько и событий не обязательно: знак UTF-8
+ * или последовательность особой клавиши — несколько байтов одного события.
+ *
+ * @return @c true, если в очереди ввода есть хоть один байт.
+ */
+bool esp::vt::terminal::is_input_ready()
+{
+    return uxQueueMessagesWaiting(_input) > 0;
+}
+
+/**
  * @brief Включает видеорежим.
  *
  * Экран создаётся заново под новый размер: прежний текст и история экрана
@@ -306,6 +319,41 @@ int esp::vt::terminal::cursor_column()
 {
     const esp::vt::p::guard guard{_lock};
     return _screen->cursor_column();
+}
+
+/**
+ * @brief Сообщает, ждёт ли курсор переноса после знака в последнем столбце.
+ *
+ * Тогда следующий знак встанет в начало следующей строки, хотя
+ * cursor_column() — последний столбец.
+ *
+ * @return @c true, если перенос отложен до следующего знака.
+ */
+bool esp::vt::terminal::is_wrap_pending()
+{
+    const esp::vt::p::guard guard{_lock};
+    return _screen->is_wrap_pending();
+}
+
+/**
+ * @brief Подаёт звук: прямоугольную волну заданной частоты.
+ *
+ * Звук звучит сам, метод его не ждёт. Генератор звука нельзя использовать
+ * из двух задач сразу, а звонок BEL терминал подаёт из любой задачи,
+ * которая выводит, поэтому звук подаётся под мьютексом терминала. Пока
+ * терминал приостановлен, генератором пользуется другая программа, и звука
+ * нет.
+ *
+ * @param frequency Частота, Гц.
+ * @param duration_ms Длительность, мс.
+ */
+void esp::vt::terminal::tone(int frequency, int duration_ms)
+{
+    const esp::vt::p::guard guard{_lock};
+    if (_is_suspended)
+        return;
+    _sound.play_sound(esp::sound::square_waveform_generator(), frequency, duration_ms,
+                      esp::vt::BELL_VOLUME);
 }
 
 /**

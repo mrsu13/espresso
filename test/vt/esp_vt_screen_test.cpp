@@ -273,7 +273,11 @@ void esp::vt::test::screen_tests(esp::test::context &context)
     context.set_case("screen: SGR keeps the pending wrap");
     {
         esp::vt::test::p::terminal t{10, 4};
-        t.write("012345678^[[31m9^[[32mX");
+        t.write("012345678^[[31m9^[[32m");
+        ESP_CHECK(context, t.screen.is_wrap_pending());
+        ESP_CHECK_EQUAL(context, t.screen.cursor_column(), 9);
+        t.write("X");
+        ESP_CHECK(context, !t.screen.is_wrap_pending());
         ESP_CHECK_EQUAL(context, t.row(0), "0123456789");
         ESP_CHECK_EQUAL(context, t.row(1), "X");
         ESP_CHECK_EQUAL(context, t.screen.cell(1, 0).style.foreground, 2);

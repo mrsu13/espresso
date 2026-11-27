@@ -30,6 +30,7 @@ public:
     inline const esp::vt::cell &cell(int row, int column) const;
     inline int cursor_row() const;
     inline int cursor_column() const;
+    inline bool is_wrap_pending() const;
     inline bool is_cursor_visible() const;
     inline bool is_alternate() const;
 
@@ -252,6 +253,19 @@ int esp::vt::screen::cursor_row() const
 int esp::vt::screen::cursor_column() const
 {
     return active().cursor_column;
+}
+
+/**
+ * @brief Сообщает, ждёт ли курсор показанной сетки переноса.
+ *
+ * Так бывает после знака в последнем столбце: следующий знак встанет в
+ * начало следующей строки, а не в этот столбец.
+ *
+ * @return @c true, если перенос отложен до следующего знака.
+ */
+bool esp::vt::screen::is_wrap_pending() const
+{
+    return active().is_wrap_pending;
 }
 
 /**

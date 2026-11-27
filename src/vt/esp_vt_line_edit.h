@@ -36,7 +36,7 @@ public:
     line_edit(esp::vt::writer &output, const esp::vt::line_history &history);
 
     void set_words(std::span<const std::string_view> words);
-    void start(std::string_view prompt, int columns);
+    void start(std::string_view prompt, int columns, int column = 0);
     esp::vt::line_edit::result feed(esp::vt::key_event key);
     inline std::string_view line() const;
 
@@ -96,8 +96,11 @@ private:
     /** @brief Ширина экрана в знакоместах: по ней длинная строка переносится. */
     int _columns;
 
-    /** @brief Ширина показанного приглашения в знакоместах. */
-    int _prompt_width;
+    /** @brief Столбец первой строки экрана, с которого начинается приглашение. */
+    int _origin;
+
+    /** @brief Знакоместо, с которого начинается текст строки, — сразу за приглашением. */
+    int _text_start;
 
     /** @brief Набираемая строка в UTF-8. */
     std::array<char, esp::vt::MAX_LINE_BYTES> _line;
@@ -148,10 +151,11 @@ private:
     bool _was_tab;
 
     /**
-     * @brief Где на экране курсор: знакоместо, считая от начала приглашения.
+     * @brief Где на экране курсор: знакоместо, считая от начала первой строки экрана.
      *
      * Строка экрана — частное от деления на @c _columns, столбец — остаток.
-     * По нему считаются движения курсора.
+     * По нему считаются движения курсора; строка начинается со знакоместа
+     * @c _origin.
      */
     int _drawn_cursor;
 
