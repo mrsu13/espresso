@@ -46,6 +46,7 @@ public:
     inline int mode() const;
     int columns();
     int rows();
+    int cursor_column();
     bool check_keyboard();
 
     void suspend();

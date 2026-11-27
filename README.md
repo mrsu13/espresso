@@ -1,9 +1,10 @@
 # Espresso
 
 ESP32 firmware for the LilyGO TTGO VGA32 v1.4 board: a standalone Forth computer with a VGA
-monitor and a PS/2 keyboard (design: `doc/md/40-design.md`). For now it runs the terminal — a
-VT220 subset on the monitor, mirrored to the serial port — with a temporary test shell and its
-line editor; the `board-test` command checks the VGA output, keyboard, mouse and sound.
+monitor and a PS/2 keyboard (design: `doc/md/40-design.md`). It runs the ff Forth engine on a
+terminal — a VT220 subset on the monitor, mirrored to the serial port — with a line editor and a
+line history kept on the SD card; the `board-test` word checks the VGA output, keyboard, mouse
+and sound.
 
 The Forth engine [ff](https://github.com/stoneagesoft/ff) is a git submodule, so clone with
 submodules (or run `git submodule update --init` in an existing clone).
@@ -31,7 +32,7 @@ The whole program is one ESP-IDF component, `src` (see `src/CMakeLists.txt`):
   * `src/vt`: the terminal — a VT220 subset on the VGA screen, PS/2 and UART0 input, the line
     editor (`esp::vt`); the parts that don't depend on ESP-IDF have host tests in `test`
     (`test/run.sh`).
-  * `src/shell`: the shell (`esp::shell`).
+  * `src/shell`: the Forth shell and its words (`esp::shell`).
   * `src/fonts`: the Unicode Terminus 10×18 font tables and the script that generates them.
   * `src/3rdparty`: the yyjson and utf8.h libraries, and the ff submodule, which is built by its
     own `CMakeLists.txt` as a subproject.

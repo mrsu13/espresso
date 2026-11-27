@@ -37,13 +37,16 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE LOG_LOCAL_LEVEL=ESP_LOG_DEBU
 # подпроект, статической библиотекой ff::ff (раздел 7.1 документа об
 # устройстве). Параметры ff задаются через кэш до add_subdirectory(): ff
 # объявляет их через option(), а значение из кэша сильнее значения по
-# умолчанию.
+# умолчанию. Заголовок ff.h есть и у FatFs, поэтому программа включает
+# главный заголовок ff как <ff/src/ff.h> — по пути от каталога
+# 3rdparty, который есть среди путей заголовков компонента.
 set(FF_32BIT ON CACHE BOOL "ff: 32-разрядные ячейки и вещественные числа одинарной точности." FORCE)
 set(FF_SAFE_MEM OFF CACHE BOOL "ff: без проверки адресов — как в настоящем ретрокомпьютере." FORCE)
 set(FF_R_TRUSTED ON CACHE BOOL "ff: без лишних проверок стека возвратов в циклах — на 5 % быстрее." FORCE)
 set(FF_WITH_SYSTEM OFF CACHE BOOL "ff: без слова system — на плате ему нечего запускать." FORCE)
 set(FF_WITH_FILES ON CACHE BOOL "ff: файловые слова и load — для файлов на SD-карте." FORCE)
 set(FF_WITH_TR ON CACHE BOOL "ff: тексты ff на русском и английском." FORCE)
+set(FF_PAD_INIT_SIZE 2048 CACHE STRING "ff: кусок временной области строк — 2 КБ: 32 КБ были бы половиной памяти Форта." FORCE)
 set(FF_BUILD_SHARED OFF CACHE BOOL "ff: только статическая библиотека." FORCE)
 add_subdirectory("${esp_ff_dir}" ff)
 target_link_libraries(${COMPONENT_LIB} PRIVATE ff::ff)

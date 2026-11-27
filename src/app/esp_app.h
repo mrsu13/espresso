@@ -2,7 +2,7 @@
 
 #include "esp_button.h"
 #include "esp_sdcard.h"
-#include "esp_shell_test_shell.h"
+#include "esp_shell_forth_shell.h"
 #include "esp_vt_terminal.h"
 
 
@@ -33,8 +33,8 @@ private:
     /** @brief Терминал: монитор VGA, клавиатура PS/2 и UART0. */
     esp::vt::terminal _terminal;
 
-    /** @brief Временная тестовая оболочка терминала, пока нет Форта (этап 1). */
-    esp::shell::test_shell _shell;
+    /** @brief Оболочка Форта на терминале. */
+    esp::shell::forth_shell _shell;
 };
 
 }
