@@ -283,8 +283,11 @@ esp::gfx::color color(int index)
  *
  * @param sound Генератор звука; должен жить дольше проверки, и, пока она
  *        жива, им не должен пользоваться никто другой.
+ * @param heap_reserve Сколько байтов кучи оставляет свободными буфер
+ *        кадра каждого видеорежима проверки
+ *        (esp::vga::vga_base_controller::set_heap_reserve()).
  */
-esp::board_test::board_test(esp::sound::sound_generator &sound)
+esp::board_test::board_test(esp::sound::sound_generator &sound, std::size_t heap_reserve)
     : _display{nullptr}
     , _font{ter_10x18::WIDTH,  ter_10x18::HEIGHT, ter_10x18::CODEPOINTS,
             ter_10x18::GLYPHS, ter_10x18::COUNT,  ter_10x18::FALLBACK}
@@ -297,6 +300,7 @@ esp::board_test::board_test(esp::sound::sound_generator &sound)
     , _clipping_test_shown{false}
     , _is_done{false}
     , _video_mode{0}
+    , _heap_reserve{heap_reserve}
 {
     // Контроллер PS/2 ищет устройства только при запуске и при их сбросе
     // (check_devices()): клавиатуру и мышь лучше подключить до включения
@@ -331,14 +335,17 @@ esp::board_test::board_test(esp::sound::sound_generator &sound)
 /**
  * @brief Останавливает вывод на VGA и отпускает мышь.
  *
- * Мышь перестаёт двигать указатель, а видеоконтроллер останавливается и
- * освобождает буфер кадра, очередь примитивов и прерывание. Контроллер
- * PS/2 остаётся включённым: им пользуется и терминал. Звуки, которые ещё
- * не отзвучали, доигрывает генератор звука.
+ * Мышь перестаёт двигать указатель, очередь её состояний удаляется, а
+ * видеоконтроллер останавливается и освобождает буфер кадра, очередь
+ * примитивов и прерывание. Контроллер PS/2 остаётся включённым: им
+ * пользуется и терминал. Звуки, которые ещё не отзвучали, доигрывает
+ * генератор звука.
  */
 esp::board_test::~board_test()
 {
-    detach_mouse();
+    // Очередь состояний мыши проверка создала, пока буфер кадра
+    // терминала освобождён; оставшись, она разбила бы его память на куски.
+    esp::ps2::ps2_controller::mouse()->terminate_absolute_positioner();
     // Деструктор видеоконтроллера вывод не останавливает.
     _display->end();
     _canvas.reset();
@@ -506,6 +513,7 @@ void esp::board_test::set_video_mode(int index)
     _clipping_test_shown = false;
 
     _display->begin();
+    _display->set_heap_reserve(_heap_reserve);
     _display->set_resolution(mode.modeline);
 
     _canvas.emplace(_display);

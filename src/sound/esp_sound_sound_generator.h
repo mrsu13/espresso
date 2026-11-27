@@ -40,6 +40,7 @@ public:
                              sound_gen_method gen_method = sound_gen_method::automatic);
     ~sound_generator();
 
+    void init();
     void clear();
 
     bool play(bool value);
@@ -63,7 +64,6 @@ private:
     static void isr_handler(void *arg);
     static void timer_handler(void *arg);
 
-    void init();
     void dac_init();
     void sigmadelta_init();
     void set_dma_node(int index, volatile std::uint16_t *buf, int len);

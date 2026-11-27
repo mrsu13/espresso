@@ -16,6 +16,7 @@
 #include <array>
 #include <atomic>
 #include <cstdarg>
+#include <cstddef>
 #include <optional>
 #include <string_view>
 
@@ -45,6 +46,7 @@ public:
     bool is_input_ready();
 
     void set_mode(int mode);
+    void set_heap_reserve(std::size_t bytes);
     inline int mode() const;
     int columns();
     int rows();
@@ -67,6 +69,7 @@ private:
     static void blink(TimerHandle_t timer);
     static int log_vprintf(const char *format, va_list args);
 
+    void start_display(int mode);
     void start_screen();
     void put(std::string_view text);
     void feed(std::string_view bytes);
@@ -86,6 +89,12 @@ private:
      * видеорежим вывод вернёт resume().
      */
     int _mode;
+
+    /**
+     * @brief Сколько байтов кучи оставляет свободными буфер кадра при смене видеорежима
+     *        (set_heap_reserve()).
+     */
+    std::size_t _heap_reserve;
 
     /** @brief Экран; создаётся заново при смене видеорежима, потому что меняется его размер. */
     std::optional<esp::vt::screen> _screen;

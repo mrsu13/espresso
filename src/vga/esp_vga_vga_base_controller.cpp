@@ -35,6 +35,18 @@
 #pragma GCC optimize("O2")
 
 
+namespace esp::vga::p
+{
+
+/**
+ * @brief Сколько байтов наибольшего свободного куска кучи не идёт в блок
+ *        буфера кадра: место под заголовок блока, чтобы блок поместился.
+ */
+constexpr std::size_t BLOCK_OVERHEAD = 32;
+
+}
+
+
 /**
  * @class esp::vga::vga_base_controller
  * @brief Основа контроллеров VGA: развёртка, буферы DMA и вывод через I2S1.
@@ -66,7 +78,10 @@
 /**
  * @brief Создаёт контроллер; выводы и развёртку задают begin() и set_resolution().
  */
-esp::vga::vga_base_controller::vga_base_controller() {}
+esp::vga::vga_base_controller::vga_base_controller()
+    : _heap_reserve{esp::vga::DEFAULT_HEAP_RESERVE}
+{
+}
 
 /**
  * @brief Запускает контроллер на 8 цветов: по выводу на канал цвета.
@@ -997,11 +1012,28 @@ void volatile *esp::vga::vga_base_controller::get_dma_buffer(int index, int *len
 }
 
 /**
+ * @brief Задаёт, сколько байтов кучи всего остаётся свободным после буфера кадра.
+ *
+ * Буфер кадра берёт из кучи столько, сколько поместится сверх запаса,
+ * а если запаса для всего изображения не хватает, высота изображения
+ * уменьшается (allocate_view_port()). Действует на следующий вызов
+ * set_resolution(); по умолчанию — esp::vga::DEFAULT_HEAP_RESERVE.
+ *
+ * @param bytes Запас, байты.
+ */
+void esp::vga::vga_base_controller::set_heap_reserve(std::size_t bytes)
+{
+    _heap_reserve = bytes;
+}
+
+/**
  * @brief Выделяет буферы кадра как можно меньшим числом блоков памяти.
  *
- * В куче остаётся блок не меньше esp::vga::MIN_FREE_LARGEST_BLOCK байтов;
- * если памяти не хватает, высота области вывода уменьшается до
- * выделенной.
+ * Блоки берутся из наибольших свободных кусков кучи, каждый — сколько
+ * поместится, но так, чтобы в куче всего осталось не меньше запаса
+ * (set_heap_reserve()). Поэтому изображение собирается и из кучи,
+ * разбитой на куски. Если памяти не хватает, высота области вывода
+ * уменьшается до выделенной.
  *
  * @param alloc_caps Вид памяти для heap_caps_malloc().
  * @param rowlen Длина строки буфера, байты.
@@ -1021,20 +1053,28 @@ void esp::vga::vga_base_controller::allocate_view_port(std::uint32_t alloc_caps,
     // Блоки памяти — как можно больше, но с запасом в куче.
     _view_port_memory_pool = static_cast<std::uint8_t **>(heap_caps_malloc(
         sizeof(std::uint8_t *) * (esp::vga::VIEW_PORT_MEMORY_POOL_COUNT + 1), MALLOC_CAP_32BIT));
+    const std::size_t line_bytes = static_cast<std::size_t>(rowlen);
     while (remaining_lines > 0 && pools_count < esp::vga::VIEW_PORT_MEMORY_POOL_COUNT)
     {
-        const int largest_block = heap_caps_get_largest_free_block(alloc_caps);
-        if (largest_block < esp::vga::MIN_FREE_LARGEST_BLOCK)
+        // Блок — из наибольшего свободного куска, без места под его
+        // заголовок, и не больше, чем свободно сверх запаса.
+        const std::size_t free = heap_caps_get_free_size(alloc_caps);
+        const std::size_t largest = heap_caps_get_largest_free_block(alloc_caps);
+        if (free <= _heap_reserve || largest <= esp::vga::p::BLOCK_OVERHEAD)
             break;
-        lines_count[pools_count] = std::max(
-            1,
-            std::min(remaining_lines, (largest_block - esp::vga::MIN_FREE_LARGEST_BLOCK) / rowlen));
-        _view_port_memory_pool[pools_count] = static_cast<std::uint8_t *>(
-            heap_caps_malloc(lines_count[pools_count] * rowlen, alloc_caps));
+        const std::size_t bytes =
+            std::min(free - _heap_reserve, largest - esp::vga::p::BLOCK_OVERHEAD);
+        const int lines = static_cast<int>(
+            std::min(static_cast<std::size_t>(remaining_lines), bytes / line_bytes));
+        if (lines < 1)
+            break;
+        _view_port_memory_pool[pools_count] =
+            static_cast<std::uint8_t *>(heap_caps_malloc(lines * line_bytes, alloc_caps));
         if (!_view_port_memory_pool[pools_count])
             break;
-        remaining_lines -= lines_count[pools_count];
-        _view_port_height += lines_count[pools_count];
+        lines_count[pools_count] = lines;
+        remaining_lines -= lines;
+        _view_port_height += lines;
         ++pools_count;
     }
     _view_port_memory_pool[pools_count] = nullptr;

@@ -10,6 +10,7 @@
 #include "esp_vga_vga8_controller.h"
 #include "esp_vga_vga_base_controller.h"
 
+#include <cstddef>
 #include <optional>
 #include <span>
 #include <variant>
@@ -26,7 +27,7 @@ public:
     display();
     ~display();
 
-    void set_mode(int mode);
+    void set_mode(int mode, std::size_t heap_reserve);
     void stop();
 
     inline int mode() const;
@@ -35,6 +36,7 @@ public:
     inline const esp::gfx::font &font() const;
     int columns() const;
     int rows() const;
+    esp::gfx::size grid_size(int mode) const;
     std::span<const esp::gfx::rgb888> palette() const;
 
     static int mode_count();
@@ -43,7 +45,8 @@ public:
 private:
 
     template<typename T>
-    void start(const char *modeline, std::span<const esp::gfx::rgb888> palette);
+    void start(const char *modeline, std::size_t heap_reserve,
+               std::span<const esp::gfx::rgb888> palette);
 
     /**
      * @brief Видеоконтроллер текущего видеорежима; @c std::monostate — вывод выключен.

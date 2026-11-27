@@ -12,6 +12,7 @@
 #include "esp_vga_vga8_controller.h"
 #include "esp_vga_vga_controller.h"
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <variant>
@@ -25,7 +26,7 @@ class board_test : esp::non_copyable
 
 public:
 
-    explicit board_test(esp::sound::sound_generator &sound);
+    board_test(esp::sound::sound_generator &sound, std::size_t heap_reserve);
     ~board_test();
 
     void poll();
@@ -126,6 +127,9 @@ private:
 
     /** @brief Номер текущего видеорежима в таблице видеорежимов (esp::p::DISPLAY_MODES). */
     int _video_mode;
+
+    /** @brief Сколько байтов кучи оставляет свободными буфер кадра каждого видеорежима. */
+    std::size_t _heap_reserve;
 };
 
 }

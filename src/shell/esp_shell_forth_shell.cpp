@@ -23,6 +23,7 @@
 #include <cerrno>
 #include <cstddef>
 #include <initializer_list>
+#include <new>
 #include <optional>
 
 #include <esp_heap_caps.h>
@@ -77,9 +78,10 @@ namespace esp::shell::p
  * @brief Размер стека задачи оболочки, байты.
  *
  * Внутренний интерпретатор ff, вложенные @c evaluate и @c load, а ещё
- * проверка платы и файл истории работают на этом стеке; размер
- * предварительный, его уточнит замер (раздел 14 документа об
- * устройстве).
+ * проверка платы и файл истории работают на этом стеке. По замеру
+ * больше всего занимают 16 вложенных @c evaluate — 4,1 КБ; остальное —
+ * запас для полноэкранного редактора и @c save (раздел 10 документа
+ * об устройстве).
  */
 constexpr int TASK_STACK = 16384;
 
@@ -89,10 +91,22 @@ constexpr int TASK_PRIORITY = 3;
 /**
  * @brief Предел памяти слов и строк Форта (ff_platform_t::mem_limit), байты.
  *
- * Сверх него ff даёт ошибку −8, а не отнимает память у экрана и задач;
- * предварительно, уточнит замер.
+ * Сверх него ff даёт ошибку −8, а не отнимает память у экрана и задач.
+ * Эта память Форта есть в любом видеорежиме: буфер кадра оставляет
+ * свободным то, что Форт ещё не занял (heap_reserve()). Замер на плате:
+ * при 64 КБ куча кончилась бы раньше предела.
  */
-constexpr std::size_t MEMORY_LIMIT = 64 * 1024;
+constexpr std::size_t MEMORY_LIMIT = 32 * 1024;
+
+/**
+ * @brief Сколько байтов кучи сверх памяти Форта остаётся свободным при смене
+ *        видеорежима.
+ *
+ * Запас для всего, что берёт память потом: на время вывода @c .s и
+ * @c man библиотека таблиц ff берёт в куче до 17 КБ, файлы на SD-карте,
+ * вывод длинного текста (print()).
+ */
+constexpr std::size_t SYSTEM_RESERVE = 20 * 1024;
 
 /** @brief Как часто долгий код Форта отдаёт процессор задачам простоя, мкс. */
 constexpr std::int64_t YIELD_PERIOD_US = 100000;
@@ -375,6 +389,8 @@ std::optional<std::string_view> esp::shell::forth_shell::read_line()
  * @brief Включает видеорежим терминала — для слова @c video-mode.
  *
  * Экран создаётся заново, его текст пропадает (esp::vt::terminal::set_mode()).
+ * Буфер кадра оставляет в куче память Форта и запас (heap_reserve()):
+ * если на всё изображение её сверх них не хватает, изображение ниже.
  *
  * @param mode Номер видеорежима в таблице esp::vt::display.
  * @return @c false, если такого видеорежима нет.
@@ -383,6 +399,7 @@ bool esp::shell::forth_shell::set_video_mode(int mode)
 {
     if (mode < 0 || mode >= esp::vt::display::mode_count())
         return false;
+    _terminal.set_heap_reserve(heap_reserve());
     _terminal.set_mode(mode);
     _has_output = true;
     return true;
@@ -407,12 +424,15 @@ void esp::shell::forth_shell::board_test()
                 FF_TR_RU("Проверка платы. Esc — возврат в оболочку.\n")));
     _is_button_pressed = false;
     _is_board_test_running = true;
+    // Запас — и для буферов кадра проверки, и для буфера кадра терминала,
+    // который вернёт resume().
+    _terminal.set_heap_reserve(heap_reserve());
     _terminal.suspend();
     {
         // Проверка — в куче, а не на стеке оболочки: один видеоконтроллер
         // занимает около килобайта.
         const std::unique_ptr<esp::board_test> test =
-            std::make_unique<esp::board_test>(_terminal.sound());
+            std::make_unique<esp::board_test>(_terminal.sound(), heap_reserve());
         while (!test->is_done() && !_is_interrupted)
         {
             // Ожидание ввода с UART0 — заодно и пауза между опросами.
@@ -798,7 +818,9 @@ void esp::shell::forth_shell::update_prompt()
  * @brief Форматирует текст и выводит его на терминал.
  *
  * Короткий текст форматируется на стеке, длинный — во временном буфере в
- * куче: вывод @c man или @c words бывает длиннее строки.
+ * куче: вывод @c man или @c words бывает длиннее строки. Если кучи на
+ * буфер не хватает, выводится начало текста, уместившееся на стеке:
+ * текст обрезан, но программа работает дальше.
  *
  * @param format Формат @c printf.
  * @param args Аргументы формата; не расходуются.
@@ -820,12 +842,32 @@ int esp::shell::forth_shell::print(const char *format, va_list args)
         write(std::string_view{buffer.data(), size});
         return length;
     }
-    const std::unique_ptr<char[]> text = std::make_unique<char[]>(size + 1);
+    // Без исключений C++ неудачный new[] остановил бы программу.
+    const std::unique_ptr<char[]> text{new (std::nothrow) char[size + 1]};
+    if (!text)
+    {
+        write(std::string_view{buffer.data(), buffer.size() - 1});
+        return length;
+    }
     va_copy(copy, args);
     std::vsnprintf(text.get(), size + 1, format, copy);
     va_end(copy);
     write(std::string_view{text.get(), size});
     return length;
+}
+
+/**
+ * @brief Сколько байтов кучи оставляет свободными буфер кадра при смене видеорежима.
+ *
+ * Память Форта, которую он ещё не занял, — чтобы её хватало в любом
+ * видеорежиме, — и запас @c esp::shell::p::SYSTEM_RESERVE для остального.
+ *
+ * @return Запас, байты.
+ */
+std::size_t esp::shell::forth_shell::heap_reserve() const
+{
+    const std::size_t forth_room = _ff ? ff_unused(_ff.get()) : esp::shell::p::MEMORY_LIMIT;
+    return esp::shell::p::SYSTEM_RESERVE + forth_room;
 }
 
 /**

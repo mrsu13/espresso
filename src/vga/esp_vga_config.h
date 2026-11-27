@@ -20,6 +20,9 @@
 #define ESP_VGA_USE_APLL_AB_COEF 0
 
 
+#include <cstddef>
+
+
 namespace esp::vga
 {
 
@@ -30,10 +33,11 @@ constexpr int XTAL_FREQUENCY = 40000000;
 constexpr int VIEW_PORT_MEMORY_POOL_COUNT = 128;
 
 /**
- * @brief Сколько байтов в наибольшем свободном блоке кучи должно остаться
- *        после выделения буфера кадра.
+ * @brief Сколько байтов кучи всего остаётся свободным после выделения
+ *        буфера кадра, если контроллеру не задано иное
+ *        (esp::vga::vga_base_controller::set_heap_reserve()).
  */
-constexpr int MIN_FREE_LARGEST_BLOCK = 40000;
+constexpr std::size_t DEFAULT_HEAP_RESERVE = 40000;
 
 /** @brief Стек задачи, рисующей примитивы, у контроллеров с палитрой, байты. */
 constexpr int PRIMITIVE_TASK_STACK_SIZE = 1200;

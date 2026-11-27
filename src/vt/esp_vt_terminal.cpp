@@ -17,6 +17,7 @@
 #include "esp_ps2_ps2_controller.h"
 #include "esp_ps2_virtual_key.h"
 #include "esp_sound_square_waveform_generator.h"
+#include "esp_vga_config.h"
 #include "esp_vt_controls.h"
 #include "esp_vt_keys.h"
 
@@ -106,6 +107,7 @@ const char *const TAG = "vt";
 esp::vt::terminal::terminal()
     : _display{}
     , _mode{-1}
+    , _heap_reserve{esp::vga::DEFAULT_HEAP_RESERVE}
     , _screen{}
     , _parser{}
     , _renderer{}
@@ -171,6 +173,11 @@ void esp::vt::terminal::begin()
     _keyboard_released = xSemaphoreCreateBinary();
     assert(_lock && _input && _keyboard_released);
 
+    // Буферы генератора звука — сейчас, раньше буфера кадра, а не при
+    // первом звуке: первым может прозвучать звук проверки платы, когда
+    // буфер кадра терминала освобождён, и буферы звука легли бы посреди
+    // его памяти, разбив её на куски.
+    _sound.init();
     set_mode(esp::vt::DEFAULT_MODE);
 
     esp::ps2::ps2_controller::begin(esp::ps2::ps2_preset::keyboard_port_0_mouse_port_1);
@@ -282,7 +289,11 @@ bool esp::vt::terminal::is_input_ready()
  * @brief Включает видеорежим.
  *
  * Экран создаётся заново под новый размер: прежний текст и история экрана
- * пропадают. Пока терминал приостановлен, видеорежим не меняется.
+ * пропадают. Буфер кадра оставляет в куче свободным запас
+ * (set_heap_reserve()); если памяти сверх него на всё изображение не
+ * хватает, изображение ниже и строк меньше, а если не хватает и на
+ * строку знаков — включается видеорежим @c esp::vt::DEFAULT_MODE. Пока
+ * терминал приостановлен, видеорежим не меняется.
  *
  * @param mode Номер видеорежима в таблице esp::vt::display.
  */
@@ -290,14 +301,37 @@ void esp::vt::terminal::set_mode(int mode)
 {
     const esp::vt::p::guard guard{_lock};
     assert(!_is_suspended);
-    // Сначала освобождается память прежнего экрана, затем буфер кадра:
-    // так новому видеорежиму её достаётся больше.
+    // Память прежних экрана и буфера кадра освобождается, и новый экран
+    // создаётся раньше нового буфера кадра: сетки знакомест и история
+    // экрана — большие сплошные куски, а буфер кадра собирается и из
+    // кусков поменьше. Если изображение выйдет ниже, start_screen() на
+    // месте этого экрана создаст экран меньше.
     _renderer.reset();
     _parser.reset();
     _screen.reset();
-    _display.set_mode(mode);
-    _mode = mode;
+    _display.stop();
+    const esp::gfx::size grid = _display.grid_size(mode);
+    _screen.emplace(grid.width, grid.height);
+    _parser.emplace(*_screen);
+    _last_byte = 0;
+    start_display(mode);
     start_screen();
+}
+
+/**
+ * @brief Задаёт, сколько байтов кучи оставляет свободными буфер кадра.
+ *
+ * Буфер кадра при смене видеорежима и после приостановки (resume())
+ * берёт столько памяти, сколько есть сверх запаса: запас нужен тем, кто
+ * берёт память потом. Задаёт его программа, которая меняет
+ * видеорежимы, — из той же задачи. По умолчанию —
+ * @c esp::vga::DEFAULT_HEAP_RESERVE.
+ *
+ * @param bytes Запас, байты.
+ */
+void esp::vt::terminal::set_heap_reserve(std::size_t bytes)
+{
+    _heap_reserve = bytes;
 }
 
 /**
@@ -492,7 +526,7 @@ void esp::vt::terminal::resume()
     {
         const esp::vt::p::guard guard{_lock};
         assert(_is_suspended);
-        _display.set_mode(_mode);
+        start_display(_mode);
         _is_suspended = false;
         _is_cursor_on = true;
         start_screen();
@@ -614,6 +648,31 @@ int esp::vt::terminal::log_vprintf(const char *format, va_list args)
         line[size - 1] = '\n';
     terminal->put(std::string_view{line.data(), size});
     return length;
+}
+
+/**
+ * @brief Включает вывод в видеорежиме с запасом памяти терминала; мьютекс уже захвачен.
+ *
+ * Если буфер кадра не вместил и строки знаков, включается видеорежим
+ * @c esp::vt::DEFAULT_MODE, с которым терминал запускается: прежде
+ * освобождается экран, чтобы его память досталась буферу кадра, а
+ * start_screen() потом создаст экран заново.
+ *
+ * @param mode Номер видеорежима в таблице esp::vt::display.
+ */
+void esp::vt::terminal::start_display(int mode)
+{
+    _display.set_mode(mode, _heap_reserve);
+    if (_display.rows() < 1 && mode != esp::vt::DEFAULT_MODE)
+    {
+        ESP_LOGW(esp::vt::p::TAG, "Not enough memory for video mode %d; mode %d instead.", mode,
+                 esp::vt::DEFAULT_MODE);
+        _parser.reset();
+        _screen.reset();
+        mode = esp::vt::DEFAULT_MODE;
+        _display.set_mode(mode, _heap_reserve);
+    }
+    _mode = mode;
 }
 
 /**

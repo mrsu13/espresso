@@ -48,6 +48,7 @@ set(FF_WITH_FILES ON CACHE BOOL "ff: файловые слова и load — д�
 set(FF_WITH_TR ON CACHE BOOL "ff: тексты ff на русском и английском." FORCE)
 set(FF_PAD_INIT_SIZE 2048 CACHE STRING "ff: кусок временной области строк — 2 КБ: 32 КБ были бы половиной памяти Форта." FORCE)
 set(FF_DICT_ARENA_SLAB 4096 CACHE STRING "ff: кусок памяти слов — 4 КБ: кусок в 64 КБ занял бы всю память Форта, и одним куском его в куче нет." FORCE)
+set(FF_EVAL_DEPTH 16 CACHE STRING "ff: не больше 16 вычислений разом — evaluate и load на стеке оболочки; дальше ff даёт ошибку −5." FORCE)
 set(FF_BUILD_SHARED OFF CACHE BOOL "ff: только статическая библиотека." FORCE)
 add_subdirectory("${esp_ff_dir}" ff)
 target_link_libraries(${COMPONENT_LIB} PRIVATE ff::ff)

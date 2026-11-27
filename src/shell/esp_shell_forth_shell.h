@@ -73,6 +73,7 @@ private:
     bool is_top_level() const;
     void update_prompt();
     int print(const char *format, va_list args);
+    std::size_t heap_reserve() const;
     void start_line();
 
     /** @brief Терминал, с которым работает оболочка. */

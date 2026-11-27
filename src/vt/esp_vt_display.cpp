@@ -188,11 +188,15 @@ esp::vt::display::~display()
  * @brief Включает видеорежим.
  *
  * Прежний видеоконтроллер останавливается и уничтожается, новый
- * получает палитру видеорежима, а его холст очищается чёрным.
+ * получает палитру видеорежима, а его холст очищается чёрным. Буфер
+ * кадра оставляет в куче свободными @p heap_reserve байтов; если для
+ * всего изображения памяти сверх них не хватает, изображение ниже
+ * (esp::vga::vga_base_controller::set_heap_reserve()).
  *
  * @param mode Номер видеорежима, от 0 до mode_count() − 1.
+ * @param heap_reserve Сколько байтов кучи оставить свободными.
  */
-void esp::vt::display::set_mode(int mode)
+void esp::vt::display::set_mode(int mode, std::size_t heap_reserve)
 {
     assert(mode >= 0 && mode < mode_count());
     stop();
@@ -201,22 +205,22 @@ void esp::vt::display::set_mode(int mode)
     switch (video_mode.driver)
     {
         case esp::vt::p::driver::vga16:
-            start<esp::vga::vga16_controller>(video_mode.modeline,
+            start<esp::vga::vga16_controller>(video_mode.modeline, heap_reserve,
                                               esp::vt::p::palette_for(video_mode.driver));
             break;
 
         case esp::vt::p::driver::vga8:
-            start<esp::vga::vga8_controller>(video_mode.modeline,
+            start<esp::vga::vga8_controller>(video_mode.modeline, heap_reserve,
                                              esp::vt::p::palette_for(video_mode.driver));
             break;
 
         case esp::vt::p::driver::vga4:
-            start<esp::vga::vga4_controller>(video_mode.modeline,
+            start<esp::vga::vga4_controller>(video_mode.modeline, heap_reserve,
                                              esp::vt::p::palette_for(video_mode.driver));
             break;
 
         case esp::vt::p::driver::vga2:
-            start<esp::vga::vga2_controller>(video_mode.modeline,
+            start<esp::vga::vga2_controller>(video_mode.modeline, heap_reserve,
                                              esp::vt::p::palette_for(video_mode.driver));
             break;
     }
@@ -270,6 +274,27 @@ int esp::vt::display::rows() const
 }
 
 /**
+ * @brief Возвращает размер сетки знакомест видеорежима во всю его высоту.
+ *
+ * Столько знакомест будет на экране, если буфер кадра поместится
+ * целиком; вывод для этого включать не нужно.
+ *
+ * @param mode Номер видеорежима, от 0 до mode_count() − 1.
+ * @return Ширина — столбцы, высота — строки, не больше @c esp::vt::MAX_ROWS.
+ */
+esp::gfx::size esp::vt::display::grid_size(int mode) const
+{
+    assert(mode >= 0 && mode < mode_count());
+    esp::vga::vga_timings timings{};
+    const bool is_parsed = esp::vga::vga_base_controller::convert_modeline_to_timings(
+        esp::vt::p::VIDEO_MODES[mode].modeline, &timings);
+    assert(is_parsed);
+    (void)is_parsed;
+    return esp::gfx::size{timings.h_visible_area / _font.width(),
+                          std::min(timings.v_visible_area / _font.height(), esp::vt::MAX_ROWS)};
+}
+
+/**
  * @brief Возвращает палитру текущего видеорежима.
  * @return Цвета палитры по порядку; вывод должен быть включён.
  */
@@ -307,10 +332,12 @@ const char *esp::vt::display::mode_label(int mode)
  * @param palette Цвета палитры по порядку.
  */
 template<typename T>
-void esp::vt::display::start(const char *modeline, std::span<const esp::gfx::rgb888> palette)
+void esp::vt::display::start(const char *modeline, std::size_t heap_reserve,
+                             std::span<const esp::gfx::rgb888> palette)
 {
     T &controller = _controller.emplace<T>();
     controller.begin();
+    controller.set_heap_reserve(heap_reserve);
     controller.set_resolution(modeline);
     for (std::size_t index = 0; index < palette.size(); ++index)
         controller.set_palette_item(static_cast<int>(index), palette[index]);

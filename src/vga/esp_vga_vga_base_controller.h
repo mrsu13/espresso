@@ -64,6 +64,8 @@ public:
     virtual void set_resolution(const vga_timings &timings, int view_port_width = -1,
                                 int view_port_height = -1, bool double_buffered = false);
 
+    void set_heap_reserve(std::size_t bytes);
+
     inline int view_port_col() const;
     inline int view_port_row() const;
     void move_screen(int offset_x, int offset_y);
@@ -204,6 +206,9 @@ private:
 
     /** @brief Полная высота кадра со всеми гасящими интервалами, строки. */
     std::int16_t _raw_frame_height;
+
+    /** @brief Сколько байтов кучи остаётся свободным после буфера кадра (set_heap_reserve()). */
+    std::size_t _heap_reserve;
 };
 
 }

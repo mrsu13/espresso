@@ -34,6 +34,18 @@
 #pragma GCC optimize("O2")
 
 
+namespace esp::ps2::p
+{
+
+/**
+ * @brief Пауза перед удалением очереди состояний, мс: за неё задача мыши
+ *        заканчивает состояние, которое уже начала обрабатывать.
+ */
+constexpr int POSITIONER_SETTLE_MS = 50;
+
+}
+
+
 /**
  * @class esp::ps2::mouse
  * @brief Мышь PS/2: перемещения, колесо, кнопки и абсолютное положение указателя.
@@ -282,17 +294,24 @@ void esp::ps2::mouse::setup_absolute_positioner(
 }
 
 /**
- * @brief Выключает расчёт абсолютного положения: удаляет задачу и очередь состояний.
+ * @brief Выключает расчёт абсолютного положения и удаляет очередь состояний.
+ *
+ * Задача мыши сначала перестаёт ставить состояния в очередь и двигать
+ * указатель, а очередь удаляется после паузы
+ * @c esp::ps2::p::POSITIONER_SETTLE_MS — когда в неё уже не пишут. Память
+ * очереди возвращается в кучу: очередь, созданная, пока буфер кадра
+ * освобождён, иначе осталась бы посреди его памяти.
  */
 void esp::ps2::mouse::terminate_absolute_positioner()
 {
+    _absolute_update = false;
+    _update_display_controller = nullptr;
     if (_absolute_queue)
     {
+        vTaskDelay(pdMS_TO_TICKS(esp::ps2::p::POSITIONER_SETTLE_MS));
         vQueueDelete(_absolute_queue);
         _absolute_queue = nullptr;
     }
-    _absolute_update = false;
-    _update_display_controller = nullptr;
 }
 
 /**
