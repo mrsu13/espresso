@@ -429,6 +429,43 @@ void esp::shell::forth_shell::board_test()
     _is_board_test_running = false;
 }
 
+/**
+ * @brief Выводит сводку памяти — для слова @c memstat.
+ *
+ * Куча — та, из которой берёт @c malloc (@c MALLOC_CAP_DEFAULT): сколько в
+ * ней свободно, наибольший свободный кусок и меньше всего свободного с
+ * запуска. Форт — сколько из предела @c esp::shell::p::MEMORY_LIMIT держит
+ * ff (ff_unused()); память под слова и строки ff берёт кусками, поэтому
+ * число растёт ступенями. Стек оболочки — сколько его самое большее
+ * занимали с запуска. Числа собираются до вывода, чтобы вывод сводки сам
+ * в них не попал.
+ */
+void esp::shell::forth_shell::memstat()
+{
+    const std::size_t heap_free = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
+    const std::size_t heap_largest = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
+    const std::size_t heap_lowest = heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT);
+    const std::size_t forth_used = esp::shell::p::MEMORY_LIMIT - ff_unused(_ff.get());
+    // Слово выполняет задача оболочки, так что её стек — стек текущей задачи.
+    const std::size_t stack = static_cast<std::size_t>(esp::shell::p::TASK_STACK);
+    const std::size_t stack_used = stack - uxTaskGetStackHighWaterMark(nullptr);
+
+    std::array<char, 512> text{};
+    std::snprintf(text.data(), text.size(),
+                  FF_TR(_ff.get(),
+                        FF_TR_EN("Heap: %zu bytes free, the largest block %zu, the lowest since "
+                                 "start %zu.\n"
+                                 "Forth: %zu of %zu bytes used.\n"
+                                 "Shell stack: at most %zu of %zu bytes used.\n"),
+                        FF_TR_RU("Куча: свободно %zu байт, наибольший кусок — %zu, меньше всего "
+                                 "было %zu.\n"
+                                 "Форт: занято %zu из %zu байт.\n"
+                                 "Стек оболочки: занято не больше %zu из %zu байт.\n")),
+                  heap_free, heap_largest, heap_lowest, forth_used, esp::shell::p::MEMORY_LIMIT,
+                  stack_used, stack);
+    write(text.data());
+}
+
 // Закрытые
 
 /**

@@ -52,6 +52,7 @@ public:
     std::optional<std::string_view> read_line();
     bool set_video_mode(int mode);
     void board_test();
+    void memstat();
 
 private:
 

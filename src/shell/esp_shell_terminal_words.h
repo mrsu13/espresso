@@ -41,10 +41,13 @@ private:
     static void foreground(ff_t *ff);
     static void background(ff_t *ff);
     static void ms(ff_t *ff);
+    static void counter(ff_t *ff);
+    static void timer(ff_t *ff);
     static void beep(ff_t *ff);
     static void tone(ff_t *ff);
     static void video_mode(ff_t *ff);
     static void board_test(ff_t *ff);
+    static void memstat(ff_t *ff);
     static void set_colour(ff_t *ff, int base, int bright_base);
     static esp::shell::forth_shell &shell(ff_t *ff);
 };

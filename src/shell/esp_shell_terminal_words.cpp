@@ -22,6 +22,8 @@
 #include <optional>
 #include <string_view>
 
+#include <esp_timer.h>
+
 
 /**
  * @class esp::shell::terminal_words
@@ -33,8 +35,9 @@
  * как в стандарте Forth 2012 (расширение Facility); @c accept — строка
  * через редактор строки. Экран: @c page, @c at-xy, цвета @c fg и @c bg —
  * последовательностями ANSI в потоке вывода, поэтому они действуют и в
- * терминале ПК; @c video-mode. Звук: @c beep и @c tone. И проверка платы
- * @c board-test.
+ * терминале ПК; @c video-mode. Время: @c ms, а @c counter и @c timer
+ * засекают время кода. Звук: @c beep и @c tone. Плата: проверка
+ * @c board-test и сводка памяти @c memstat.
  *
  * Номер события — esp::vt::key_event::value(): код знака или номер особой
  * клавиши с признаками. Для @c ekey>char знак — только знак без
@@ -74,6 +77,15 @@ constexpr std::uint32_t key_id(esp::vt::special_key key)
 
 /** @brief Наибольший номер знака: события меньше него без признаков — знаки. */
 constexpr std::int64_t FIRST_SPECIAL_KEY = 0x110000;
+
+/**
+ * @brief Возвращает миллисекунды с запуска — для @c counter и @c timer.
+ * @return Миллисекунды по модулю 2^32: столько помещается в ячейку Форта.
+ */
+std::uint32_t milliseconds()
+{
+    return static_cast<std::uint32_t>(esp_timer_get_time() / 1000);
+}
 
 }
 
@@ -271,6 +283,19 @@ const ff_native_word_t esp::shell::terminal_words::WORDS[] = {
     FF_NATIVE("ms", &esp::shell::terminal_words::ms,
               FF_TR_EN("( n -- )  Pause\nWaits *n* milliseconds."),
               FF_TR_RU("( n -- )  Пауза\nЖдёт *n* миллисекунд.")),
+    FF_NATIVE("counter", &esp::shell::terminal_words::counter,
+              FF_TR_EN("( -- u )  Milliseconds\n"
+                       "Leaves the milliseconds since start. With *timer* it times code: "
+                       "*counter* … *timer*."),
+              FF_TR_RU("( -- u )  Миллисекунды\n"
+                       "Кладёт, сколько миллисекунд прошло с запуска. Вместе с *timer* засекает "
+                       "время кода: *counter* … *timer*.")),
+    FF_NATIVE("timer", &esp::shell::terminal_words::timer,
+              FF_TR_EN("( u -- )  Elapsed time\n"
+                       "Prints the milliseconds since *counter* left *u*."),
+              FF_TR_RU("( u -- )  Прошедшее время\n"
+                       "Печатает, сколько миллисекунд прошло с тех пор, как *counter* оставил "
+                       "*u*.")),
     FF_NATIVE("beep", &esp::shell::terminal_words::beep,
               FF_TR_EN("( -- )  Short sound\nRings the bell."),
               FF_TR_RU("( -- )  Короткий звук\nПодаёт звонок.")),
@@ -290,6 +315,15 @@ const ff_native_word_t esp::shell::terminal_words::WORDS[] = {
               FF_TR_RU("( -- )  Проверка платы\n"
                        "Проверяет вывод на VGA, клавиатуру и мышь PS/2 и звук. "
                        "*Esc* возвращает в оболочку.")),
+    FF_NATIVE("memstat", &esp::shell::terminal_words::memstat,
+              FF_TR_EN("( -- )  Memory status\n"
+                       "Prints the free heap, its largest free block and the lowest it has been "
+                       "since start; how much of its memory Forth holds (*unused* leaves what is "
+                       "left); and the most the shell's stack has used."),
+              FF_TR_RU("( -- )  Состояние памяти\n"
+                       "Печатает, сколько свободно в куче, наибольший свободный её кусок и меньше "
+                       "всего свободного с запуска; сколько своей памяти занял Форт (остаток "
+                       "кладёт *unused*); и сколько самое большее занимал стек оболочки.")),
     FF_NATIVE_END,
 };
 
@@ -502,6 +536,39 @@ void esp::shell::terminal_words::ms(ff_t *ff)
 }
 
 /**
+ * @brief Слово @c counter ( -- u ): миллисекунды с запуска.
+ *
+ * Число — в одной ячейке, через 49 дней счёт начинается заново, но
+ * разность двух чисел (@c timer) верна и через этот переход.
+ *
+ * @param ff Движок.
+ */
+void esp::shell::terminal_words::counter(ff_t *ff)
+{
+    ff_push_int(ff, esp::shell::p::milliseconds());
+}
+
+/**
+ * @brief Слово @c timer ( u -- ): сколько миллисекунд прошло с @c counter.
+ *
+ * Число выводится, как его выводит @c . — без пробела после него.
+ *
+ * @param ff Движок.
+ */
+void esp::shell::terminal_words::timer(ff_t *ff)
+{
+    std::int64_t start = 0;
+    if (!ff_pop_int(ff, &start))
+        return;
+    // Разность — по модулю 2^32, как у ячейки: она верна и тогда, когда
+    // счёт миллисекунд между двумя числами начался заново.
+    const std::uint32_t elapsed = esp::shell::p::milliseconds() - static_cast<std::uint32_t>(start);
+    std::array<char, 16> text{};
+    std::snprintf(text.data(), text.size(), "%" PRIu32, elapsed);
+    shell(ff).write(text.data());
+}
+
+/**
  * @brief Слово @c beep ( -- ): звонок.
  * @param ff Движок.
  */
@@ -573,6 +640,15 @@ void esp::shell::terminal_words::board_test(ff_t *ff)
     shell(ff).board_test();
     if (shell(ff).is_interrupted())
         shell(ff).throw_interrupt();
+}
+
+/**
+ * @brief Слово @c memstat ( -- ): сводка памяти (esp::shell::forth_shell::memstat()).
+ * @param ff Движок.
+ */
+void esp::shell::terminal_words::memstat(ff_t *ff)
+{
+    shell(ff).memstat();
 }
 
 /**
